@@ -1,21 +1,24 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 provider "aws" {
   region = var.aws_region
 
   default_tags {
     tags = {
-      prod = true
+      hashicorp-learn = "lambda-api-gateway"
     }
   }
 
 }
 
 resource "random_pet" "lambda_bucket_name" {
-  prefix = "mywebsite-lambdas"
+  prefix = "learn-terraform-functions"
   length = 4
 }
 
 resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "mywebsite"
+  bucket = random_pet.lambda_bucket_name.id
 }
 
 resource "aws_s3_bucket_ownership_controls" "lambda_bucket" {
@@ -98,7 +101,7 @@ output "function_name" {
 
 resource "aws_apigatewayv2_api" "lambda" {
   name          = var.lambda_function_name
-  protocol_type = "REST"
+  protocol_type = "HTTP"
 }
 
 resource "aws_apigatewayv2_stage" "lambda" {

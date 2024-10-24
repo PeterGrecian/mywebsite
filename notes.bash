@@ -1,7 +1,15 @@
 cvdev=dzicdevmyi
 cv=4w46nd3x5l
+apig=41bmi2t2yc
+
+function terr() {
+    pushd terraform
+    terraform output
+    popd
+}
+
 function tst() {
-    curl -s $1 |& tee /tmp/out.txt | grep -q Oxford
+    timeout 5 curl -s $1 |& tee /tmp/out.txt | grep -q Oxford
     r=$?
     if [[ $r == 0 ]]; then
         echo -n "Yes "
@@ -24,11 +32,18 @@ function cmp() {
     echo
 }
 
+function hosts() {
+    host www.petergrecian.co.uk
+}
 
-function compare() {
-tst https://$cvdev.execute-api.eu-west-1.amazonaws.com/dev/cv-dev
-tst https://$cv.execute-api.eu-west-1.amazonaws.com/default/cv
-#aws apigateway get-autorizers --rest-api
+function tester() {
+
+    tst https://w3.petergrecian.co.uk
+    tst https://w3.petergrecian.co.uk/cv
+    tst https://w3.petergrecian.co.uk/cvdev
+    tst https://w3.petergrecian.co.uk/blah
+
+
 }
 
 function czz() {

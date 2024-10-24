@@ -3,7 +3,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      prod = true
+      prod = false
     }
   }
 
@@ -15,7 +15,7 @@ resource "random_pet" "lambda_bucket_name" {
 }
 
 resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "mywebsite"
+  bucket = "mywebsite-experimental"
 }
 
 resource "aws_s3_bucket_ownership_controls" "lambda_bucket" {
@@ -98,7 +98,7 @@ output "function_name" {
 
 resource "aws_apigatewayv2_api" "lambda" {
   name          = var.lambda_function_name
-  protocol_type = "REST"
+  protocol_type = "HTTP"
 }
 
 resource "aws_apigatewayv2_stage" "lambda" {
@@ -155,20 +155,6 @@ resource "aws_lambda_permission" "api_gw" {
 
   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
 }
-
-resource "aws_route53_record" "example" {
-  name                             = "w3.petergrecian.co.uk"
-  type                             = "A"
-  zone_id                          = "Z16NKNZAOD8PYT"
-
-  alias {
-      name                   = "d-gi40ldsj04.execute-api.eu-west-1.amazonaws.com"
-      zone_id                = "Z16NKNZAOD8PYT"
-      evaluate_target_health = false
-
-  }
-}
-
 
 output "base_url" {
   description = "Base URL for API Gateway stage."

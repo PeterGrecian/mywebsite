@@ -15,7 +15,7 @@ Actions, cost management*
 I use my numeracy and scientific background in AWS cost management.
 
 -   right sizing of resources especially EC2, RDS and OpenSearch
--   calculating the cost of AWS resource usage
+    -  calculating the cost of AWS resource usage
 -   reserved instances coverage planning
 -   cost effective approaches to meet budget requirements
 -   using lambda and dynamoDB and other serverless techniques
