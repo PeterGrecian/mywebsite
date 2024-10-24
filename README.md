@@ -3,10 +3,11 @@
 
 ## Current Development
 - cv served with lambda _done_
-- custom domain w3.petergrecian.co.uk _done_
-- throttling _done_
-- terraform for all of it _in progress_
-- updating CV.md bu GHA should update the website. -- because the website is sourced in git, ie. here.
+-- custom domain w3.petergrecian.co.uk _done_
+-- throttling _done_
+-- terraform for all of it _in progress_
+-- updating CV.md bu GHA should update the website. -- because the website is sourced in git, ie. here.
+-- favicon
 
 ## Implemented, if I can find them...
 * test signals (bandcamp)
