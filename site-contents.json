@@ -1,0 +1,6 @@
+[
+  {"path": "/", "title": "CV / Curriculum Vitae", "description": "professional experience and skills", "color": "pastel-lavender", "sort_order": 1, "visible": true},
+  {"path": "gardencam", "title": "Garden Camera", "description": "latest images from the garden", "color": "pastel-mint", "sort_order": 2, "visible": true, "auth_required": true},
+  {"path": "pi-fleet", "title": "Pi Fleet Status", "description": "raspberry pi monitoring dashboard", "color": "pastel-peach", "sort_order": 3, "visible": true},
+  {"path": "t3", "title": "K2 Bus Times", "description": "terse transport times for local buses", "color": "pastel-blue", "sort_order": 4, "visible": true}
+]

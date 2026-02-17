@@ -1,0 +1,8 @@
+*.zip
+__pycache__/
+*.pyc
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+favicon.png64

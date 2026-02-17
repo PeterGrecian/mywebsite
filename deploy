@@ -1,0 +1,46 @@
+#!/bin/bash -ex
+# Deploy mywebsite Lambda function
+
+# Validate Python syntax
+if ! python3 -m py_compile lambda/mywebsite.py; then
+  echo "Syntax error — not deploying"
+  exit 1
+fi
+rm -rf __pycache__
+
+# Generate favicon
+base64 lambda/tick.png > lambda/favicon.png64
+
+# Generate gitinfo
+echo '<link rel="stylesheet" href="styles.css">' > lambda/gitinfo.html
+echo '<title>Peter Grecian - Git Info</title>' >> lambda/gitinfo.html
+echo '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>' >> lambda/gitinfo.html
+origin=$(git remote get-url origin 2>/dev/null || echo "local")
+log=$(git log -1 --oneline 2>/dev/null || echo "no commits")
+date=$(date)
+echo "$origin<br>$log<br>$date<br>" >> lambda/gitinfo.html
+commit=$(echo $log | cut -d ' ' -f 1)
+echo '<a href="https://github.com/PeterGrecian/mywebsite/commit/'$commit'">https://github.com/PeterGrecian/mywebsite/commit/'$commit'</a>' >> lambda/gitinfo.html
+echo '</body></html>' >> lambda/gitinfo.html
+
+# Run local smoke test
+touch lambda/gitinfo.html
+if ! python3 lambda/mywebsite.py; then
+  echo "Smoke test failed — not deploying"
+  exit 1
+fi
+
+# Package Lambda
+cd lambda
+zip ../mywebsite.zip *.py *.html *.png64 *.jpg 2>/dev/null || zip ../mywebsite.zip *.py *.html *.png64
+cd ..
+
+# Upload to Lambda
+fn=mywebsite
+aws lambda update-function-code --zip-file fileb://$PWD/mywebsite.zip \
+  --function-name $fn | grep CodeSize
+echo "aws logs tail /aws/lambda/$fn --follow"
+
+# Cleanup
+rm mywebsite.zip
+rm -f lambda/favicon.png64
