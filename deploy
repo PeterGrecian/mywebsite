@@ -23,9 +23,8 @@ commit=$(echo $log | cut -d ' ' -f 1)
 echo '<a href="https://github.com/PeterGrecian/mywebsite/commit/'$commit'">https://github.com/PeterGrecian/mywebsite/commit/'$commit'</a>' >> lambda/gitinfo.html
 echo '</body></html>' >> lambda/gitinfo.html
 
-# Run local smoke test
-touch lambda/gitinfo.html
-if ! python3 lambda/mywebsite.py; then
+# Run local smoke test (must run from lambda/ so relative file opens work)
+if ! (cd lambda && python3 mywebsite.py); then
   echo "Smoke test failed — not deploying"
   exit 1
 fi

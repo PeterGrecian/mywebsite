@@ -6,3 +6,4 @@ __pycache__/
 *.tfstate.backup
 .terraform.lock.hcl
 favicon.png64
+lambda/gitinfo.html

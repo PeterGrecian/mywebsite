@@ -58,9 +58,29 @@ terraform -chdir=terraform apply   # Apply infrastructure changes
 python tools/sync-contents.py      # Sync navigation data to DynamoDB
 ```
 
-## Relation to cv Repo
+## mywebsite vs cv — Don't Confuse Them
 
-This repo replaces the `cv` repo's role as the website Lambda. The cv repo (`~/cv`) previously served `w3.petergrecian.co.uk` — this repo serves `www.petergrecian.co.uk`. Both run in parallel during migration.
+These are two separate repos running in parallel during migration:
+
+| | mywebsite (this repo) | cv (`~/cv`) |
+|---|---|---|
+| **Domain** | `www.petergrecian.co.uk` | `w3.petergrecian.co.uk` |
+| **Lambda** | `mywebsite` | `cvdev` |
+| **API Gateway** | `mywebsite-api` | `cvdev` |
+| **IAM role** | `mywebsite-lambda-role` | `cvdev` |
+| **Terraform state** | `mywebsite-tfstate` | `cv-tfstate` |
+| **Deploy script** | `./deploy` | `./update` |
+| **Handler file** | `lambda/mywebsite.py` | `cv.py` |
+| **Contents page** | DynamoDB-driven (`mywebsite-contents`) | Static HTML (`contents.html`) |
+
+**Key rules:**
+- Edit `lambda/mywebsite.py` here, NOT `cv.py` in `~/cv` — they are independent copies
+- Run `./deploy` here, NOT `./update` from `~/cv`
+- Terraform state is separate — `terraform apply` in each repo only affects its own resources
+- Both Lambdas read the same shared data stores (DynamoDB tables, S3 bucket, SSM parameters) — changes to shared data affect both
+- Do NOT delete or modify cv's AWS resources from this repo — they coexist
+
+**End goal:** This repo becomes the sole website. The cv repo will eventually only provide CV content data.
 
 ## AWS Region
 

@@ -33,7 +33,9 @@ def main():
         # Convert numbers to Decimal for DynamoDB
         ddb_item = {}
         for k, v in item.items():
-            if isinstance(v, (int, float)):
+            if isinstance(v, bool):
+                ddb_item[k] = v
+            elif isinstance(v, (int, float)):
                 ddb_item[k] = Decimal(str(v))
             else:
                 ddb_item[k] = v
