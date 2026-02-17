@@ -2091,7 +2091,7 @@ def render_contents_page():
     links_html = ""
     for item in items:
         path = item.get('path', '/')
-        href = "anything" if path == "/" else path
+        href = path
         title = item.get('title', '')
         description = item.get('description', '')
         color = item.get('color', 'pastel-lavender')
@@ -2102,12 +2102,12 @@ def render_contents_page():
 
     return f'''<html lang="en">
   <head>
-    <title>Peter Grecian - Contents</title>
+    <title>Peter Grecian</title>
     <style>
       body {{
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         text-align: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #4169E1;
         min-height: 100vh;
         margin: 0;
         padding: 2rem;
@@ -2120,39 +2120,39 @@ def render_contents_page():
       h1 {{
         color: white;
         font-size: 2.5rem;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
       }}
 
       .links-container {{
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
         width: 100%;
-        max-width: 600px;
+        max-width: 500px;
       }}
 
       .link-ellipse {{
         display: block;
-        padding: 1.5rem 3rem;
+        padding: 0.9rem 2rem;
         border-radius: 50px;
         text-decoration: none;
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         font-weight: 500;
         color: #333;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        box-shadow: 0 3px 5px rgba(0,0,0,0.2);
       }}
 
       .link-ellipse:hover {{
-        transform: translateY(-5px);
-        box-shadow: 0 8px 12px rgba(0,0,0,0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0,0,0,0.3);
       }}
 
       .link-ellipse .description {{
         display: block;
-        font-size: 0.9rem;
-        margin-top: 0.3rem;
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
         opacity: 0.8;
         font-weight: normal;
       }}
@@ -2164,8 +2164,8 @@ def render_contents_page():
       .pastel-blue {{ background-color: #B0E0E6; }}
 
       @media (max-width: 768px) {{
-        h1 {{ font-size: 2rem; margin-bottom: 2rem; }}
-        .link-ellipse {{ padding: 1.2rem 2rem; font-size: 1.1rem; }}
+        h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }}
+        .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }}
       }}
     </style>
   </head>
@@ -2231,6 +2231,8 @@ def lambda_handler(event, context):
             html += pformat(event[key]).replace(',', ',<br>') + "<br><br>"
     elif path == f'/{stage}/gitinfo' or path == '/gitinfo':
         html = open("gitinfo.html", "r").read()
+    elif path == f'/{stage}/cv' or path == '/cv':
+        html += open('cv.html', 'r').read()
     elif path == f'/{stage}/contents' or path == '/contents':
         html += render_contents_page()
     elif path.startswith(f'/{stage}/gardencam/capture') or path.startswith('/gardencam/capture'):
@@ -4519,7 +4521,7 @@ def lambda_handler(event, context):
             html += t3_format_html(arrivals)
 
     else:
-        html += open('cv.html', 'r').read()
+        html += render_contents_page()
 
     # If html already has complete structure (DOCTYPE), don't wrap it
     if html.strip().startswith('<!DOCTYPE') or html.strip().startswith('<html'):
@@ -4562,7 +4564,7 @@ if __name__ == "__main__":
     context.memory_limit_in_mb = 128
 
     # test all the code
-    for p in 'event contents anything-else'.split():
+    for p in 'event contents cv anything-else'.split():
         event['path'] = f'/-stage-/{p}'
         print(f'{p:<20}', len(pformat(lambda_handler(event, context))))
 
