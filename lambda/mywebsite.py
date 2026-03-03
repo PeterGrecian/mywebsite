@@ -1300,6 +1300,8 @@ def render_pi_fleet_page(pis):
             serial = pi.get('serial', 'unknown')  # Keep for backward compatibility
             local_ip = pi.get('local_ip', 'unknown')
             app_name = pi.get('app_name', 'unknown')
+            if app_name == 'unknown':
+                app_name = pi.get('expected_app', 'unknown')
             uptime = format_uptime(pi.get('uptime_seconds', 0))
 
             cpu = pi.get('cpu_percent', 0)
