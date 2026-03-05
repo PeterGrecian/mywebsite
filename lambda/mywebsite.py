@@ -4023,7 +4023,11 @@ def lambda_handler(event, context):
                 '''
             html += '</div>'
         else:
-            html += '<title>Garden Camera</title><h1>Garden Camera</h1><p>No images available yet.</p>'
+            return {
+                'statusCode': 502,
+                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Garden Camera</h1><p>No images available yet.</p></body></html>',
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
 
     elif path == f'/{stage}/lambda-stats/data' or path == '/lambda-stats/data':
         # Lambda statistics data endpoint - returns JSON
