@@ -2105,7 +2105,7 @@ def render_site_test_page():
     <title>Site Test - Page Load Times and Status</title>
     <style>
       * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; font-size: 150%; }}
       .container {{ max-width: 1000px; margin: 0 auto; }}
       h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; }}
       .nav {{ text-align: center; margin-bottom: 2rem; }}
