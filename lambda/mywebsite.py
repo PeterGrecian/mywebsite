@@ -27,6 +27,36 @@ MEMSPEED_PREFIX = "memspeed/"
 MEMSPEED_RESULTS_PREFIX = "memspeed/results/"
 MEMSPEED_DOWNLOADS_PREFIX = "memspeed/downloads/"
 
+# Shared iOS theme CSS + JS — included in every page's <head>
+THEME_CSS_JS = '''<script>
+(function(){
+  var s=localStorage.getItem('theme');
+  var p=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));
+})();
+</script>
+<style>
+:root{--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
+:root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
+#theme-toggle{position:fixed;top:1rem;right:1rem;background:var(--card-bg);color:var(--accent);border:1px solid var(--divider);border-radius:20px;padding:0.4rem 0.9rem;font-size:0.85rem;cursor:pointer;z-index:9999;font-family:var(--font);}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var btn=document.createElement('button');
+  btn.id='theme-toggle';
+  var t=document.documentElement.getAttribute('data-theme');
+  btn.textContent=t==='dark'?'Light':'Dark';
+  btn.onclick=function(){
+    var c=document.documentElement.getAttribute('data-theme');
+    var n=c==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',n);
+    localStorage.setItem('theme',n);
+    btn.textContent=n==='dark'?'Light':'Dark';
+  };
+  document.body.appendChild(btn);
+});
+</script>'''
+
 
 def format_to_sigfigs(value, sigfigs=3):
     """
@@ -371,8 +401,8 @@ def get_all_gardencam_images(max_keys=None):
         # Start from current date and work backwards
         all_objects = []
 
-        # Try last 7 days worth of prefixes
-        for days_ago in range(7):
+        # Try last 60 days worth of prefixes
+        for days_ago in range(60):
             date = datetime.utcnow() - timedelta(days=days_ago)
             date_prefix = f"garden_{date.strftime('%Y%m%d')}"
 
@@ -390,6 +420,14 @@ def get_all_gardencam_images(max_keys=None):
                     break
             except:
                 pass
+
+        # If fast path found nothing, fall back to full scan
+        if not all_objects:
+            paginator = s3.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='garden_')
+            for page in pages:
+                if "Contents" in page:
+                    all_objects.extend(page["Contents"])
     else:
         # Full scan for large requests or galleries
         paginator = s3.get_paginator('list_objects_v2')
@@ -518,6 +556,103 @@ def get_latest_gardencam_images(count=3):
 
     print(f"[TIMING] Total get_latest_gardencam_images: {(time.time()-t0)*1000:.0f}ms")
 
+    return images
+
+
+# ── Springcam ─────────────────────────────────────────────────────────────────
+
+SPRINGCAM_PREFIX = "springcam/"
+SPRINGCAM_KEY_PREFIX = "springcam/spring_"
+
+
+def springcam_thumb_key(key):
+    """Convert a springcam image key to its thumbnail key.
+
+    e.g. springcam/spring_20260304_120000.jpg
+      -> springcam/thumb_spring_20260304_120000.jpg
+    """
+    folder, _, basename = key.rpartition('/')
+    return f"{folder}/thumb_{basename}"
+
+
+def get_latest_springcam_images(count=3):
+    """Get presigned URLs for the latest N springcam images from S3."""
+    if not BOTO3_AVAILABLE:
+        return []
+
+    import time
+    t0 = time.time()
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    all_objects = []
+
+    # Fast path: try last 60 days by date prefix
+    for days_ago in range(60):
+        date = datetime.utcnow() - timedelta(days=days_ago)
+        prefix = f"springcam/spring_{date.strftime('%Y%m%d')}"
+        try:
+            response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
+            if "Contents" in response:
+                all_objects.extend(response["Contents"])
+            if len(all_objects) >= count * 2:
+                break
+        except Exception:
+            pass
+
+    # Fall back to full scan if fast path found nothing
+    if not all_objects:
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SPRINGCAM_KEY_PREFIX):
+            if "Contents" in page:
+                all_objects.extend(page["Contents"])
+
+    if not all_objects:
+        return []
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+
+    images = []
+    for obj in objects[:count * 4]:  # a little extra to allow for misses
+        key = obj["Key"]
+        thumb_key = springcam_thumb_key(key)
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({
+            'url': get_presigned_url(thumb_key),
+            'full_url': get_presigned_url(key),
+            'timestamp': timestamp,
+            'key': key,
+        })
+        if len(images) >= count:
+            break
+
+    print(f"[TIMING] get_latest_springcam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
+    return images
+
+
+def get_all_springcam_images(max_keys=None):
+    """Get all springcam images from S3, newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    paginator = s3.get_paginator('list_objects_v2')
+    all_objects = []
+    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SPRINGCAM_KEY_PREFIX):
+        if "Contents" in page:
+            all_objects.extend(page["Contents"])
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+    images = []
+    for obj in objects:
+        key = obj["Key"]
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({'key': key, 'timestamp': timestamp, 'last_modified': obj["LastModified"]})
+        if max_keys and len(images) >= max_keys:
+            break
     return images
 
 
@@ -1019,7 +1154,7 @@ def render_pi_fleet_page(pis):
     online_count = sum(1 for pi in pis if is_pi_online(pi.get('last_seen')))
     offline_count = len(pis) - online_count
 
-    html = '''
+    html = f'''
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -1028,222 +1163,43 @@ def render_pi_fleet_page(pis):
     <title>Pi Fleet Status</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPCEtLSBCbHVlIFBldGVyIG5hdXRpY2FsIGZsYWcgLS0+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMDAzODkzIiByeD0iMyIvPgogIDxyZWN0IHg9IjkiIHk9IjkiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 2rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .home-link {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        .home-link a {
-            color: white;
-            text-decoration: none;
-            font-size: 1rem;
-            opacity: 0.9;
-        }
-
-        .home-link a:hover {
-            opacity: 1;
-            text-decoration: underline;
-        }
-
-        .summary {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .summary-item {
-            text-align: center;
-        }
-
-        .summary-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-
-        .summary-label {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .online { color: #10b981; }
-        .offline { color: #ef4444; }
-        .total { color: #667eea; }
-
-        .pi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
-        }
-
-        .pi-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-        }
-
-        .pi-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.3);
-        }
-
-        .pi-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .pi-hostname {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .pi-status {
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 0.2rem 0.6rem;
-            border-radius: 10px;
-        }
-
-        .status-online {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-offline {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .pi-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .info-item {
-            font-size: 0.8rem;
-        }
-
-        .info-label {
-            color: #666;
-            font-weight: 500;
-            font-size: 0.75rem;
-        }
-
-        .info-value {
-            color: #333;
-            font-weight: 600;
-        }
-
-        .metrics {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .metric {
-            flex: 1;
-            text-align: center;
-        }
-
-        .metric-value {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .metric-label {
-            font-size: 0.7rem;
-            color: #666;
-            text-transform: uppercase;
-        }
-
-        .boot-progress {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-
-        .error-box {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            color: #991b1b;
-        }
-
-        .empty-state {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-
-        .empty-state h2 {
-            color: #666;
-            margin-bottom: 1rem;
-        }
-
-        .auto-refresh {
-            text-align: center;
-            color: white;
-            margin-top: 2rem;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-
-        @media (max-width: 768px) {
-            .pi-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .pi-info {
-                grid-template-columns: 1fr;
-            }
-        }
+        body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; margin: 0; padding: 2rem; }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        h1 {{ color: var(--text); text-align: center; margin-bottom: 2rem; }}
+        .home-link {{ text-align: center; margin-bottom: 1rem; }}
+        .home-link a {{ color: var(--accent); text-decoration: none; font-size: 1rem; }}
+        .home-link a:hover {{ opacity: 0.8; }}
+        .summary {{ background: var(--card-bg); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--divider); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1rem; }}
+        .summary-item {{ text-align: center; }}
+        .summary-value {{ font-size: 2rem; font-weight: bold; margin-bottom: 0.25rem; }}
+        .summary-label {{ color: var(--text-secondary); font-size: 0.9rem; }}
+        .online {{ color: #10b981; }}
+        .offline {{ color: var(--error); }}
+        .total {{ color: var(--accent); }}
+        .pi-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }}
+        .pi-card {{ background: var(--card-bg); border-radius: 12px; padding: 1rem; border: 1px solid var(--divider); transition: opacity 0.2s; }}
+        .pi-card:hover {{ opacity: 0.9; }}
+        .pi-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--divider); }}
+        .pi-hostname {{ font-size: 1.1rem; font-weight: bold; color: var(--text); }}
+        .pi-status {{ font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 10px; }}
+        .status-online {{ background: rgba(16,185,129,0.2); color: #10b981; }}
+        .status-offline {{ background: rgba(255,59,48,0.2); color: var(--error); }}
+        .pi-info {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; }}
+        .info-item {{ font-size: 0.8rem; }}
+        .info-label {{ color: var(--text-secondary); font-weight: 500; font-size: 0.75rem; }}
+        .info-value {{ color: var(--text); font-weight: 600; }}
+        .metrics {{ display: flex; gap: 0.75rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--divider); }}
+        .metric {{ flex: 1; text-align: center; }}
+        .metric-value {{ font-size: 1.2rem; font-weight: bold; color: var(--accent); }}
+        .metric-label {{ font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; }}
+        .boot-progress {{ margin-top: 1rem; padding: 0.75rem; background: rgba(255,149,0,0.15); border-left: 4px solid var(--warning); border-radius: 4px; font-size: 0.85rem; color: var(--text); }}
+        .error-box {{ margin-top: 1rem; padding: 0.75rem; background: rgba(255,59,48,0.15); border-left: 4px solid var(--error); border-radius: 4px; font-size: 0.85rem; color: var(--error); }}
+        .empty-state {{ background: var(--card-bg); border-radius: 12px; padding: 3rem; text-align: center; border: 1px solid var(--divider); }}
+        .empty-state h2 {{ color: var(--text-secondary); }}
+        .auto-refresh {{ text-align: center; color: var(--text-secondary); margin-top: 2rem; font-size: 0.9rem; }}
+        @media (max-width: 768px) {{ .pi-grid {{ grid-template-columns: 1fr; }} .pi-info {{ grid-template-columns: 1fr; }} }}
     </style>
+    {THEME_CSS_JS}
     </head>
     <body>
     <div class="container">
@@ -1599,20 +1555,20 @@ def t3_format_html(arrivals):
             boxes.append(f'<span class="{cls}">{display}</span>')
         return ' '.join(boxes)
 
-    return f"""
+    return f"""{THEME_CSS_JS}
 <title>K2 Parklands</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body {{ font-family: -apple-system, sans-serif; background: #1a1a1a; color: #fff; padding: 1rem; margin: 0; text-align: center; }}
+body {{ font-family: var(--font); background: var(--bg); color: var(--text); padding: 1rem; margin: 0; text-align: center; }}
 .nav {{ position: absolute; top: 1rem; left: 1rem; }}
-.nav a {{ color: #4a9eff; text-decoration: none; font-size: 0.9rem; }}
+.nav a {{ color: var(--accent); text-decoration: none; font-size: 0.9rem; }}
 h1 {{ font-size: 1.2rem; margin-top: 1rem; margin-bottom: 6rem; }}
 .direction {{ margin: 3rem 0; }}
 .times {{ font-family: monospace; }}
-.time-box {{ display: inline-block; font-size: 6rem; color: #4a9eff; border: 2px solid #4a9eff; border-radius: 12px; padding: 0.3rem 0.8rem; margin: 0 0.5rem; }}
-.time-box.next {{ color: #fff; font-weight: bold; border-color: #fff; }}
-.dest {{ font-size: 0.75rem; color: #666; margin-top: 1rem; }}
-.refresh {{ font-size: 0.8rem; color: #444; margin-top: 3rem; }}
+.time-box {{ display: inline-block; font-size: 6rem; color: var(--accent); border: 2px solid var(--accent); border-radius: 12px; padding: 0.3rem 0.8rem; margin: 0 0.5rem; }}
+.time-box.next {{ color: var(--text); font-weight: bold; border-color: var(--text); }}
+.dest {{ font-size: 0.75rem; color: var(--text-secondary); margin-top: 1rem; }}
+.refresh {{ font-size: 0.8rem; color: var(--text-secondary); margin-top: 3rem; }}
 </style>
 <div class="nav"><a href="contents">Home</a></div>
 <h1>K2 @ Parklands</h1>
@@ -1862,43 +1818,43 @@ def render_memspeed_page(results, downloads):
             '''
         results_table += '</tbody></table>'
 
-    return f'''
+    return f'''{THEME_CSS_JS}
     <title>Memory Bandwidth Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }}
+        body {{ font-family: var(--font); margin: 0; padding: 1rem; background: var(--bg); color: var(--text); }}
         .nav {{ text-align: center; margin-bottom: 1.5rem; }}
-        .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 1rem; padding: 0.5rem 1rem; background: #2a2a2a; border-radius: 6px; display: inline-block; }}
-        .nav a:hover {{ background: #3a3a3a; }}
+        .nav a {{ color: var(--accent); text-decoration: none; margin: 0 1rem; padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 6px; display: inline-block; }}
+        .nav a:hover {{ opacity: 0.8; }}
         h1 {{ text-align: center; margin-bottom: 2rem; }}
-        h2 {{ color: #aaa; margin-top: 2rem; }}
-        .chart-container {{ max-width: 1400px; margin: 0 auto 2rem auto; background: #2a2a2a; padding: 1.5rem; border-radius: 8px; }}
-        .chart-title {{ font-size: 1.2rem; margin-bottom: 1rem; color: #aaa; text-align: center; }}
+        h2 {{ color: var(--text-secondary); margin-top: 2rem; }}
+        .chart-container {{ max-width: 1400px; margin: 0 auto 2rem auto; background: var(--card-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--divider); }}
+        .chart-title {{ font-size: 1.2rem; margin-bottom: 1rem; color: var(--text-secondary); text-align: center; }}
         canvas {{ max-height: 500px; }}
-        .upload-section {{ max-width: 600px; margin: 2rem auto; padding: 1.5rem; background: #2a2a2a; border-radius: 8px; }}
+        .upload-section {{ max-width: 600px; margin: 2rem auto; padding: 1.5rem; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; }}
         .upload-section h2 {{ margin-top: 0; }}
         .upload-form {{ display: flex; flex-direction: column; gap: 1rem; }}
-        .upload-form input[type="file"] {{ padding: 0.5rem; background: #1a1a1a; border: 1px solid #444; border-radius: 4px; color: #fff; }}
-        .upload-form button {{ padding: 0.75rem 1.5rem; background: #4a9eff; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }}
-        .upload-form button:hover {{ background: #3a8eef; }}
-        .upload-form button:disabled {{ background: #666; cursor: not-allowed; }}
+        .upload-form input[type="file"] {{ padding: 0.5rem; background: var(--bg); border: 1px solid var(--divider); border-radius: 4px; color: var(--text); }}
+        .upload-form button {{ padding: 0.75rem 1.5rem; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }}
+        .upload-form button:hover {{ opacity: 0.85; }}
+        .upload-form button:disabled {{ opacity: 0.5; cursor: not-allowed; }}
         #uploadStatus {{ margin-top: 0.5rem; font-size: 0.9rem; }}
         .downloads-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }}
-        .download-item {{ display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #1a1a1a; border-radius: 6px; text-decoration: none; color: #4a9eff; transition: background 0.3s; }}
-        .download-item:hover {{ background: #333; }}
+        .download-item {{ display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--card-bg); border-radius: 6px; text-decoration: none; color: var(--accent); border: 1px solid var(--divider); transition: background 0.2s; }}
+        .download-item:hover {{ background: rgba(142,142,147,0.1); }}
         .filename {{ font-family: monospace; }}
-        .filesize {{ color: #888; font-size: 0.9rem; }}
+        .filesize {{ color: var(--text-secondary); font-size: 0.9rem; }}
         .results-table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
-        .results-table th, .results-table td {{ padding: 0.75rem; text-align: left; border-bottom: 1px solid #3a3a3a; }}
-        .results-table th {{ color: #aaa; background: #1a1a1a; }}
+        .results-table th, .results-table td {{ padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--divider); }}
+        .results-table th {{ color: var(--text-secondary); background: var(--bg); }}
         .results-table td {{ font-family: monospace; font-size: 0.9rem; }}
-        .no-data {{ text-align: center; color: #888; padding: 2rem; }}
-        .about-section {{ max-width: 900px; margin: 0 auto 2rem auto; padding: 1.5rem; background: #2a2a2a; border-radius: 8px; line-height: 1.6; }}
-        .about-section h2 {{ margin-top: 0; color: #aaa; }}
-        .about-section p {{ color: #ccc; margin: 1rem 0; }}
-        .about-section code {{ background: #1a1a1a; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace; }}
-        .about-section pre {{ background: #1a1a1a; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.9rem; }}
-        .about-section ul {{ color: #ccc; margin: 1rem 0; padding-left: 1.5rem; }}
+        .no-data {{ text-align: center; color: var(--text-secondary); padding: 2rem; }}
+        .about-section {{ max-width: 900px; margin: 0 auto 2rem auto; padding: 1.5rem; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; line-height: 1.6; }}
+        .about-section h2 {{ margin-top: 0; color: var(--text-secondary); }}
+        .about-section p {{ color: var(--text-secondary); margin: 1rem 0; }}
+        .about-section code {{ background: var(--bg); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace; }}
+        .about-section pre {{ background: var(--bg); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.9rem; }}
+        .about-section ul {{ color: var(--text-secondary); margin: 1rem 0; padding-left: 1.5rem; }}
         .about-section li {{ margin: 0.5rem 0; }}
     </style>
     <div class="nav">
@@ -1954,8 +1910,8 @@ grep -v Reps all.out > data.csv
             <button type="submit" id="uploadBtn">Upload Benchmark</button>
             <div id="uploadStatus"></div>
         </form>
-        <p style="color: #888; font-size: 0.85rem; margin-top: 1rem;">
-            Generate JSON with: <code style="background: #1a1a1a; padding: 0.2rem 0.4rem; border-radius: 3px;">./export_json.py &gt; result.json</code>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 1rem;">
+            Generate JSON with: <code style="background: var(--bg); padding: 0.2rem 0.4rem; border-radius: 3px;">./export_json.py &gt; result.json</code>
         </p>
     </div>
 
@@ -2096,8 +2052,7 @@ def render_contents_page():
         href = path
         title = item.get('title', '')
         description = item.get('description', '')
-        color = item.get('color', 'pastel-lavender')
-        links_html += f'''      <a href="{href}" class="link-ellipse {color}">
+        links_html += f'''      <a href="{href}" class="link-ellipse">
         {title}
         <span class="description">{description}</span>
       </a>\n'''
@@ -2106,75 +2061,241 @@ def render_contents_page():
   <head>
     <title>Peter Grecian</title>
     <style>
-      body {{
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        text-align: center;
-        background: #4169E1;
-        min-height: 100vh;
-        margin: 0;
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }}
-
-      h1 {{
-        color: white;
-        font-size: 2.5rem;
-        margin-bottom: 2rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-      }}
-
-      .links-container {{
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        width: 100%;
-        max-width: 500px;
-      }}
-
-      .link-ellipse {{
-        display: block;
-        padding: 0.9rem 2rem;
-        border-radius: 50px;
-        text-decoration: none;
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #333;
-        transition: all 0.3s ease;
-        box-shadow: 0 3px 5px rgba(0,0,0,0.2);
-      }}
-
-      .link-ellipse:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 6px 10px rgba(0,0,0,0.3);
-      }}
-
-      .link-ellipse .description {{
-        display: block;
-        font-size: 0.8rem;
-        margin-top: 0.2rem;
-        opacity: 0.8;
-        font-weight: normal;
-      }}
-
-      .pastel-pink {{ background-color: #FFD1DC; }}
-      .pastel-lavender {{ background-color: #E6E6FA; }}
-      .pastel-mint {{ background-color: #C7EBCC; }}
-      .pastel-peach {{ background-color: #FFDAB9; }}
-      .pastel-blue {{ background-color: #B0E0E6; }}
-
-      @media (max-width: 768px) {{
-        h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }}
-        .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }}
-      }}
+      body {{ font-family: var(--font); text-align: center; background: var(--bg); min-height: 100vh; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }}
+      h1 {{ color: var(--text); font-size: 2.5rem; margin-bottom: 2rem; }}
+      .links-container {{ display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 500px; }}
+      .link-ellipse {{ display: block; padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none; font-size: 1.1rem; font-weight: 500; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); transition: opacity 0.2s; }}
+      .link-ellipse:hover {{ opacity: 0.8; }}
+      .link-ellipse .description {{ display: block; font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-secondary); font-weight: normal; }}
+      @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }} }}
     </style>
+    {THEME_CSS_JS}
   </head>
   <body>
     <h1>Peter Grecian</h1>
     <div class="links-container">
 {links_html}    </div>
+  </body>
+</html>'''
+
+
+def render_site_test_page():
+    """Render the site test page - tests all pages and shows load times and status."""
+    return f'''<html lang="en">
+  <head>
+    <title>Site Test - Page Load Times and Status</title>
+    <style>
+      * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; }}
+      .container {{ max-width: 1000px; margin: 0 auto; }}
+      h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; }}
+      .nav {{ text-align: center; margin-bottom: 2rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.5rem; display: inline-block; transition: opacity 0.2s; }}
+      .nav a:hover {{ opacity: 0.8; }}
+      .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
+      .table-wrapper {{ background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--divider); }}
+      table {{ width: 100%; border-collapse: collapse; }}
+      thead {{ background: var(--divider); color: var(--text); }}
+      th {{ padding: 1rem; text-align: left; font-weight: 600; color: var(--text); }}
+      td {{ padding: 0.8rem 1rem; border-bottom: 1px solid var(--divider); color: var(--text); }}
+      tbody tr:hover {{ background: rgba(142,142,147,0.1); }}
+      .page-name {{ font-weight: 500; color: var(--text); }}
+      .loading {{ color: var(--accent); font-style: italic; }}
+      .success {{ color: #10b981; font-weight: 600; }}
+      .error {{ color: var(--error); font-weight: 600; }}
+      .timeout {{ color: var(--warning); font-weight: 600; }}
+      .protected {{ color: var(--accent); font-weight: 600; }}
+      .time {{ font-family: monospace; text-align: right; font-size: 0.9rem; color: var(--text-secondary); }}
+      .controls {{ text-align: center; margin-bottom: 1.5rem; }}
+      button {{ background: var(--card-bg); color: var(--accent); border: 1px solid var(--divider); padding: 0.8rem 1.5rem; border-radius: 20px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 1rem; }}
+      button:hover {{ opacity: 0.8; }}
+      button:disabled {{ opacity: 0.4; cursor: not-allowed; }}
+      .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 2rem; }}
+      .stat-box {{ background: var(--card-bg); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--divider); }}
+      .stat-value {{ font-size: 2rem; font-weight: bold; color: var(--accent); }}
+      .stat-label {{ color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; }}
+    </style>
+    {THEME_CSS_JS}
+  </head>
+  <body>
+    <div class="container">
+      <h1>Site Test</h1>
+      <p class="subtitle">Page load times and status monitoring</p>
+      <div class="nav">
+        <a href="contents">← Home</a>
+      </div>
+
+      <div class="controls">
+        <button id="testBtn" onclick="testAllPages()">Start Tests</button>
+        <button id="resetBtn" onclick="resetTests()" style="margin-left: 1rem;">Reset</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Status</th>
+              <th style="text-align: right;">Load Time</th>
+            </tr>
+          </thead>
+          <tbody id="testResults">
+            <tr id="row-cv">
+              <td class="page-name">CV / Curriculum Vitae</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-pi-fleet">
+              <td class="page-name">Pi Fleet Status</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-t3">
+              <td class="page-name">K2 Bus Times</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-memspeed">
+              <td class="page-name">Memory Benchmark</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-lambda-stats">
+              <td class="page-name">Lambda Statistics</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-gardencam">
+              <td class="page-name">Garden Camera</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+            <tr id="row-springcam">
+              <td class="page-name">Spring Camera</td>
+              <td class="loading">pending...</td>
+              <td class="time">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-value" id="avgTime">—</div>
+          <div class="stat-label">Avg Load Time</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="successCount">0</div>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="protectedCount">0</div>
+          <div class="stat-label">Protected</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="errorCount">0</div>
+          <div class="stat-label">Errors</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const pages = [
+        {{ id: 'cv', path: 'cv', label: 'CV / Curriculum Vitae' }},
+        {{ id: 'pi-fleet', path: 'pi-fleet', label: 'Pi Fleet Status' }},
+        {{ id: 't3', path: 't3', label: 'K2 Bus Times' }},
+        {{ id: 'memspeed', path: 'memspeed', label: 'Memory Benchmark' }},
+        {{ id: 'lambda-stats', path: 'lambda-stats', label: 'Lambda Statistics' }},
+        {{ id: 'gardencam', path: 'gardencam', label: 'Garden Camera' }},
+        {{ id: 'springcam', path: 'springcam', label: 'Spring Camera' }}
+      ];
+
+      async function testPage(page) {{
+        const row = document.getElementById(`row-${{page.id}}`);
+        const statusCell = row.cells[1];
+        const timeCell = row.cells[2];
+
+        try {{
+          const startTime = performance.now();
+          const response = await fetch(page.path, {{
+            method: 'GET',
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          }});
+          const endTime = performance.now();
+          const loadTime = endTime - startTime;
+
+          if (response.status === 200) {{
+            statusCell.className = 'success';
+            statusCell.textContent = '✓ OK';
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'success', time: loadTime }};
+          }} else if (response.status === 401) {{
+            statusCell.className = 'protected';
+            statusCell.textContent = '🔒 Auth Required';
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'protected', time: loadTime }};
+          }} else {{
+            statusCell.className = 'error';
+            statusCell.textContent = `✗ ${{response.status}}`;
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'error', time: loadTime }};
+          }}
+        }} catch (error) {{
+          if (error.name === 'AbortError') {{
+            statusCell.className = 'timeout';
+            statusCell.textContent = '⏱ Timeout';
+            timeCell.textContent = '10000+ ms';
+            return {{ status: 'timeout', time: 10000 }};
+          }} else {{
+            statusCell.className = 'error';
+            statusCell.textContent = error.message;
+            timeCell.textContent = '—';
+            return {{ status: 'error', time: 0 }};
+          }}
+        }}
+      }}
+
+      async function testAllPages() {{
+        const btn = document.getElementById('testBtn');
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+
+        const results = [];
+        for (const page of pages) {{
+          const result = await testPage(page);
+          results.push(result);
+        }}
+
+        // Update statistics
+        const successful = results.filter(r => r.status === 'success').length;
+        const protected_pages = results.filter(r => r.status === 'protected').length;
+        const errors = results.filter(r => r.status === 'error' || r.status === 'timeout').length;
+        const successfulTimes = results.filter(r => r.status === 'success').map(r => r.time);
+        const avgTime = successfulTimes.length > 0 ? (successfulTimes.reduce((a, b) => a + b) / successfulTimes.length).toFixed(0) : '—';
+
+        document.getElementById('successCount').textContent = successful;
+        document.getElementById('protectedCount').textContent = protected_pages;
+        document.getElementById('errorCount').textContent = errors;
+        document.getElementById('avgTime').textContent = avgTime + (avgTime !== '—' ? ' ms' : '');
+
+        btn.disabled = false;
+        btn.textContent = 'Start Tests';
+      }}
+
+      function resetTests() {{
+        document.querySelectorAll('tbody tr').forEach(row => {{
+          const statusCell = row.cells[1];
+          const timeCell = row.cells[2];
+          statusCell.className = 'loading';
+          statusCell.textContent = 'pending...';
+          timeCell.textContent = '—';
+        }});
+        document.getElementById('avgTime').textContent = '—';
+        document.getElementById('successCount').textContent = '0';
+        document.getElementById('protectedCount').textContent = '0';
+        document.getElementById('errorCount').textContent = '0';
+      }}
+    </script>
   </body>
 </html>'''
 
@@ -2237,6 +2358,8 @@ def lambda_handler(event, context):
         html += open('cv.html', 'r').read()
     elif path == f'/{stage}/contents' or path == '/contents':
         html += render_contents_page()
+    elif path == f'/{stage}/site-test' or path == '/site-test':
+        html = render_site_test_page()
     elif path.startswith(f'/{stage}/gardencam/capture') or path.startswith('/gardencam/capture'):
         # Capture command endpoint
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
@@ -3796,33 +3919,33 @@ def lambda_handler(event, context):
 
         images = get_latest_gardencam_images(3)
         if images:
-            html += '''
+            html += f'''{THEME_CSS_JS}
             <title>Garden Camera</title>
             <style>
-                body { font-family: Arial, sans-serif; text-align: center; margin: 1rem; background: #1a1a1a; color: #fff; }
-                h1 { margin-bottom: 1rem; font-size: 2rem; }
-                .gallery-link { display: inline-block; margin-bottom: 1.5rem; padding: 0.5rem 1.5rem; background: #4a5568; color: #fff; text-decoration: none; border-radius: 6px; transition: background 0.3s; }
-                .gallery-link:hover { background: #5a6578; }
-                .gallery { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; max-width: 1024px; margin: 0 auto; }
-                .image-container { flex: 1; min-width: 280px; max-width: 340px; }
-                .image-container a { display: block; cursor: pointer; }
-                .image-container img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.3s; }
-                .image-container img:hover { transform: scale(1.05); }
-                .timestamp { color: #888; margin-top: 0.5rem; font-size: 0.9rem; }
-                .label { color: #aaa; font-weight: bold; margin-bottom: 0.5rem; font-size: 1rem; }
+                body {{ font-family: var(--font); text-align: center; margin: 1rem; background: var(--bg); color: var(--text); }}
+                h1 {{ margin-bottom: 1rem; font-size: 2rem; }}
+                .gallery-link {{ display: inline-block; margin-bottom: 1.5rem; padding: 0.5rem 1.5rem; background: var(--card-bg); color: var(--accent); text-decoration: none; border-radius: 8px; border: 1px solid var(--divider); transition: opacity 0.2s; }}
+                .gallery-link:hover {{ opacity: 0.8; }}
+                .gallery {{ display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; max-width: 1024px; margin: 0 auto; }}
+                .image-container {{ flex: 1; min-width: 280px; max-width: 340px; }}
+                .image-container a {{ display: block; cursor: pointer; }}
+                .image-container img {{ width: 100%; height: auto; border-radius: 8px; transition: opacity 0.2s; }}
+                .image-container img:hover {{ opacity: 0.85; }}
+                .timestamp {{ color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.9rem; }}
+                .label {{ color: var(--text-secondary); font-weight: bold; margin-bottom: 0.5rem; font-size: 1rem; }}
 
                 /* Mobile/Tablet - stack vertically */
-                @media (max-width: 1024px) {
-                    body { margin: 0.5rem; }
-                    h1 { font-size: 1.5rem; margin-bottom: 0.75rem; }
-                    .gallery { flex-direction: column; gap: 1rem; }
-                    .image-container { min-width: 100%; max-width: 100%; }
-                    .label { font-size: 1rem; }
-                    .timestamp { font-size: 0.85rem; }
-                }
+                @media (max-width: 1024px) {{
+                    body {{ margin: 0.5rem; }}
+                    h1 {{ font-size: 1.5rem; margin-bottom: 0.75rem; }}
+                    .gallery {{ flex-direction: column; gap: 1rem; }}
+                    .image-container {{ min-width: 100%; max-width: 100%; }}
+                    .label {{ font-size: 1rem; }}
+                    .timestamp {{ font-size: 0.85rem; }}
+                }}
             </style>
             <div style="text-align: center; margin-bottom: 1rem;">
-                <a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a>
+                <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
             </div>
             <h1>Garden Camera</h1>
             <a href="gardencam/gallery" class="gallery-link">View Full Gallery</a>
@@ -4102,32 +4225,33 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/lambda-stats' or path == '/lambda-stats':
         # Lambda statistics page - returns HTML skeleton that loads data asynchronously
 
-        html += '''
+        html += f'''
         <!DOCTYPE html>
         <html lang="en">
         <head>
         <meta charset="UTF-8">
         <title>Lambda CloudWatch Metrics</title>
+        {THEME_CSS_JS}
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <style>
-            body { font-family: Arial, sans-serif; margin: 2rem; background: #f5f5f5; }
-            h1 { color: #333; }
-            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            table { width: 100%; border-collapse: collapse; margin: 2rem 0; }
-            th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background: #667eea; color: white; font-weight: 600; }
-            tr:hover { background: #f8f9fa; }
-            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }
-            .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 8px; text-align: center; color: white; }
-            .stat-value { font-size: 2rem; font-weight: bold; }
-            .stat-label { margin-top: 0.5rem; opacity: 0.9; }
-            .nav { text-align: center; margin-bottom: 2rem; }
-            .nav a { color: #667eea; text-decoration: none; padding: 0.5rem 1rem; background: #f0f0f0; border-radius: 4px; }
-            .loading { text-align: center; padding: 2rem; color: #666; }
-            .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            .error { background: #fee; padding: 1rem; border-radius: 4px; color: #c00; margin: 1rem 0; }
-            .chart-container { margin: 2rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+            body {{ font-family: var(--font); margin: 2rem; background: var(--bg); color: var(--text); }}
+            h1 {{ color: var(--text); }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: var(--card-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--divider); }}
+            table {{ width: 100%; border-collapse: collapse; margin: 2rem 0; }}
+            th, td {{ padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--divider); color: var(--text); }}
+            th {{ background: var(--divider); font-weight: 600; }}
+            tr:hover {{ background: rgba(142,142,147,0.1); }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }}
+            .stat-box {{ background: var(--card-bg); padding: 1.5rem; border-radius: 8px; text-align: center; border: 1px solid var(--divider); }}
+            .stat-value {{ font-size: 2rem; font-weight: bold; color: var(--accent); }}
+            .stat-label {{ margin-top: 0.5rem; color: var(--text-secondary); }}
+            .nav {{ text-align: center; margin-bottom: 2rem; }}
+            .nav a {{ color: var(--accent); text-decoration: none; padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 20px; }}
+            .loading {{ text-align: center; padding: 2rem; color: var(--accent); }}
+            .spinner {{ border: 3px solid var(--divider); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; }}
+            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            .error {{ background: rgba(255,59,48,0.1); padding: 1rem; border-radius: 4px; color: var(--error); margin: 1rem 0; }}
+            .chart-container {{ margin: 2rem 0; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--divider); }}
         </style>
         </head>
         <body>
@@ -4204,8 +4328,8 @@ def lambda_handler(event, context):
         </div>
 
         <script>
-        async function loadStats() {
-            try {
+        async function loadStats() {{
+            try {{
                 const response = await fetch('./lambda-stats/data');
                 if (!response.ok) throw new Error('Failed to load data');
 
@@ -4215,138 +4339,138 @@ def lambda_handler(event, context):
                 const summary = data.summary;
                 document.getElementById('summary-stats').innerHTML = `
                     <div class="stat-box">
-                        <div class="stat-value">${summary.total_invocations.toLocaleString()}</div>
+                        <div class="stat-value">${{summary.total_invocations.toLocaleString()}}</div>
                         <div class="stat-label">Total Invocations</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${summary.total_errors.toLocaleString()}</div>
+                        <div class="stat-value">${{summary.total_errors.toLocaleString()}}</div>
                         <div class="stat-label">Errors</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${summary.total_throttles.toLocaleString()}</div>
+                        <div class="stat-value">${{summary.total_throttles.toLocaleString()}}</div>
                         <div class="stat-label">Throttles</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${summary.error_rate.toFixed(2)}%</div>
+                        <div class="stat-value">${{summary.error_rate.toFixed(2)}}%</div>
                         <div class="stat-label">Error Rate</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${Math.round(summary.avg_duration)}ms</div>
+                        <div class="stat-value">${{Math.round(summary.avg_duration)}}ms</div>
                         <div class="stat-label">Avg Duration</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">${Math.round(summary.max_duration)}ms</div>
+                        <div class="stat-value">${{Math.round(summary.max_duration)}}ms</div>
                         <div class="stat-label">Max Duration</div>
                     </div>
                 `;
 
                 // Create histogram chart
                 const ctx = document.getElementById('histogramChart').getContext('2d');
-                new Chart(ctx, {
+                new Chart(ctx, {{
                     type: 'bar',
-                    data: {
+                    data: {{
                         labels: data.histogram.labels,
                         datasets: data.histogram.datasets
-                    },
-                    options: {
+                    }},
+                    options: {{
                         responsive: true,
                         maintainAspectRatio: true,
                         aspectRatio: 3,
-                        scales: {
-                            x: {
+                        scales: {{
+                            x: {{
                                 stacked: true,
-                                title: {
+                                title: {{
                                     display: true,
                                     text: 'Days Ago'
-                                },
-                                ticks: {
+                                }},
+                                ticks: {{
                                     maxRotation: 0,
                                     minRotation: 0,
-                                    font: { size: 10 }
-                                }
-                            },
-                            y: {
+                                    font: {{ size: 10 }}
+                                }}
+                            }},
+                            y: {{
                                 stacked: true,
                                 beginAtZero: true,
-                                title: {
+                                title: {{
                                     display: true,
                                     text: 'Requests'
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
+                                }}
+                            }}
+                        }},
+                        plugins: {{
+                            legend: {{
                                 position: 'bottom',
-                                labels: { boxWidth: 15, font: { size: 11 } }
-                            },
-                            title: {
+                                labels: {{ boxWidth: 15, font: {{ size: 11 }} }}
+                            }},
+                            title: {{
                                 display: true,
                                 text: 'Request Volume by Path (Stacked)',
-                                font: { size: 14 }
-                            }
-                        }
-                    }
-                });
+                                font: {{ size: 14 }}
+                            }}
+                        }}
+                    }}
+                }});
 
                 // Populate functions table
                 document.getElementById('functions-tbody').innerHTML = data.functions.map(f => `
                     <tr>
-                        <td><strong>${f.name}</strong></td>
-                        <td>${f.invocations.toLocaleString()}</td>
-                        <td>${f.errors.toLocaleString()}</td>
-                        <td>${f.error_rate.toFixed(2)}%</td>
-                        <td>${Math.round(f.avg_duration)}</td>
-                        <td>${Math.round(f.max_duration)}</td>
+                        <td><strong>${{f.name}}</strong></td>
+                        <td>${{f.invocations.toLocaleString()}}</td>
+                        <td>${{f.errors.toLocaleString()}}</td>
+                        <td>${{f.error_rate.toFixed(2)}}%</td>
+                        <td>${{Math.round(f.avg_duration)}}</td>
+                        <td>${{Math.round(f.max_duration)}}</td>
                     </tr>
                 `).join('');
 
                 // Populate paths table
                 document.getElementById('paths-tbody').innerHTML = data.paths.map(p => `
                     <tr>
-                        <td><code>${p.path}</code></td>
-                        <td>${p.count.toLocaleString()}</td>
-                        <td>${p.percentage.toFixed(1)}%</td>
+                        <td><code>${{p.path}}</code></td>
+                        <td>${{p.count.toLocaleString()}}</td>
+                        <td>${{p.percentage.toFixed(1)}}%</td>
                     </tr>
                 `).join('');
 
                 // Populate IPs table
-                document.getElementById('ips-tbody').innerHTML = data.ips.map(ip => {
+                document.getElementById('ips-tbody').innerHTML = data.ips.map(ip => {{
                     const ua = ip.top_ua.length > 80 ? ip.top_ua.substring(0, 80) + '...' : ip.top_ua;
                     return `
                         <tr>
-                            <td><code>${ip.ip}</code></td>
-                            <td>${ip.country}</td>
-                            <td>${ip.city}</td>
-                            <td>${ip.count.toLocaleString()}</td>
-                            <td><code>${ip.top_path || '(root)'}</code></td>
-                            <td style="font-size: 0.85rem;">${ua}</td>
+                            <td><code>${{ip.ip}}</code></td>
+                            <td>${{ip.country}}</td>
+                            <td>${{ip.city}}</td>
+                            <td>${{ip.count.toLocaleString()}}</td>
+                            <td><code>${{ip.top_path || '(root)'}}</code></td>
+                            <td style="font-size: 0.85rem;">${{ua}}</td>
                         </tr>
                     `;
-                }).join('');
+                }}).join('');
 
                 // Populate user agents table
-                document.getElementById('uas-tbody').innerHTML = data.user_agents.map(ua => {
+                document.getElementById('uas-tbody').innerHTML = data.user_agents.map(ua => {{
                     const uaDisplay = ua.user_agent.length > 120 ? ua.user_agent.substring(0, 120) + '...' : ua.user_agent;
                     return `
                         <tr>
-                            <td style="font-size: 0.9rem; word-break: break-all;">${uaDisplay}</td>
-                            <td>${ua.count.toLocaleString()}</td>
+                            <td style="font-size: 0.9rem; word-break: break-all;">${{uaDisplay}}</td>
+                            <td>${{ua.count.toLocaleString()}}</td>
                         </tr>
                     `;
-                }).join('');
+                }}).join('');
 
                 // Hide loading, show content
                 document.querySelector('.loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
-            } catch (error) {
+            }} catch (error) {{
                 document.querySelector('.loading').innerHTML = `
                     <div class="error">
                         <strong>Error loading statistics:</strong><br>
-                        ${error.message}
+                        ${{error.message}}
                     </div>
                 `;
-            }
-        }
+            }}
+        }}
 
         // Load data when page loads
         loadStats();
@@ -4521,6 +4645,119 @@ def lambda_handler(event, context):
             html += f"<h1>Error</h1><p>{error}</p>"
         else:
             html += t3_format_html(arrivals)
+
+    elif path == f'/{stage}/springcam' or path == '/springcam':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
+            }
+        images = get_latest_springcam_images(3)
+        if images:
+            html += f'''{THEME_CSS_JS}
+            <title>Spring Camera</title>
+            <style>
+                body {{ font-family: var(--font); text-align: center; margin: 1rem; background: var(--bg); color: var(--text); }}
+                h1 {{ margin-bottom: 1rem; font-size: 2rem; }}
+                .gallery-link {{ display: inline-block; margin-bottom: 1.5rem; padding: 0.5rem 1.5rem; background: var(--card-bg); color: var(--accent); text-decoration: none; border-radius: 8px; border: 1px solid var(--divider); transition: opacity 0.2s; }}
+                .gallery-link:hover {{ opacity: 0.8; }}
+                .gallery {{ display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; max-width: 1024px; margin: 0 auto; }}
+                .image-container {{ flex: 1; min-width: 280px; max-width: 340px; }}
+                .image-container img {{ width: 100%; height: auto; border-radius: 8px; }}
+                .timestamp {{ color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.9rem; }}
+                @media (max-width: 1024px) {{
+                    .gallery {{ flex-direction: column; }}
+                    .image-container {{ min-width: 100%; max-width: 100%; }}
+                }}
+            </style>
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
+            </div>
+            <h1>Spring Camera</h1>
+            <a href="springcam/gallery" class="gallery-link">View Full Gallery</a>
+            <div class="gallery">
+            '''
+            for img in images:
+                display_ts = img['timestamp']
+                html += f'''
+                <div class="image-container">
+                    <a href="springcam/fullres?key={img['key']}">
+                        <img src="{img['url']}" alt="Spring camera {display_ts}" loading="lazy">
+                    </a>
+                    <div class="timestamp">{display_ts}</div>
+                </div>'''
+            html += '</div>'
+        else:
+            html += '<h1>Spring Camera</h1><p>No images yet.</p>'
+
+    elif path.startswith(f'/{stage}/springcam/gallery') or path.startswith('/springcam/gallery'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
+            }
+        all_images = get_all_springcam_images(max_keys=500)
+        html += '''
+        <title>Spring Camera Gallery</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 1rem; }
+            h1 { text-align: center; margin-bottom: 1rem; }
+            .nav { text-align: center; margin-bottom: 1.5rem; }
+            .nav a { color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }
+            .gallery { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+            .thumb { width: 150px; height: 112px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+            .thumb:hover { opacity: 0.8; }
+            .ts { font-size: 0.7rem; color: #888; text-align: center; margin-top: 2px; }
+        </style>
+        <h1>Spring Camera Gallery</h1>
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href="../springcam">Latest</a>
+        </div>
+        <div class="gallery">
+        '''
+        for img in all_images:
+            thumb = springcam_thumb_key(img['key'])
+            thumb_url = get_presigned_url(thumb)
+            full_url = get_presigned_url(img['key'])
+            ts = img['timestamp'][:16] if img['timestamp'] else ''
+            html += f'''
+            <div>
+                <a href="{full_url}" target="_blank">
+                    <img class="thumb" src="{thumb_url}" alt="{ts}" loading="lazy">
+                </a>
+                <div class="ts">{ts}</div>
+            </div>'''
+        html += '</div>'
+
+    elif path.startswith(f'/{stage}/springcam/fullres') or path.startswith('/springcam/fullres'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
+            }
+        params = event.get('queryStringParameters') or {}
+        image_key = params.get('key', '')
+        if image_key:
+            image_url = get_presigned_url(image_key)
+            ts = parse_timestamp_from_key(image_key) or image_key
+            html += f'''
+            <title>Spring Camera - Full Resolution</title>
+            <style>
+                body {{ background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; }}
+                img {{ max-width: 100%; height: auto; }}
+                .nav {{ color: #aaa; padding: 0.5rem; font-family: Arial, sans-serif; }}
+                .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }}
+            </style>
+            <div class="nav"><a href="../../contents">Home</a> | <a href="../springcam">Latest</a> | <a href="gallery">Gallery</a></div>
+            <div class="nav">{ts}</div>
+            <img src="{image_url}" alt="{ts}">
+            '''
+        else:
+            html += '<p>No image specified.</p>'
 
     else:
         html += render_contents_page()
