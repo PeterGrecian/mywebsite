@@ -4683,7 +4683,11 @@ def lambda_handler(event, context):
                 </div>'''
             html += '</div>'
         else:
-            html += '<h1>Spring Camera</h1><p>No images yet.</p>'
+            return {
+                'statusCode': 502,
+                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Spring Camera</h1><p>No images yet.</p></body></html>',
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
 
     elif path.startswith(f'/{stage}/springcam/gallery') or path.startswith('/springcam/gallery'):
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
