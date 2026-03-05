@@ -113,7 +113,7 @@ def get_parameter(parameter_name):
             data = json.loads(value)
             # If it's a dict with 'password' or 'api_key', extract that
             if isinstance(data, dict):
-                return data.get('password') or data.get('api_key') or value
+                return data.get('password') or data.get('api_key') or None
             return value
         except json.JSONDecodeError:
             # Plain string value
