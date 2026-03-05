@@ -38,6 +38,10 @@ cd ..
 fn=mywebsite
 aws lambda update-function-code --zip-file fileb://$PWD/mywebsite.zip \
   --function-name $fn | grep CodeSize
+
+# Ensure handler is correct (guard against it being changed to cv.lambda_handler etc.)
+aws lambda update-function-configuration --function-name $fn \
+  --handler mywebsite.lambda_handler | grep Handler
 echo "aws logs tail /aws/lambda/$fn --follow"
 
 # Cleanup
