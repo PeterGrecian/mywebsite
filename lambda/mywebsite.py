@@ -36,7 +36,7 @@ THEME_CSS_JS = '''<script>
 })();
 </script>
 <style>
-:root{--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
+:root{font-size:18px;--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
 :root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
 #theme-toggle{position:fixed;top:1rem;right:1rem;background:var(--card-bg);color:var(--accent);border:1px solid var(--divider);border-radius:20px;padding:0.4rem 0.9rem;font-size:0.85rem;cursor:pointer;z-index:9999;font-family:var(--font);}
 </style>
@@ -1578,6 +1578,7 @@ def t3_format_html(arrivals):
 <title>K2 Parklands</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
+html {{ font-size: 16px; }}
 body {{ font-family: var(--font); background: var(--bg); color: var(--text); padding: 1rem; margin: 0; text-align: center; }}
 .nav {{ position: absolute; top: 1rem; left: 1rem; }}
 .nav a {{ color: var(--accent); text-decoration: none; font-size: 0.9rem; }}
@@ -2105,7 +2106,7 @@ def render_site_test_page():
     <title>Site Test - Page Load Times and Status</title>
     <style>
       * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; font-size: 150%; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; }}
       .container {{ max-width: 1000px; margin: 0 auto; }}
       h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; }}
       .nav {{ text-align: center; margin-bottom: 2rem; }}
