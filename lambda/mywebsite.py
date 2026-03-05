@@ -1504,6 +1504,12 @@ def t3_fetch_stop(stop_id, api_key=None):
         result = [a.get('timeToStation', 0) for a in data]
         _t3_cache[stop_id] = (now, result)
         return result, None
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read().decode()
+        except Exception:
+            body = ''
+        return [], f"HTTP {e.code}: {body or e.reason}"
     except Exception as e:
         return [], str(e)
 
@@ -4651,9 +4657,12 @@ def lambda_handler(event, context):
 
         # Return HTML for browsers
         if error:
-            html += f"<h1>Error</h1><p>{error}</p>"
-        else:
-            html += t3_format_html(arrivals)
+            return {
+                'statusCode': 502,
+                'body': f'<html><body style="font-family:sans-serif;padding:2rem"><h1>T3 Error</h1><p>{error}</p></body></html>',
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
+        html += t3_format_html(arrivals)
 
     elif path == f'/{stage}/springcam' or path == '/springcam':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
