@@ -2119,6 +2119,8 @@ def render_site_test_page():
       td {{ padding: 0.8rem 1rem; border-bottom: 1px solid var(--divider); color: var(--text); }}
       tbody tr:hover {{ background: rgba(142,142,147,0.1); }}
       .page-name {{ font-weight: 500; color: var(--text); }}
+      .page-name a {{ color: var(--accent); text-decoration: none; }}
+      .page-name a:hover {{ text-decoration: underline; }}
       .loading {{ color: var(--accent); font-style: italic; }}
       .success {{ color: #10b981; font-weight: 600; }}
       .error {{ color: var(--error); font-weight: 600; }}
@@ -2158,43 +2160,7 @@ def render_site_test_page():
               <th style="text-align: right;">Load Time</th>
             </tr>
           </thead>
-          <tbody id="testResults">
-            <tr id="row-cv">
-              <td class="page-name">CV / Curriculum Vitae</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-pi-fleet">
-              <td class="page-name">Pi Fleet Status</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-t3">
-              <td class="page-name">K2 Bus Times</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-memspeed">
-              <td class="page-name">Memory Benchmark</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-lambda-stats">
-              <td class="page-name">Lambda Statistics</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-gardencam">
-              <td class="page-name">Garden Camera</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-            <tr id="row-springcam">
-              <td class="page-name">Spring Camera</td>
-              <td class="loading">pending...</td>
-              <td class="time">—</td>
-            </tr>
-          </tbody>
+          <tbody id="testResults"></tbody>
         </table>
       </div>
 
@@ -2228,6 +2194,15 @@ def render_site_test_page():
         {{ id: 'gardencam', path: 'gardencam', label: 'Garden Camera' }},
         {{ id: 'springcam', path: 'springcam', label: 'Spring Camera' }}
       ];
+
+      // Build table rows from pages array
+      const tbody = document.getElementById('testResults');
+      pages.forEach(page => {{
+        const tr = document.createElement('tr');
+        tr.id = `row-${{page.id}}`;
+        tr.innerHTML = `<td class="page-name"><a href="${{page.path}}" target="_blank">${{page.label}}</a></td><td class="loading">pending...</td><td class="time">—</td>`;
+        tbody.appendChild(tr);
+      }});
 
       async function testPage(page) {{
         const row = document.getElementById(`row-${{page.id}}`);
