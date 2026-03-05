@@ -1478,9 +1478,20 @@ T3_STOPS = {
 T3_STOP_INBOUND = T3_STOPS['parklands']['inbound']
 T3_STOP_OUTBOUND = T3_STOPS['parklands']['outbound']
 
+# In-Lambda cache: {stop_id: (timestamp, data)} — avoids hitting TfL more than once per TTL
+_t3_cache = {}
+T3_CACHE_TTL = 30  # seconds
+
 
 def t3_fetch_stop(stop_id, api_key=None):
-    """Fetch arrivals for a specific stop. Returns seconds."""
+    """Fetch arrivals for a specific stop. Returns seconds. Caches for T3_CACHE_TTL seconds."""
+    import time
+    now = time.time()
+    if stop_id in _t3_cache:
+        ts, cached = _t3_cache[stop_id]
+        if now - ts < T3_CACHE_TTL:
+            return cached, None
+
     url = f"{TFL_API_BASE}/StopPoint/{stop_id}/Arrivals"
     if api_key:
         url += f"?app_key={api_key}"
@@ -1490,7 +1501,9 @@ def t3_fetch_stop(stop_id, api_key=None):
         req.add_header('User-Agent', 't3-terse-transport-times/1.0')
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode())
-        return [a.get('timeToStation', 0) for a in data], None  # Return seconds
+        result = [a.get('timeToStation', 0) for a in data]
+        _t3_cache[stop_id] = (now, result)
+        return result, None
     except Exception as e:
         return [], str(e)
 
