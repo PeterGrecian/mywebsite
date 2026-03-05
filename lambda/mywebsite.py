@@ -795,7 +795,8 @@ def should_display_image(stats):
     diff = float(stats.get('image_diff', 0))
 
     # Hide images with high brightness and low change (same criteria as capture script)
-    if brightness > 100 and diff < 15:
+    # Only filter when diff was actually measured (> 0); diff == 0 means not calculated
+    if brightness > 100 and 0 < diff < 15:
         return False
 
     return True
