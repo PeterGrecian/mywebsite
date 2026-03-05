@@ -2260,11 +2260,7 @@ def render_site_test_page():
         btn.disabled = true;
         btn.textContent = 'Testing...';
 
-        const results = [];
-        for (const page of pages) {{
-          const result = await testPage(page);
-          results.push(result);
-        }}
+        const results = await Promise.all(pages.map(page => testPage(page)));
 
         // Update statistics
         const successful = results.filter(r => r.status === 'success').length;
