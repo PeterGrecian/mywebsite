@@ -22,7 +22,7 @@ The main website Lambda serving `www.petergrecian.co.uk`. Hosts CV, gardencam vi
 | `/gardencam/stats` | Statistics visualization |
 | `/gardencam/capture` | POST: trigger remote capture |
 | `/pi-fleet` | Pi fleet monitoring dashboard |
-| `/t3` | K2 bus arrivals (TfL API) |
+| `/t3` | K2 bus arrivals (TfL API) — **redundant**, see note below |
 | `/lambda-stats` | Execution metrics and costs |
 | `/event` | Debug info |
 | `/gitinfo` | Git deployment info |
@@ -81,6 +81,18 @@ These are two separate repos running in parallel during migration:
 - Do NOT delete or modify cv's AWS resources from this repo — they coexist
 
 **End goal:** This repo becomes the sole website. The cv repo will eventually only provide CV content data.
+
+## /t3 Route — Redundant
+
+The `/t3` route has its own TfL API calls baked into `mywebsite.py`. There are now three separate implementations of the same K2 bus fetcher:
+
+| | Key source | Status |
+|---|---|---|
+| `t3` Lambda | SSM | **Canonical** — used by Android app |
+| `/t3` on this site | SSM (`/berrylands/tfl/api-key`) | Redundant — future unclear |
+| `busclock` Flask app | `.env` | Prototype for physical servo clock |
+
+The `/t3` web page has no clear future. Options: retire it, or redirect it to call the `t3` Lambda instead of duplicating the logic. Leave it for now.
 
 ## AWS Region
 
