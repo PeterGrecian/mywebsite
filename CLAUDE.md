@@ -82,6 +82,16 @@ These are two separate repos running in parallel during migration:
 
 **End goal:** This repo becomes the sole website. The cv repo will eventually only provide CV content data.
 
+## Planned: Android App Showcase
+
+The Android apps will eventually be featured on the site:
+
+- **T3 (tersetransporttimes)** — bus and train times, GPS-aware, minimalist
+- **blescape** — stereo soundscape from BLE scan data
+- **nightsound** — snoring/sleep sound capture
+
+Not yet done — apps need to reach a presentable state first.
+
 ## /t3 Route — Redundant
 
 The `/t3` route has its own TfL API calls baked into `mywebsite.py`. There are now three separate implementations of the same K2 bus fetcher:
