@@ -2,7 +2,7 @@
 
 ## What This Repo Does
 
-The main website Lambda serving `www.petergrecian.co.uk`. Hosts CV, gardencam viewer, pi-fleet dashboard, bus times, and other applications.
+The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's personal showcase — a demonstration of technical ability to potential employers, and a place to show off projects to himself and others. Hosts CV, gardencam viewer, pi-fleet dashboard, bus times, and other applications.
 
 ## Architecture
 
