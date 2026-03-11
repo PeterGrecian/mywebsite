@@ -1373,6 +1373,14 @@ def render_pi_fleet_page(pis):
                     </div>
             '''
 
+            if pi.get('wifi_interface'):
+                html += f'''
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <div class="info-label">WiFi</div>
+                        <div class="info-value" style="font-size: 0.75em;">{pi.get('wifi_interface')}</div>
+                    </div>
+                '''
+
             if tunnel_active:
                 html += f'''
                     <div class="info-item">
