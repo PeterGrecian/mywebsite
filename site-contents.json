@@ -7,5 +7,5 @@
   {"path": "memspeed", "title": "Memory Benchmark", "description": "memory bandwidth benchmark results", "color": "pastel-lavender", "sort_order": 6, "visible": true},
   {"path": "lambda-stats", "title": "Lambda Statistics", "description": "execution metrics and cost tracking", "color": "pastel-pink", "sort_order": 7, "visible": true},
   {"path": "site-test", "title": "Site Test", "description": "page load times and status monitoring", "color": "pastel-lavender", "sort_order": 8, "visible": true},
-  {"path": "betterverse", "external_url": "http://192.168.7.253:8080", "title": "Betterverse", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 9, "visible": true}
+  {"path": "betterverse", "external_url": "https://192.168.7.253:8443/?v=13", "title": "Betterverse v13", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 9, "visible": true}
 ]
