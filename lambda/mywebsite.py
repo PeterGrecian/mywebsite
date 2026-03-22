@@ -2096,7 +2096,7 @@ def render_contents_page():
     links_html = ""
     for item in items:
         path = item.get('path', '/')
-        href = path
+        href = item.get('external_url', path)
         title = item.get('title', '')
         description = item.get('description', '')
         links_html += f'''      <a href="{href}" class="link-ellipse">
