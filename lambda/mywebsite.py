@@ -210,7 +210,8 @@ def log_connection(event, context):
             'user_agent': user_agent,
             'referer': headers.get('referer') or headers.get('Referer', ''),
             'stage': event.get('requestContext', {}).get('stage', ''),
-            'host': headers.get('Host', '')
+            'host': headers.get('Host', ''),
+            'ttl': int((datetime.utcnow() + timedelta(days=30)).timestamp())
         }
 
         table.put_item(Item=item)
@@ -249,7 +250,8 @@ def log_execution_metrics(context, duration_ms, path='', ip='', user_agent=''):
             'path': path,
             'estimated_cost_usd': total_cost,
             'ip_address': ip,
-            'user_agent': user_agent
+            'user_agent': user_agent,
+            'ttl': int((datetime.utcnow() + timedelta(days=30)).timestamp())
         }
 
         table.put_item(Item=item)
@@ -905,22 +907,18 @@ def format_stats_for_display(stats):
 
 
 def get_all_lambda_functions():
-    """Get list of all Lambda functions."""
+    """Get list of all Lambda functions with memory sizes."""
     if not BOTO3_AVAILABLE:
-        return []
+        return {}
 
     try:
         lambda_client = boto3.client('lambda', region_name=GARDENCAM_REGION)
         response = lambda_client.list_functions()
         functions = response.get('Functions', [])
-
-        # Filter for cv and gardencam functions
-        relevant = [f['FunctionName'] for f in functions
-                   if 'cv' in f['FunctionName'].lower() or 'gardencam' in f['FunctionName'].lower()]
-        return sorted(relevant)
+        return {f['FunctionName']: {'memory_mb': f.get('MemorySize', 128)} for f in functions}
     except Exception as e:
         print(f"Error listing Lambda functions: {e}")
-        return []
+        return {}
 
 
 def get_cloudwatch_metrics(function_name, days=30):
@@ -993,10 +991,10 @@ def get_cloudwatch_metrics(function_name, days=30):
 def get_all_lambda_metrics(days=30):
     """Get CloudWatch metrics for all Lambda functions."""
     functions = get_all_lambda_functions()
-    print(f"Found {len(functions)} Lambda functions: {functions}")
+    print(f"Found {len(functions)} Lambda functions: {list(functions.keys())}")
     all_metrics = {}
 
-    for func_name in functions:
+    for func_name, func_info in functions.items():
         metrics = get_cloudwatch_metrics(func_name, days)
         print(f"Metrics for {func_name}: {len(metrics)} metric types")
         if metrics:
@@ -1012,6 +1010,12 @@ def get_all_lambda_metrics(days=30):
             max_duration = max(maxes) if maxes else 0
             error_rate = (total_errors / total_invocations * 100) if total_invocations > 0 else 0
 
+            # GB-seconds: (memory_mb / 1024) * total_duration_seconds
+            # avg_duration is ms, multiply by invocations to get total ms
+            memory_gb = func_info['memory_mb'] / 1024
+            total_duration_s = (avg_duration * total_invocations) / 1000
+            gb_seconds = memory_gb * total_duration_s
+
             all_metrics[func_name] = {
                 'invocations': total_invocations,
                 'errors': total_errors,
@@ -1019,6 +1023,8 @@ def get_all_lambda_metrics(days=30):
                 'avg_duration': avg_duration,
                 'max_duration': max_duration,
                 'error_rate': error_rate,
+                'memory_mb': func_info['memory_mb'],
+                'gb_seconds': gb_seconds,
                 'raw_metrics': metrics
             }
 
@@ -1080,27 +1086,39 @@ def get_ip_geolocation(ip_address):
     return {'country': 'Unknown', 'city': 'Unknown', 'lat': 0, 'lon': 0}
 
 
-def get_lambda_execution_stats(limit=1000):
-    """Get Lambda execution statistics from DynamoDB."""
+def get_lambda_execution_stats(days=30):
+    """Get Lambda execution statistics from DynamoDB for the last N days.
+
+    Uses query (not scan) against known partition keys with a timestamp range,
+    since the table has function_name (HASH) and timestamp (RANGE).
+    """
     if not BOTO3_AVAILABLE:
         return []
 
     try:
+        from boto3.dynamodb.conditions import Key
+
         dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
         table = dynamodb.Table('lambda-execution-logs')
 
-        items = []
-        response = table.scan()
-        items.extend(response.get('Items', []))
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat() + 'Z'
+        partition_keys = ['mywebsite-local', 'cvdev']
 
-        # Handle pagination - keep scanning until we have all items
-        while 'LastEvaluatedKey' in response:
-            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        items = []
+        for pk in partition_keys:
+            response = table.query(
+                KeyConditionExpression=Key('function_name').eq(pk) & Key('timestamp').gte(cutoff)
+            )
             items.extend(response.get('Items', []))
 
-        # Sort by timestamp
-        items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            while 'LastEvaluatedKey' in response:
+                response = table.query(
+                    KeyConditionExpression=Key('function_name').eq(pk) & Key('timestamp').gte(cutoff),
+                    ExclusiveStartKey=response['LastEvaluatedKey']
+                )
+                items.extend(response.get('Items', []))
 
+        items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         return items
     except Exception as e:
         print(f"Error fetching Lambda execution stats from DynamoDB: {e}")
@@ -2771,6 +2789,28 @@ def lambda_handler(event, context):
     headers = event.get('headers', {})
     ip = headers.get('X-Forwarded-For') or headers.get('x-forwarded-for', 'Unknown')
     print(f'X-Forwarded-For = {ip}')
+
+    # robots.txt — reduce bot traffic and unnecessary invocations
+    if path == f'/{stage}/robots.txt' or path == '/robots.txt':
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'text/plain'},
+            'body': (
+                'User-agent: *\n'
+                'Allow: /\n'
+                'Allow: /cv\n'
+                'Allow: /contents\n'
+                'Disallow: /event\n'
+                'Disallow: /gitinfo\n'
+                'Disallow: /lambda-stats\n'
+                'Disallow: /gardencam\n'
+                'Disallow: /memspeed\n'
+                'Disallow: /pi-fleet\n'
+                'Disallow: /t3\n'
+                'Disallow: /rcr\n'
+                'Disallow: /us-vs-the-machines\n'
+            )
+        }
 
     if path == f'/{stage}/event' or path == '/event':   # debugging info
         html += '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>'
@@ -4489,6 +4529,19 @@ def lambda_handler(event, context):
 
         error_rate = (total_cw_errors / total_cw_invocations * 100) if total_cw_invocations > 0 else 0
 
+        # Free tier usage
+        total_gb_seconds = sum(m['gb_seconds'] for m in all_lambda_metrics.values())
+        FREE_TIER_REQUESTS = 1_000_000
+        FREE_TIER_GB_SECONDS = 400_000
+        free_tier = {
+            'requests_used': int(total_cw_invocations),
+            'requests_limit': FREE_TIER_REQUESTS,
+            'requests_pct': round(total_cw_invocations / FREE_TIER_REQUESTS * 100, 3),
+            'gb_seconds_used': round(total_gb_seconds, 1),
+            'gb_seconds_limit': FREE_TIER_GB_SECONDS,
+            'gb_seconds_pct': round(total_gb_seconds / FREE_TIER_GB_SECONDS * 100, 3),
+        }
+
         # Sort functions by invocation count
         sorted_functions = sorted(all_lambda_metrics.items(), key=lambda x: x[1]['invocations'], reverse=True)
 
@@ -4631,6 +4684,7 @@ def lambda_handler(event, context):
                     'avg_duration': round(avg_cw_duration, 0),
                     'max_duration': round(max_cw_duration, 0)
                 },
+                'free_tier': free_tier,
                 'functions': [
                     {
                         'name': func_name,
@@ -4638,7 +4692,9 @@ def lambda_handler(event, context):
                         'errors': int(func_metrics['errors']),
                         'error_rate': round(func_metrics['error_rate'], 2),
                         'avg_duration': round(func_metrics['avg_duration'], 0),
-                        'max_duration': round(func_metrics['max_duration'], 0)
+                        'max_duration': round(func_metrics['max_duration'], 0),
+                        'memory_mb': func_metrics['memory_mb'],
+                        'gb_seconds': round(func_metrics['gb_seconds'], 1)
                     }
                     for func_name, func_metrics in sorted_functions
                 ],
@@ -4690,6 +4746,13 @@ def lambda_handler(event, context):
             @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
             .error {{ background: rgba(255,59,48,0.1); padding: 1rem; border-radius: 4px; color: var(--error); margin: 1rem 0; }}
             .chart-container {{ margin: 2rem 0; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--divider); }}
+            .free-tier {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }}
+            .tier-card {{ background: var(--card-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--divider); }}
+            .tier-card h3 {{ margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--text-secondary); }}
+            .tier-card .tier-value {{ font-size: 1.5rem; font-weight: bold; color: var(--accent); }}
+            .tier-card .tier-detail {{ font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem; }}
+            .tier-bar {{ height: 8px; background: var(--divider); border-radius: 4px; margin-top: 0.75rem; overflow: hidden; }}
+            .tier-bar-fill {{ height: 100%; border-radius: 4px; transition: width 0.5s; }}
         </style>
         </head>
         <body>
@@ -4705,6 +4768,9 @@ def lambda_handler(event, context):
             <div id="content" style="display: none;">
                 <div class="stats-grid" id="summary-stats"></div>
 
+                <h2>Free Tier Usage (30 Days)</h2>
+                <div class="free-tier" id="free-tier"></div>
+
                 <h2>📈 Path Usage - Last 7 Days (28 × 6-hour buckets)</h2>
                 <div class="chart-container">
                     <canvas id="histogramChart"></canvas>
@@ -4715,11 +4781,13 @@ def lambda_handler(event, context):
                     <thead>
                         <tr>
                             <th>Function Name</th>
+                            <th>Memory</th>
                             <th>Invocations</th>
                             <th>Errors</th>
                             <th>Error Rate</th>
                             <th>Avg Duration (ms)</th>
                             <th>Max Duration (ms)</th>
+                            <th>GB-seconds</th>
                         </tr>
                     </thead>
                     <tbody id="functions-tbody"></tbody>
@@ -4802,6 +4870,25 @@ def lambda_handler(event, context):
                     </div>
                 `;
 
+                // Populate free tier usage
+                const ft = data.free_tier;
+                const reqColor = ft.requests_pct < 50 ? '#30D158' : ft.requests_pct < 80 ? '#FF9500' : '#FF3B30';
+                const gbColor = ft.gb_seconds_pct < 50 ? '#30D158' : ft.gb_seconds_pct < 80 ? '#FF9500' : '#FF3B30';
+                document.getElementById('free-tier').innerHTML = `
+                    <div class="tier-card">
+                        <h3>Requests</h3>
+                        <div class="tier-value">${{ft.requests_pct}}%</div>
+                        <div class="tier-detail">${{ft.requests_used.toLocaleString()}} / ${{ft.requests_limit.toLocaleString()}}</div>
+                        <div class="tier-bar"><div class="tier-bar-fill" style="width: ${{Math.min(ft.requests_pct, 100)}}%; background: ${{reqColor}};"></div></div>
+                    </div>
+                    <div class="tier-card">
+                        <h3>Compute (GB-seconds)</h3>
+                        <div class="tier-value">${{ft.gb_seconds_pct}}%</div>
+                        <div class="tier-detail">${{ft.gb_seconds_used.toLocaleString()}} / ${{ft.gb_seconds_limit.toLocaleString()}}</div>
+                        <div class="tier-bar"><div class="tier-bar-fill" style="width: ${{Math.min(ft.gb_seconds_pct, 100)}}%; background: ${{gbColor}};"></div></div>
+                    </div>
+                `;
+
                 // Create histogram chart
                 const ctx = document.getElementById('histogramChart').getContext('2d');
                 new Chart(ctx, {{
@@ -4854,11 +4941,13 @@ def lambda_handler(event, context):
                 document.getElementById('functions-tbody').innerHTML = data.functions.map(f => `
                     <tr>
                         <td><strong>${{f.name}}</strong></td>
+                        <td>${{f.memory_mb}} MB</td>
                         <td>${{f.invocations.toLocaleString()}}</td>
                         <td>${{f.errors.toLocaleString()}}</td>
                         <td>${{f.error_rate.toFixed(2)}}%</td>
                         <td>${{Math.round(f.avg_duration)}}</td>
                         <td>${{Math.round(f.max_duration)}}</td>
+                        <td>${{f.gb_seconds.toFixed(1)}}</td>
                     </tr>
                 `).join('');
 
@@ -5037,6 +5126,14 @@ def lambda_handler(event, context):
         return {
             'statusCode': 302,
             'headers': {'Location': 'https://k7jrsyq5zi2jexqbrt27zi4nbi0munoe.lambda-url.eu-west-1.on.aws/'},
+            'body': ''
+        }
+
+    elif path == f'/{stage}/us-vs-the-machines' or path == '/us-vs-the-machines':
+        # Redirect to Us vs the Machines Lambda function URL
+        return {
+            'statusCode': 302,
+            'headers': {'Location': 'https://s3fsc6zzxyablo26kgpwcuhh3m0dqphd.lambda-url.eu-west-1.on.aws/'},
             'body': ''
         }
 
@@ -5243,9 +5340,12 @@ def lambda_handler(event, context):
     else:
         html += render_contents_page()
 
-    # If html already has complete structure (DOCTYPE), don't wrap it
+    # If html already has complete structure (DOCTYPE), inject favicon into existing <head>
     if html.strip().startswith('<!DOCTYPE') or html.strip().startswith('<html'):
-        content = html
+        if fav and '<head>' in html:
+            content = html.replace('<head>', f'<head>{fav}', 1)
+        else:
+            content = html
     else:
         content = f'<html><head>{fav}{html}</body></html>'
 
