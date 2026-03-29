@@ -71,6 +71,7 @@ resource "aws_iam_role_policy" "dynamodb_write" {
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/cv-access-logs",
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/lambda-execution-logs",
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/gardencam-commands",
+          "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/ai-usage",
         ]
       }
     ]

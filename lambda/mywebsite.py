@@ -2766,6 +2766,63 @@ AI_PROVIDERS = [
 ]
 
 
+def get_ai_usage():
+    """Read AI usage from DynamoDB for today and compute velocity metrics."""
+    from decimal import Decimal
+    dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
+    table = dynamodb.Table("ai-usage")
+
+    now = datetime.now(timezone.utc)
+    today = now.strftime("%Y-%m-%d")
+
+    try:
+        resp = table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key("date").eq(today),
+        )
+        items = resp.get("Items", [])
+    except Exception as e:
+        print(f"Error reading ai-usage: {e}")
+        return {"calls_today": 0, "calls_1m": 0, "calls_10m": 0, "by_provider": {}, "recent": []}
+
+    # Parse timestamps and compute windows
+    calls = []
+    for item in items:
+        try:
+            ts = datetime.fromisoformat(item["timestamp"])
+            calls.append({
+                "ts": ts,
+                "app": item.get("app", "?"),
+                "provider": item.get("provider", "?"),
+                "model": item.get("model", "?"),
+                "duration_ms": int(item.get("duration_ms", 0)),
+                "error": item.get("error"),
+            })
+        except Exception:
+            pass
+
+    calls.sort(key=lambda c: c["ts"], reverse=True)
+
+    t1m = now - timedelta(minutes=1)
+    t10m = now - timedelta(minutes=10)
+
+    calls_1m = sum(1 for c in calls if c["ts"] >= t1m)
+    calls_10m = sum(1 for c in calls if c["ts"] >= t10m)
+
+    # Breakdown by provider
+    by_provider = {}
+    for c in calls:
+        p = c["provider"]
+        by_provider[p] = by_provider.get(p, 0) + 1
+
+    return {
+        "calls_today": len(calls),
+        "calls_1m": calls_1m,
+        "calls_10m": calls_10m,
+        "by_provider": by_provider,
+        "recent": calls[:10],
+    }
+
+
 def get_ai_configs():
     """Read all /ai-config/ parameters from SSM."""
     ssm = boto3.client("ssm", region_name="eu-west-1")
@@ -2790,8 +2847,64 @@ def set_ai_config(app_key, provider, model):
     )
 
 
-def render_ai_config_page(configs, message=None):
-    """Render the AI configuration matrix page."""
+def _render_usage_meter(usage):
+    """Render the AI usage meter section."""
+    if not usage:
+        return ""
+
+    # Velocity gauges
+    gauges = ""
+    for label, value in [("1 min", usage["calls_1m"]), ("10 min", usage["calls_10m"]), ("Today", usage["calls_today"])]:
+        gauges += f'''<div style="text-align:center;flex:1;">
+            <div style="font-size:1.8rem;font-weight:700;color:var(--accent);">{value}</div>
+            <div style="font-size:0.6rem;color:var(--text-secondary);">{label}</div>
+        </div>'''
+
+    # Provider breakdown
+    provider_pills = ""
+    for prov, count in sorted(usage["by_provider"].items(), key=lambda x: -x[1]):
+        provider_pills += f'<span style="display:inline-block;background:var(--bg);border:1px solid var(--divider);border-radius:12px;padding:0.2rem 0.6rem;margin:0.2rem;font-size:0.65rem;">{prov} <strong>{count}</strong></span>'
+
+    # Recent calls
+    recent_rows = ""
+    for c in usage["recent"]:
+        time_str = c["ts"].strftime("%H:%M:%S")
+        status = f'<span style="color:var(--error);">{c["error"][:30]}</span>' if c.get("error") else f'{c["duration_ms"]}ms'
+        model_short = c["model"].split("/")[-1].replace("anthropic.", "")
+        if len(model_short) > 20:
+            model_short = model_short[:18] + ".."
+        recent_rows += f'''<tr style="border-top:1px solid var(--divider);">
+            <td style="padding:0.3rem;font-size:0.6rem;color:var(--text-secondary);">{time_str}</td>
+            <td style="padding:0.3rem;font-size:0.6rem;">{c["app"]}</td>
+            <td style="padding:0.3rem;font-size:0.6rem;color:var(--text-secondary);">{model_short}</td>
+            <td style="padding:0.3rem;font-size:0.6rem;text-align:right;">{status}</td>
+        </tr>'''
+
+    recent_html = ""
+    if recent_rows:
+        recent_html = f'''<table style="width:100%;border-collapse:collapse;margin-top:0.8rem;">
+            <thead><tr>
+                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Time</th>
+                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">App</th>
+                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Model</th>
+                <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Result</th>
+            </tr></thead>
+            <tbody>{recent_rows}</tbody>
+        </table>'''
+
+    return f'''
+        <div style="background:var(--card-bg);border-radius:12px;padding:1rem;margin-top:1rem;">
+            <h2 style="font-size:0.9rem;font-weight:600;margin:0 0 0.8rem 0;">Usage</h2>
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem;">
+                {gauges}
+            </div>
+            <div style="text-align:center;">{provider_pills}</div>
+            {recent_html}
+        </div>'''
+
+
+def render_ai_config_page(configs, usage=None, message=None):
+    """Render the AI configuration matrix page with usage meter."""
     msg_html = ""
     if message:
         msg_html = f'<div style="background:var(--accent);color:#fff;padding:0.6rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.8rem;">{message}</div>'
@@ -2820,7 +2933,7 @@ def render_ai_config_page(configs, message=None):
             model_select = ""
             if is_active:
                 model_select = f'''<select name="model" form="form-{app['key']}-{prov['key']}"
-                    style="margin-top:0.4rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--divider);border-radius:6px;padding:0.2rem;font-size:0.6rem;font-family:var(--font);"
+                    style="margin-top:0.3rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--divider);border-radius:6px;padding:0.15rem;font-size:0.5rem;font-family:var(--font);"
                     onchange="this.form.submit()">{model_opts}</select>'''
 
             cells += f'''<td style="padding:0.4rem;text-align:center;vertical-align:top;">
@@ -2828,15 +2941,15 @@ def render_ai_config_page(configs, message=None):
                     <input type="hidden" name="app" value="{app['key']}">
                     <input type="hidden" name="provider" value="{prov['key']}">
                     <input type="hidden" name="model" value="{prov['models'][0]}">
-                    <button type="submit" style="background:{bg};color:{color};border:{border};border-radius:8px;padding:0.4rem 0.8rem;font-size:0.75rem;cursor:pointer;font-family:var(--font);width:100%;min-width:5rem;">{prov['name']}</button>
+                    <button type="submit" style="background:{bg};color:{color};border:{border};border-radius:6px;padding:0.3rem 0.5rem;font-size:0.6rem;cursor:pointer;font-family:var(--font);width:100%;min-width:3.5rem;">{prov['name']}</button>
                 </form>
                 {model_select}
             </td>'''
 
         rows += f'''<tr>
-            <td style="padding:0.6rem;font-size:0.85rem;white-space:nowrap;">
+            <td style="padding:0.4rem;font-size:0.7rem;white-space:nowrap;">
                 <div style="color:var(--text);font-weight:600;">{app['name']}</div>
-                <div style="color:var(--text-secondary);font-size:0.65rem;">{app['desc']}</div>
+                <div style="color:var(--text-secondary);font-size:0.55rem;">{app['desc']}</div>
             </td>
             {cells}
         </tr>'''
@@ -2854,16 +2967,16 @@ def render_ai_config_page(configs, message=None):
         <div style="text-align:center;margin-bottom:1rem;">
             <a href="contents" style="color:var(--accent);text-decoration:none;font-size:0.75rem;">Home</a>
         </div>
-        <h1 style="font-size:1.3rem;font-weight:600;margin:0 0 1rem 0;text-align:center;">AI Configuration</h1>
+        <h1 style="font-size:1rem;font-weight:600;margin:0 0 0.8rem 0;text-align:center;">AI Configuration</h1>
         {msg_html}
         <div style="background:var(--card-bg);border-radius:12px;padding:1rem;overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr>
-                        <th style="text-align:left;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">App</th>
-                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">Gemini</th>
-                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">OpenAI</th>
-                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">Bedrock</th>
+                        <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
+                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Gemini</th>
+                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">OpenAI</th>
+                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Bedrock</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2874,6 +2987,7 @@ def render_ai_config_page(configs, message=None):
         <div style="text-align:center;margin-top:1rem;color:var(--text-secondary);font-size:0.6rem;">
             Tap a provider to switch. Use the dropdown to change model.
         </div>
+        {_render_usage_meter(usage)}
     </div>
 </body>
 </html>'''
@@ -5311,15 +5425,17 @@ def lambda_handler(event, context):
                 configs = get_ai_configs()
                 app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
                 prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
+                usage = get_ai_usage()
                 return {
                     'statusCode': 200,
-                    'body': render_ai_config_page(configs, f"{app_name} switched to {prov_name}"),
+                    'body': render_ai_config_page(configs, usage, f"{app_name} switched to {prov_name}"),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}
                 }
         configs = get_ai_configs()
+        usage = get_ai_usage()
         return {
             'statusCode': 200,
-            'body': render_ai_config_page(configs),
+            'body': render_ai_config_page(configs, usage),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
