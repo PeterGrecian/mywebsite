@@ -1,6 +1,7 @@
 from pprint import pformat
 import os
 import base64
+import urllib.parse
 import urllib.request
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
@@ -2649,6 +2650,7 @@ def render_site_test_page():
       const pages = [
         {{ id: 'cv', path: 'cv', label: 'CV / Curriculum Vitae' }},
         {{ id: 'pi-fleet', path: 'pi-fleet', label: 'Pi Fleet Status' }},
+        {{ id: 'ai-config', path: 'ai-config', label: 'AI Configuration' }},
         {{ id: 't3', path: 't3', label: 'K2 Bus Times' }},
         {{ id: 'memspeed', path: 'memspeed', label: 'Memory Benchmark' }},
         {{ id: 'lambda-stats', path: 'lambda-stats', label: 'Lambda Statistics' }},
@@ -2752,6 +2754,131 @@ def render_site_test_page():
 </html>'''
 
 
+AI_APPS = [
+    {"key": "alerting", "name": "Alerting", "desc": "Incident analysis"},
+    {"key": "rcr", "name": "RCR", "desc": "Album ranking"},
+    {"key": "uvtm", "name": "Us vs Machines", "desc": "F1 predictions"},
+]
+AI_PROVIDERS = [
+    {"key": "gemini", "name": "Gemini", "models": ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]},
+    {"key": "openai", "name": "OpenAI", "models": ["gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"]},
+    {"key": "bedrock", "name": "Bedrock", "models": ["anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-haiku-20240307-v1:0"]},
+]
+
+
+def get_ai_configs():
+    """Read all /ai-config/ parameters from SSM."""
+    ssm = boto3.client("ssm", region_name="eu-west-1")
+    configs = {}
+    for app in AI_APPS:
+        try:
+            resp = ssm.get_parameter(Name=f"/ai-config/{app['key']}")
+            configs[app["key"]] = json.loads(resp["Parameter"]["Value"])
+        except Exception:
+            configs[app["key"]] = {"provider": "gemini", "model": "gemini-2.5-pro"}
+    return configs
+
+
+def set_ai_config(app_key, provider, model):
+    """Write an /ai-config/ parameter to SSM."""
+    ssm = boto3.client("ssm", region_name="eu-west-1")
+    ssm.put_parameter(
+        Name=f"/ai-config/{app_key}",
+        Value=json.dumps({"provider": provider, "model": model}),
+        Type="String",
+        Overwrite=True,
+    )
+
+
+def render_ai_config_page(configs, message=None):
+    """Render the AI configuration matrix page."""
+    msg_html = ""
+    if message:
+        msg_html = f'<div style="background:var(--accent);color:#fff;padding:0.6rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.8rem;">{message}</div>'
+
+    # Build the matrix rows
+    rows = ""
+    for app in AI_APPS:
+        cfg = configs.get(app["key"], {})
+        active_provider = cfg.get("provider", "")
+        active_model = cfg.get("model", "")
+
+        cells = ""
+        for prov in AI_PROVIDERS:
+            is_active = prov["key"] == active_provider
+            bg = "var(--accent)" if is_active else "var(--card-bg)"
+            color = "#fff" if is_active else "var(--text-secondary)"
+            border = "none" if is_active else "1px solid var(--divider)"
+
+            # Model selector (shown below the button when active)
+            model_opts = ""
+            for m in prov["models"]:
+                sel = " selected" if m == active_model else ""
+                short = m.split("/")[-1].replace("anthropic.", "")
+                model_opts += f'<option value="{m}"{sel}>{short}</option>'
+
+            model_select = ""
+            if is_active:
+                model_select = f'''<select name="model" form="form-{app['key']}-{prov['key']}"
+                    style="margin-top:0.4rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--divider);border-radius:6px;padding:0.2rem;font-size:0.6rem;font-family:var(--font);"
+                    onchange="this.form.submit()">{model_opts}</select>'''
+
+            cells += f'''<td style="padding:0.4rem;text-align:center;vertical-align:top;">
+                <form id="form-{app['key']}-{prov['key']}" method="POST" action="ai-config">
+                    <input type="hidden" name="app" value="{app['key']}">
+                    <input type="hidden" name="provider" value="{prov['key']}">
+                    <input type="hidden" name="model" value="{prov['models'][0]}">
+                    <button type="submit" style="background:{bg};color:{color};border:{border};border-radius:8px;padding:0.4rem 0.8rem;font-size:0.75rem;cursor:pointer;font-family:var(--font);width:100%;min-width:5rem;">{prov['name']}</button>
+                </form>
+                {model_select}
+            </td>'''
+
+        rows += f'''<tr>
+            <td style="padding:0.6rem;font-size:0.85rem;white-space:nowrap;">
+                <div style="color:var(--text);font-weight:600;">{app['name']}</div>
+                <div style="color:var(--text-secondary);font-size:0.65rem;">{app['desc']}</div>
+            </td>
+            {cells}
+        </tr>'''
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Configuration</title>
+    {THEME_CSS_JS}
+</head>
+<body style="margin:0;padding:1rem;background:var(--bg);color:var(--text);font-family:var(--font);">
+    <div style="max-width:600px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:1rem;">
+            <a href="contents" style="color:var(--accent);text-decoration:none;font-size:0.75rem;">Home</a>
+        </div>
+        <h1 style="font-size:1.3rem;font-weight:600;margin:0 0 1rem 0;text-align:center;">AI Configuration</h1>
+        {msg_html}
+        <div style="background:var(--card-bg);border-radius:12px;padding:1rem;overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">App</th>
+                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">Gemini</th>
+                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">OpenAI</th>
+                        <th style="text-align:center;padding:0.4rem;color:var(--text-secondary);font-size:0.7rem;font-weight:500;">Bedrock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows}
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align:center;margin-top:1rem;color:var(--text-secondary);font-size:0.6rem;">
+            Tap a provider to switch. Use the dropdown to change model.
+        </div>
+    </div>
+</body>
+</html>'''
+
+
 def lambda_handler(event, context):
     import time
     start_time = time.time()
@@ -2809,6 +2936,7 @@ def lambda_handler(event, context):
                 'Disallow: /t3\n'
                 'Disallow: /rcr\n'
                 'Disallow: /us-vs-the-machines\n'
+                'Disallow: /ai-config\n'
             )
         }
 
@@ -5162,6 +5290,36 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'body': render_gotg_page(),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif path == f'/{stage}/ai-config' or path == '/ai-config':
+        # AI Configuration Matrix
+        method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+        if method == 'POST':
+            body = event.get('body', '')
+            if event.get('isBase64Encoded'):
+                body = base64.b64decode(body).decode()
+            params = dict(p.split('=', 1) for p in body.split('&') if '=' in p)
+            app_key = urllib.parse.unquote_plus(params.get('app', ''))
+            provider = urllib.parse.unquote_plus(params.get('provider', ''))
+            model = urllib.parse.unquote_plus(params.get('model', ''))
+            valid_apps = [a['key'] for a in AI_APPS]
+            valid_providers = [p['key'] for p in AI_PROVIDERS]
+            if app_key in valid_apps and provider in valid_providers:
+                set_ai_config(app_key, provider, model)
+                configs = get_ai_configs()
+                app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
+                prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
+                return {
+                    'statusCode': 200,
+                    'body': render_ai_config_page(configs, f"{app_name} switched to {prov_name}"),
+                    'headers': {'Content-Type': 'text/html; charset=utf-8'}
+                }
+        configs = get_ai_configs()
+        return {
+            'statusCode': 200,
+            'body': render_ai_config_page(configs),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 

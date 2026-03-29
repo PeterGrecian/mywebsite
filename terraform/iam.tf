@@ -119,6 +119,14 @@ resource "aws_iam_role_policy" "ssm_parameters" {
       },
       {
         Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:PutParameter"
+        ]
+        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/ai-config/*"
+      },
+      {
+        Effect = "Allow"
         Action = "kms:Decrypt"
         Resource = "*"
         Condition = {
@@ -174,6 +182,23 @@ resource "aws_iam_role_policy" "cloudwatch" {
           "lambda:ListFunctions"
         ]
         Resource = "*"
+      }
+    ]
+  })
+}
+
+# Bedrock access — for AI provider switching
+resource "aws_iam_role_policy" "bedrock" {
+  name = "bedrock-invoke"
+  role = aws_iam_role.mywebsite_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "bedrock:InvokeModel"
+        Resource = "arn:aws:bedrock:eu-west-1::foundation-model/*"
       }
     ]
   })
