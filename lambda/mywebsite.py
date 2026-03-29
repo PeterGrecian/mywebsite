@@ -2782,7 +2782,7 @@ def get_ai_usage():
         items = resp.get("Items", [])
     except Exception as e:
         print(f"Error reading ai-usage: {e}")
-        return {"calls_today": 0, "calls_1m": 0, "calls_10m": 0, "by_provider": {}, "recent": []}
+        return {"calls_today": 0, "calls_1m": 0, "calls_10m": 0, "by_app": {}, "recent": []}
 
     # Parse timestamps and compute windows
     calls = []
@@ -2805,20 +2805,22 @@ def get_ai_usage():
     t1m = now - timedelta(minutes=1)
     t10m = now - timedelta(minutes=10)
 
-    calls_1m = sum(1 for c in calls if c["ts"] >= t1m)
-    calls_10m = sum(1 for c in calls if c["ts"] >= t10m)
-
-    # Breakdown by provider
-    by_provider = {}
-    for c in calls:
-        p = c["provider"]
-        by_provider[p] = by_provider.get(p, 0) + 1
+    # Per-app breakdown across all 3 time windows
+    app_keys = [a["key"] for a in AI_APPS]
+    by_app = {}
+    for ak in app_keys:
+        app_calls = [c for c in calls if c["app"] == ak]
+        by_app[ak] = {
+            "1m": sum(1 for c in app_calls if c["ts"] >= t1m),
+            "10m": sum(1 for c in app_calls if c["ts"] >= t10m),
+            "today": len(app_calls),
+        }
 
     return {
         "calls_today": len(calls),
-        "calls_1m": calls_1m,
-        "calls_10m": calls_10m,
-        "by_provider": by_provider,
+        "calls_1m": sum(1 for c in calls if c["ts"] >= t1m),
+        "calls_10m": sum(1 for c in calls if c["ts"] >= t10m),
+        "by_app": by_app,
         "recent": calls[:10],
     }
 
@@ -2847,23 +2849,57 @@ def set_ai_config(app_key, provider, model):
     )
 
 
+def _render_usage_bar(label, sublabel, value, limit, color="var(--accent)"):
+    """Render a Claude-style usage bar with label, progress bar, and percentage."""
+    pct = min(100, int(value / limit * 100)) if limit > 0 else 0
+    return f'''<div style="margin-bottom:0.8rem;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.2rem;">
+            <div>
+                <span style="font-size:0.7rem;font-weight:600;color:var(--text);">{label}</span>
+                <div style="font-size:0.55rem;color:var(--text-secondary);">{sublabel}</div>
+            </div>
+            <span style="font-size:0.6rem;color:var(--text-secondary);">{pct}% used</span>
+        </div>
+        <div style="height:6px;background:var(--divider);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:{pct}%;background:{color};border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+    </div>'''
+
+
 def _render_usage_meter(usage):
-    """Render the AI usage meter section."""
+    """Render the AI usage meter section with Claude-style bars and 3x3 app grid."""
     if not usage:
         return ""
 
-    # Velocity gauges
-    gauges = ""
-    for label, value in [("1 min", usage["calls_1m"]), ("10 min", usage["calls_10m"]), ("Today", usage["calls_today"])]:
-        gauges += f'''<div style="text-align:center;flex:1;">
-            <div style="font-size:1.8rem;font-weight:700;color:var(--accent);">{value}</div>
-            <div style="font-size:0.6rem;color:var(--text-secondary);">{label}</div>
-        </div>'''
+    now = datetime.now(timezone.utc)
 
-    # Provider breakdown
-    provider_pills = ""
-    for prov, count in sorted(usage["by_provider"].items(), key=lambda x: -x[1]):
-        provider_pills += f'<span style="display:inline-block;background:var(--bg);border:1px solid var(--divider);border-radius:12px;padding:0.2rem 0.6rem;margin:0.2rem;font-size:0.65rem;">{prov} <strong>{count}</strong></span>'
+    # Overall progress bars (Claude-style)
+    bars = _render_usage_bar("Today", now.strftime("%d %b %Y"), usage["calls_today"], max(usage["calls_today"], 50))
+    bars += _render_usage_bar("Last 10 minutes", "Rolling window", usage["calls_10m"], max(usage["calls_10m"], 10))
+    bars += _render_usage_bar("Last minute", "Rolling window", usage["calls_1m"], max(usage["calls_1m"], 5))
+
+    # 3x3 grid: apps × time windows
+    by_app = usage.get("by_app", {})
+    grid_rows = ""
+    for app in AI_APPS:
+        ak = app["key"]
+        app_data = by_app.get(ak, {"1m": 0, "10m": 0, "today": 0})
+        grid_rows += f'''<tr>
+            <td style="padding:0.3rem 0.4rem;font-size:0.65rem;color:var(--text);font-weight:500;">{app['name']}</td>
+            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['1m']}</td>
+            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['10m']}</td>
+            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['today']}</td>
+        </tr>'''
+
+    grid = f'''<table style="width:100%;border-collapse:collapse;margin-top:0.5rem;">
+        <thead><tr>
+            <th style="text-align:left;padding:0.3rem 0.4rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
+            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">1 min</th>
+            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">10 min</th>
+            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Today</th>
+        </tr></thead>
+        <tbody>{grid_rows}</tbody>
+    </table>'''
 
     # Recent calls
     recent_rows = ""
@@ -2874,33 +2910,26 @@ def _render_usage_meter(usage):
         if len(model_short) > 20:
             model_short = model_short[:18] + ".."
         recent_rows += f'''<tr style="border-top:1px solid var(--divider);">
-            <td style="padding:0.3rem;font-size:0.6rem;color:var(--text-secondary);">{time_str}</td>
-            <td style="padding:0.3rem;font-size:0.6rem;">{c["app"]}</td>
-            <td style="padding:0.3rem;font-size:0.6rem;color:var(--text-secondary);">{model_short}</td>
-            <td style="padding:0.3rem;font-size:0.6rem;text-align:right;">{status}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{time_str}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;">{c["app"]}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{model_short}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;text-align:right;">{status}</td>
         </tr>'''
 
     recent_html = ""
     if recent_rows:
-        recent_html = f'''<table style="width:100%;border-collapse:collapse;margin-top:0.8rem;">
-            <thead><tr>
-                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Time</th>
-                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">App</th>
-                <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Model</th>
-                <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.6rem;">Result</th>
-            </tr></thead>
-            <tbody>{recent_rows}</tbody>
-        </table>'''
+        recent_html = f'''<div style="margin-top:1rem;">
+            <div style="font-size:0.65rem;font-weight:600;color:var(--text);margin-bottom:0.4rem;">Recent calls</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <tbody>{recent_rows}</tbody>
+            </table>
+        </div>'''
 
     return f'''
-        <div style="background:var(--card-bg);border-radius:12px;padding:1rem;margin-top:1rem;">
-            <h2 style="font-size:0.9rem;font-weight:600;margin:0 0 0.8rem 0;">Usage</h2>
-            <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem;">
-                {gauges}
-            </div>
-            <div style="text-align:center;">{provider_pills}</div>
-            {recent_html}
-        </div>'''
+        <h2 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 0.8rem 0;">Usage</h2>
+        {bars}
+        {grid}
+        {recent_html}'''
 
 
 def render_ai_config_page(configs, usage=None, message=None):
@@ -2969,24 +2998,19 @@ def render_ai_config_page(configs, usage=None, message=None):
         </div>
         <h1 style="font-size:1rem;font-weight:600;margin:0 0 0.8rem 0;text-align:center;">AI Configuration</h1>
         {msg_html}
-        <div style="background:var(--card-bg);border-radius:12px;padding:1rem;overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr>
-                        <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
-                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Gemini</th>
-                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">OpenAI</th>
-                        <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Bedrock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows}
-                </tbody>
-            </table>
-        </div>
-        <div style="text-align:center;margin-top:1rem;color:var(--text-secondary);font-size:0.6rem;">
-            Tap a provider to switch. Use the dropdown to change model.
-        </div>
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
+                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Gemini</th>
+                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">OpenAI</th>
+                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Bedrock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows}
+            </tbody>
+        </table>
         {_render_usage_meter(usage)}
     </div>
 </body>
