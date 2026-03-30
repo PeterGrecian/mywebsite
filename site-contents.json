@@ -10,5 +10,6 @@
   {"path": "rcr", "title": "Recent Classical Recordings", "description": "find well-recorded classical performances on YouTube Music", "color": "pastel-mint", "sort_order": 9, "visible": true},
   {"path": "site-test", "title": "Site Test", "description": "page load times and status monitoring", "color": "pastel-lavender", "sort_order": 10, "visible": true},
   {"path": "us-vs-the-machines", "title": "Us vs the Machines", "description": "predict F1 results — humans vs AI", "color": "pastel-peach", "sort_order": 11, "visible": true},
-  {"path": "betterverse", "external_url": "https://192.168.7.253:8443/?v=13", "title": "Betterverse v13", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 12, "visible": true}
+  {"path": "betterverse", "external_url": "https://192.168.7.253:8443/?v=13", "title": "Betterverse v13", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 12, "visible": true},
+  {"path": "srfcplus", "title": "SRFC Plus", "description": "surbiton racket & fitness club — bookings", "color": "pastel-blue", "sort_order": 13, "visible": true, "auth_required": true}
 ]
