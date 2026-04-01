@@ -159,6 +159,8 @@ GARDENCAM_PASSWORD = get_parameter(GARDENCAM_PARAMETER_NAME)
 if not GARDENCAM_PASSWORD:
     print(f"WARNING: Could not retrieve password from Parameter Store ({GARDENCAM_PARAMETER_NAME}). Gardencam will be inaccessible.")
 
+SRFCPLUS_COOKIE_PARAM = '/srfcplus/session_cookie'
+
 TFL_API_KEY = get_parameter(TFL_PARAMETER_NAME)
 if TFL_API_KEY:
     print("TfL API key loaded from Parameter Store (FREE!)")
@@ -2122,108 +2124,230 @@ grep -v Reps all.out > data.csv
 MYWEBSITE_CONTENTS_TABLE = "mywebsite-contents"
 
 
+def get_srfcplus_cookie():
+    """Fetch the stored SRFC session cookie from SSM (not cached — user can update it)."""
+    return get_parameter(SRFCPLUS_COOKIE_PARAM)
+
+
+def save_srfcplus_cookie(value):
+    """Save the SRFC session cookie to SSM Parameter Store."""
+    if not BOTO3_AVAILABLE:
+        return False
+    try:
+        import boto3
+        ssm = boto3.client('ssm', region_name=GARDENCAM_REGION)
+        ssm.put_parameter(Name=SRFCPLUS_COOKIE_PARAM, Value=value, Type='SecureString', Overwrite=True)
+        return True
+    except Exception as e:
+        print(f"Error saving SRFC cookie: {e}")
+        return False
+
+
+def fetch_srfcplus_homepage(cookie):
+    """Fetch and sanitise the real SRFC homepage. Returns (html, error)."""
+    import urllib.request, re
+
+    try:
+        req = urllib.request.Request(
+            'https://www.mysurbitonracketfitness.com/pages/homepage.aspx',
+            headers={
+                'Cookie': cookie,
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-GB,en;q=0.9',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            final_url = resp.url
+            html = resp.read().decode('utf-8', errors='replace')
+    except Exception as e:
+        return None, str(e)
+
+    if 'login.aspx' in final_url.lower():
+        return None, 'expired'
+
+    # Fix relative URLs: add <base> tag so images/CSS/JS load from the real site
+    html = html.replace('<head>', '<head>\n  <base href="https://www.mysurbitonracketfitness.com/pages/">', 1)
+
+    # Remove financial / personal alert tiles — keep only the booking count tile
+    # Each tile: <div class="alerttile ...">...<div class="alerttextpanel ...">text</div></a></div>
+    STRIP_KEYWORDS = ['invoice', 'virtual wallet', '£', 'profile image',
+                      'bar will be closed', 'private function', 'closed from']
+
+    def filter_tile(m):
+        tile = m.group(0)
+        if any(kw in tile.lower() for kw in STRIP_KEYWORDS):
+            return ''
+        return tile
+
+    html = re.sub(r'<div class="alerttile[^"]*">.*?</a>\s*</div>', filter_tile, html, flags=re.DOTALL)
+    # Also strip plain message tiles (bar notices, announcements — no <a> wrapper)
+    html = re.sub(r'<div class="alerttile[^"]*">(?:(?!alerttile).)*alerttilemessage.*?</div>\s*</div>',
+                  '', html, flags=re.DOTALL)
+
+    # Inject SRFC Plus top bar
+    top_bar = (
+        '<div style="background:#1a3070;color:#fff;text-align:center;padding:5px 0;'
+        'font-size:11px;font-family:Quicksand,\'Open Sans\',sans-serif;letter-spacing:1px;">'
+        'SRFC PLUS &nbsp;|&nbsp; '
+        '<a href="/srfcplus/update-cookie" style="color:#87b4e8;">update session</a>'
+        ' &nbsp;|&nbsp; '
+        '<a href="/contents" style="color:#87b4e8;">petergrecian.co.uk</a>'
+        '</div>'
+    )
+    html = re.sub(r'(<body[^>]*>)', r'\1' + top_bar, html, count=1)
+
+    return html, None
+
+
+def render_srfcplus_setup_page(message=None, success=False):
+    """Render the SRFC Plus cookie setup/update page in SRFC portal style."""
+    msg_html = ''
+    if message and not success:
+        msg_html = f'<div class="alert alert-danger" style="margin-bottom:1rem;">{message}</div>'
+    if success:
+        msg_html = '<div class="alert alert-success" style="margin-bottom:1rem;">Cookie saved. <a href="/srfcplus">Go to SRFC Plus →</a></div>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRFC Plus — Setup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {{ font-family: "Quicksand","Open Sans",Verdana,Arial,sans-serif; font-size:13px; background:#f5f7fa; color:#333; margin:0; }}
+    .navbar {{ background:#23408f; min-height:60px; display:flex; align-items:center; padding:0 20px; }}
+    .navbar img {{ max-height:40px; }}
+    .navbar a {{ color:#ddd; margin-left:auto; font-size:12px; font-weight:600; text-decoration:none; }}
+    .container {{ max-width:560px; margin:40px auto; padding:0 20px; }}
+    .panel {{ background:#fff; border:1px solid #e5e5e5; border-radius:4px; }}
+    .panel-heading {{ background:#f5f5f5; border-bottom:1px solid #e5e5e5; padding:10px 16px; font-weight:700; font-size:13px; }}
+    .panel-body {{ padding:20px; }}
+    label {{ display:block; font-weight:700; font-size:11px; color:#555; margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }}
+    textarea {{ width:100%; box-sizing:border-box; font-family:monospace; font-size:11px; border:1px solid #ddd; border-radius:3px; padding:8px; resize:vertical; min-height:70px; }}
+    .hint {{ font-size:11px; color:#888; margin-top:6px; line-height:1.5; }}
+    .hint code {{ background:#f5f5f5; padding:1px 4px; border-radius:2px; font-size:10px; }}
+    .btn {{ background:#2ba6cb; color:#fff; border:1px solid #2285a2; padding:8px 20px; border-radius:3px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; margin-top:12px; }}
+    .btn:hover {{ background:#2285a2; }}
+    .alert-danger {{ background:#fdf2f2; border:1px solid #f5c6cb; color:#721c24; padding:10px 14px; border-radius:3px; font-size:12px; }}
+    .alert-success {{ background:#f2fdf5; border:1px solid #c3e6cb; color:#155724; padding:10px 14px; border-radius:3px; font-size:12px; }}
+    .alert-success a {{ color:#155724; }}
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <img src="https://backoffice.mysurbitonracketfitness.com/imageorganisation/pageheaderlogo/moc_surbiton_live_orgbannerlogo.png" alt="SRFC">
+    <a href="/contents">petergrecian.co.uk</a>
+  </nav>
+  <div class="container">
+    <h2 style="color:#23408f;margin-bottom:1.5rem;">SRFC Plus — Session Setup</h2>
+    {msg_html}
+    <div class="panel">
+      <div class="panel-heading">Portal Session Cookie</div>
+      <div class="panel-body">
+        <form method="POST" action="/srfcplus/update-cookie">
+          <label>Cookie string</label>
+          <textarea name="cookie" placeholder="ASP.NET_SessionId=abc123; .ASPXAUTH=xyz..."></textarea>
+          <p class="hint">
+            Log in at <a href="https://www.mysurbitonracketfitness.com" target="_blank">mysurbitonracketfitness.com</a>,
+            then open DevTools (F12) → Application → Storage → Cookies →
+            <strong>www.mysurbitonracketfitness.com</strong>.<br>
+            Copy <code>ASP.NET_SessionId</code> and <code>.ASPXAUTH</code> and paste as:<br>
+            <code>ASP.NET_SessionId=abc123; .ASPXAUTH=xyz...</code><br>
+            Saved securely in AWS SSM — works from all devices.
+          </p>
+          <button type="submit" class="btn">Save Cookie</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'''
+
+
 def fetch_srfcplus_bookings(cookie, sport=None):
-    """Fetch bookings from ManageOurClub using borrowed session cookie.
-    Hits /pages/mybookings.aspx directly — skips the slow homepage balance query."""
-    import urllib.request
-    from html.parser import HTMLParser
+    """Fetch bookings from ManageOurClub contact statement page.
+    Uses /pages/contact/contactstatement.aspx which loads directly with auth
+    and contains a DevExpress grid with booking descriptions including court and time."""
+    import urllib.request, re
+    from datetime import datetime
 
     if not cookie:
         return {'error': 'No cookie provided'}
 
-    class BookingParser(HTMLParser):
-        """Extract rows from the bookings table/grid."""
-        def __init__(self):
-            super().__init__()
-            self.in_bookings = False
-            self.depth = 0
-            self.bookings_html = []
-            self.current_row = []
-            self.current_cell = ''
-            self.in_cell = False
-            self.redirected_to_login = False
-
-        def handle_starttag(self, tag, attrs):
-            attrs = dict(attrs)
-            aid = attrs.get('id', '')
-            # Detect redirect to login
-            if tag == 'form' and 'login' in attrs.get('action', '').lower():
-                self.redirected_to_login = True
-            # Start capturing at the bookings container
-            if aid == 'MainContent_maincolPage_mainCol_bookings':
-                self.in_bookings = True
-                self.depth = 1
-                return
-            if self.in_bookings:
-                self.depth += 1
-                if tag == 'tr':
-                    self.current_row = []
-                elif tag in ('td', 'th'):
-                    self.in_cell = True
-                    self.current_cell = ''
-
-        def handle_endtag(self, tag):
-            if not self.in_bookings:
-                return
-            if tag in ('td', 'th') and self.in_cell:
-                self.current_row.append(self.current_cell.strip())
-                self.in_cell = False
-            elif tag == 'tr' and self.current_row:
-                self.bookings_html.append(self.current_row)
-                self.current_row = []
-            self.depth -= 1
-            if self.depth <= 0:
-                self.in_bookings = False
-
-        def handle_data(self, data):
-            if self.in_cell:
-                self.current_cell += data
-
     try:
-        url = 'https://www.mysurbitonracketfitness.com/pages/mybookings.aspx'
+        url = 'https://www.mysurbitonracketfitness.com/pages/contact/contactstatement.aspx'
         req = urllib.request.Request(url, headers={
             'Cookie': cookie,
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-GB,en;q=0.9',
         })
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             final_url = resp.url
             body = resp.read().decode('utf-8', errors='replace')
     except Exception as e:
         return {'error': str(e)}
 
-    # Check for login redirect
-    if 'login.aspx' in final_url or 'login.aspx' in body[:2000].lower():
-        return {'error': 'Session expired or invalid cookie — please refresh your cookie from the portal'}
+    if 'login.aspx' in final_url.lower():
+        return {'error': 'Session expired — please refresh your cookie from the portal'}
 
-    parser = BookingParser()
-    parser.feed(body)
-
-    if parser.redirected_to_login:
-        return {'error': 'Session expired or invalid cookie — please refresh your cookie from the portal'}
-
-    rows = parser.bookings_html
+    # Extract DevExpress grid rows
+    rows = re.findall(r'<tr[^>]*class="[^"]*dxgvDataRow[^"]*"[^>]*>(.*?)</tr>', body, re.DOTALL)
     if not rows:
-        return {'bookings': [], 'note': 'No bookings found (or page structure has changed)'}
+        return {'bookings': [], 'note': 'No data found — page structure may have changed'}
 
-    # First row is likely a header — skip it if all cells look like headings
-    header = rows[0] if rows else []
-    data_rows = rows[1:] if rows else []
-
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     bookings = []
-    for row in data_rows:
-        if not any(row):
+
+    for row in rows:
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+        cells = [re.sub(r'<[^>]+>', '', c).strip().replace('&nbsp;', '').strip() for c in cells]
+        if len(cells) < 3:
             continue
-        booking = {c: v for c, v in zip(header, row)} if header else {'cols': row}
+
+        row_type = cells[0]
+        date_str = cells[1]
+        description = cells[2]
+
+        if row_type != 'Booking':
+            continue
+
+        # Only future bookings
+        try:
+            row_date = datetime.strptime(date_str, '%d %b %Y')
+            if row_date < today:
+                continue
+        except ValueError:
+            pass
+
+        if sport and sport.lower() not in description.lower():
+            continue
+
+        booking = {'date': date_str, 'description': description}
+
+        # "Booking for X on Day D Mon YYYY - Venue - Padel Court N from HH:MM to HH:MM"
+        m = re.search(r'on (\w{3} \d+ \w+ \d{4}) - [^-]+ - (Padel[^-]+?) from (\d{2}:\d{2}) to (\d{2}:\d{2})', description)
+        if m:
+            booking['event_date'] = m.group(1)
+            booking['court'] = m.group(2).strip()
+            booking['start'] = m.group(3)
+            booking['end'] = m.group(4)
+        else:
+            # "Place booked for X on DayName Event Name on Day Mon at Venue"
+            m2 = re.search(r'on (\w{3} \d+ \w+)(?: \d{4})? at ', description)
+            if m2:
+                booking['event_date'] = m2.group(1)
+            # Extract event name
+            m3 = re.search(r'(?:Booking|Place booked) for [^-]+ - (.+)', description)
+            if not m3:
+                m3 = re.search(r'Invoice \d+ - (.+)', description)
+            booking['label'] = m3.group(1).strip() if m3 else description
+
         bookings.append(booking)
 
-    # Filter by sport if requested
-    if sport:
-        sport_lower = sport.lower()
-        bookings = [b for b in bookings if any(sport_lower in str(v).lower() for v in b.values())]
-
-    return {'bookings': bookings, 'header': header, 'count': len(bookings), 'sport': sport}
+    return {'bookings': bookings, 'count': len(bookings), 'sport': sport}
 
 
 def render_srfcplus_page():
@@ -2415,24 +2539,20 @@ def render_srfcplus_page():
             return;
           }
 
-          // Build table header from first booking's keys
-          const header = data.header && data.header.length ? data.header : Object.keys(bookings[0]);
           const thead = document.getElementById('bookingsHead');
           const tbody = document.getElementById('bookingsBody');
-          thead.innerHTML = '<tr>' + header.map(h => '<th>' + escHtml(h) + '</th>').join('') + '</tr>';
+          thead.innerHTML = '<tr><th>Court / Event</th><th>Date</th><th>Time</th></tr>';
           tbody.innerHTML = '';
 
           bookings.forEach(b => {
             const tr = document.createElement('tr');
-            const vals = data.header ? data.header.map(h => b[h] || '') : Object.values(b);
-            tr.innerHTML = vals.map((v, i) => {
-              let cell = escHtml(String(v || ''));
-              // First non-empty column gets bold; status-like columns get badges
-              if (i === 0) cell = '<strong>' + cell + '</strong>';
-              if (/confirm/i.test(cell)) cell = '<span class="badge-confirmed">Confirmed</span>';
-              else if (/pending|await/i.test(cell)) cell = '<span class="badge-pending">Pending</span>';
-              return '<td>' + cell + '</td>';
-            }).join('');
+            const title = b.court || b.label || b.description || '';
+            const when  = b.event_date || b.date || '';
+            const time  = (b.start && b.end) ? b.start + '\u2013' + b.end : '';
+            tr.innerHTML =
+              '<td><strong>' + escHtml(title) + '</strong></td>' +
+              '<td>' + escHtml(when) + '</td>' +
+              '<td>' + escHtml(time) + '</td>';
             tbody.appendChild(tr);
           });
 
@@ -5977,7 +6097,36 @@ def lambda_handler(event, context):
                 'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
                 'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
             }
-        html = render_srfcplus_page()
+        srfc_cookie = get_srfcplus_cookie()
+        if not srfc_cookie:
+            html = render_srfcplus_setup_page('No session cookie saved yet.')
+        else:
+            proxied, err = fetch_srfcplus_homepage(srfc_cookie)
+            if err == 'expired':
+                html = render_srfcplus_setup_page('Session expired — please paste a fresh cookie.')
+            elif err:
+                html = render_srfcplus_setup_page(f'Could not reach portal: {err}')
+            else:
+                return {'statusCode': 200, 'body': proxied, 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif path == f'/{stage}/srfcplus/update-cookie' or path == '/srfcplus/update-cookie':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
+            }
+        if event.get('requestContext', {}).get('http', {}).get('method') == 'POST' or event.get('httpMethod') == 'POST':
+            form_body = event.get('body') or ''
+            import urllib.parse as _up
+            params = dict(_up.parse_qsl(form_body))
+            new_cookie = params.get('cookie', '').strip()
+            if new_cookie:
+                save_srfcplus_cookie(new_cookie)
+                return {'statusCode': 302, 'body': '', 'headers': {'Location': '/srfcplus'}}
+            html = render_srfcplus_setup_page('No cookie provided — please paste the cookie string.')
+        else:
+            html = render_srfcplus_setup_page()
 
     elif path == f'/{stage}/srfcplus/bookings' or path == '/srfcplus/bookings':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
@@ -5986,14 +6135,12 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Unauthorized'}),
                 'headers': {'Content-Type': 'application/json', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
             }
-        try:
-            body_data = json.loads(event.get('body') or '{}')
-            cookie = body_data.get('cookie', '')
-        except Exception:
-            cookie = ''
+        srfc_cookie = get_srfcplus_cookie()
+        if not srfc_cookie:
+            return {'statusCode': 200, 'body': json.dumps({'error': 'No session cookie — visit /srfcplus/update-cookie'}), 'headers': {'Content-Type': 'application/json'}}
         return {
             'statusCode': 200,
-            'body': json.dumps(fetch_srfcplus_bookings(cookie, sport='padel')),
+            'body': json.dumps(fetch_srfcplus_bookings(srfc_cookie, sport='padel')),
             'headers': {'Content-Type': 'application/json'}
         }
 
