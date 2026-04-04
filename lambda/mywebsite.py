@@ -3220,6 +3220,25 @@ AI_PROVIDERS = [
     {"key": "bedrock", "name": "Bedrock", "models": ["anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-haiku-20240307-v1:0"]},
 ]
 
+# USD per million tokens (input, output)
+MODEL_PRICING = {
+    "gemini-2.5-pro":                               (1.25, 10.00),
+    "gemini-2.5-flash":                             (0.30,  2.50),
+    "gemini-2.0-flash":                             (0.10,  0.40),
+    "gpt-4o-mini":                                  (0.15,  0.60),
+    "gpt-4o":                                       (2.50, 10.00),
+    "gpt-4.1-mini":                                 (0.40,  1.60),
+    "anthropic.claude-3-5-sonnet-20241022-v2:0":    (3.00, 15.00),
+    "anthropic.claude-3-haiku-20240307-v1:0":       (0.25,  1.25),
+}
+
+
+def _token_cost(model, input_tok, output_tok):
+    price = MODEL_PRICING.get(model)
+    if not price:
+        return 0.0
+    return (input_tok * price[0] + output_tok * price[1]) / 1_000_000
+
 
 def get_ai_usage():
     """Read AI usage from DynamoDB for today and compute velocity metrics."""
@@ -3237,7 +3256,9 @@ def get_ai_usage():
         items = resp.get("Items", [])
     except Exception as e:
         print(f"Error reading ai-usage: {e}")
-        return {"calls_today": 0, "calls_1m": 0, "calls_10m": 0, "by_app": {}, "recent": []}
+        return {"calls_today": 0, "calls_1m": 0, "calls_10m": 0,
+                "input_tokens_today": 0, "output_tokens_today": 0, "cost_today_usd": 0.0,
+                "by_app": {}, "by_provider": {}, "recent": []}
 
     # Parse timestamps and compute windows
     calls = []
@@ -3250,6 +3271,8 @@ def get_ai_usage():
                 "provider": item.get("provider", "?"),
                 "model": item.get("model", "?"),
                 "duration_ms": int(item.get("duration_ms", 0)),
+                "input_tokens": int(item.get("input_tokens", 0)),
+                "output_tokens": int(item.get("output_tokens", 0)),
                 "error": item.get("error"),
             })
         except Exception:
@@ -3271,11 +3294,34 @@ def get_ai_usage():
             "today": len(app_calls),
         }
 
+    # Per-provider token totals and cost for today
+    by_provider = {}
+    for prov in AI_PROVIDERS:
+        pk = prov["key"]
+        prov_calls = [c for c in calls if c["provider"] == pk]
+        in_tok = sum(c["input_tokens"] for c in prov_calls)
+        out_tok = sum(c["output_tokens"] for c in prov_calls)
+        cost = sum(_token_cost(c["model"], c["input_tokens"], c["output_tokens"]) for c in prov_calls)
+        by_provider[pk] = {
+            "calls": len(prov_calls),
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "cost_usd": cost,
+        }
+
+    total_input = sum(c["input_tokens"] for c in calls)
+    total_output = sum(c["output_tokens"] for c in calls)
+    total_cost = sum(_token_cost(c["model"], c["input_tokens"], c["output_tokens"]) for c in calls)
+
     return {
         "calls_today": len(calls),
         "calls_1m": sum(1 for c in calls if c["ts"] >= t1m),
         "calls_10m": sum(1 for c in calls if c["ts"] >= t10m),
+        "input_tokens_today": total_input,
+        "output_tokens_today": total_output,
+        "cost_today_usd": total_cost,
         "by_app": by_app,
+        "by_provider": by_provider,
         "recent": calls[:10],
     }
 
@@ -3322,36 +3368,39 @@ def _render_usage_bar(label, sublabel, value, limit, color="var(--accent)"):
 
 
 def _render_usage_meter(usage):
-    """Render the AI usage meter section with Claude-style bars and 3x3 app grid."""
+    """Render the AI usage meter section with token counts and cost."""
     if not usage:
         return ""
 
-    now = datetime.now(timezone.utc)
+    total_in = usage.get("input_tokens_today", 0)
+    total_out = usage.get("output_tokens_today", 0)
+    cost = usage.get("cost_today_usd", 0.0)
 
-    # Overall progress bars (Claude-style)
-    bars = _render_usage_bar("Today", now.strftime("%d %b %Y"), usage["calls_today"], max(usage["calls_today"], 50))
-    bars += _render_usage_bar("Last 10 minutes", "Rolling window", usage["calls_10m"], max(usage["calls_10m"], 10))
-    bars += _render_usage_bar("Last minute", "Rolling window", usage["calls_1m"], max(usage["calls_1m"], 5))
+    bars = _render_usage_bar("Input tokens today", f"{total_in:,} tokens", total_in, max(total_in, 100_000))
+    bars += _render_usage_bar("Output tokens today", f"{total_out:,} tokens", total_out, max(total_out, 10_000))
+    bars += _render_usage_bar("Estimated cost today", f"${cost:.4f}", cost * 100, max(cost * 100, 1.0), color="var(--warning)")
 
-    # 3x3 grid: apps × time windows
-    by_app = usage.get("by_app", {})
+    # Per-provider table
+    by_provider = usage.get("by_provider", {})
     grid_rows = ""
-    for app in AI_APPS:
-        ak = app["key"]
-        app_data = by_app.get(ak, {"1m": 0, "10m": 0, "today": 0})
+    for prov in AI_PROVIDERS:
+        pk = prov["key"]
+        pd = by_provider.get(pk, {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0})
         grid_rows += f'''<tr>
-            <td style="padding:0.3rem 0.4rem;font-size:0.65rem;color:var(--text);font-weight:500;">{app['name']}</td>
-            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['1m']}</td>
-            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['10m']}</td>
-            <td style="padding:0.3rem;text-align:center;font-size:0.7rem;font-weight:600;color:var(--accent);">{app_data['today']}</td>
+            <td style="padding:0.3rem 0.4rem;font-size:0.65rem;color:var(--text);font-weight:500;">{prov['name']}</td>
+            <td style="padding:0.3rem;text-align:right;font-size:0.65rem;color:var(--accent);">{pd['calls']}</td>
+            <td style="padding:0.3rem;text-align:right;font-size:0.65rem;">{pd['input_tokens']:,}</td>
+            <td style="padding:0.3rem;text-align:right;font-size:0.65rem;">{pd['output_tokens']:,}</td>
+            <td style="padding:0.3rem;text-align:right;font-size:0.65rem;color:var(--text-secondary);">${pd['cost_usd']:.4f}</td>
         </tr>'''
 
     grid = f'''<table style="width:100%;border-collapse:collapse;margin-top:0.5rem;">
         <thead><tr>
-            <th style="text-align:left;padding:0.3rem 0.4rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
-            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">1 min</th>
-            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">10 min</th>
-            <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Today</th>
+            <th style="text-align:left;padding:0.3rem 0.4rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Provider</th>
+            <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Calls</th>
+            <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">In tok</th>
+            <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Out tok</th>
+            <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Cost</th>
         </tr></thead>
         <tbody>{grid_rows}</tbody>
     </table>'''
@@ -3364,10 +3413,14 @@ def _render_usage_meter(usage):
         model_short = c["model"].split("/")[-1].replace("anthropic.", "")
         if len(model_short) > 20:
             model_short = model_short[:18] + ".."
+        in_tok = c.get("input_tokens", 0)
+        out_tok = c.get("output_tokens", 0)
+        tok_str = f'{in_tok:,}↑ {out_tok:,}↓' if (in_tok or out_tok) else "—"
         recent_rows += f'''<tr style="border-top:1px solid var(--divider);">
             <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{time_str}</td>
             <td style="padding:0.3rem;font-size:0.55rem;">{c["app"]}</td>
             <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{model_short}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{tok_str}</td>
             <td style="padding:0.3rem;font-size:0.55rem;text-align:right;">{status}</td>
         </tr>'''
 
@@ -3381,7 +3434,7 @@ def _render_usage_meter(usage):
         </div>'''
 
     return f'''
-        <h2 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 0.8rem 0;">Usage</h2>
+        <h2 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 0.8rem 0;">Claude Usage</h2>
         {bars}
         {grid}
         {recent_html}'''
@@ -5888,7 +5941,7 @@ def lambda_handler(event, context):
 
     elif path == f'/{stage}/ai-config' or path == '/ai-config':
         # AI Configuration Matrix
-        method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+        method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
         if method == 'POST':
             body = event.get('body', '')
             if event.get('isBase64Encoded'):
