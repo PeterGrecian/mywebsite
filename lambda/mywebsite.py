@@ -3217,7 +3217,7 @@ AI_APPS = [
 AI_PROVIDERS = [
     {"key": "gemini", "name": "Gemini", "models": ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"]},
     {"key": "openai", "name": "OpenAI", "models": ["gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"]},
-    {"key": "bedrock", "name": "Bedrock", "models": ["anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-haiku-20240307-v1:0"]},
+    {"key": "bedrock", "name": "Bedrock", "models": ["eu.anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-haiku-20240307-v1:0"]},
 ]
 
 # USD per million tokens (input, output)
@@ -3228,7 +3228,7 @@ MODEL_PRICING = {
     "gpt-4o-mini":                                  (0.15,  0.60),
     "gpt-4o":                                       (2.50, 10.00),
     "gpt-4.1-mini":                                 (0.40,  1.60),
-    "anthropic.claude-3-5-sonnet-20241022-v2:0":    (3.00, 15.00),
+    "eu.anthropic.claude-3-5-sonnet-20241022-v2:0": (3.00, 15.00),
     "anthropic.claude-3-haiku-20240307-v1:0":       (0.25,  1.25),
 }
 
@@ -3334,7 +3334,8 @@ def get_ai_configs():
         try:
             resp = ssm.get_parameter(Name=f"/ai-config/{app['key']}")
             configs[app["key"]] = json.loads(resp["Parameter"]["Value"])
-        except Exception:
+        except Exception as e:
+            print(f"SSM get_ai_config failed for {app['key']}: {e}")
             configs[app["key"]] = {"provider": "gemini", "model": "gemini-2.5-pro"}
     return configs
 
@@ -3405,10 +3406,14 @@ def _render_usage_meter(usage):
         <tbody>{grid_rows}</tbody>
     </table>'''
 
-    # Recent calls
+    # Recent calls — times in Europe/London (BST/GMT)
+    import zoneinfo
+    london = zoneinfo.ZoneInfo("Europe/London")
     recent_rows = ""
     for c in usage["recent"]:
-        time_str = c["ts"].strftime("%H:%M:%S")
+        local_ts = c["ts"].astimezone(london)
+        tz_name = local_ts.strftime("%Z")  # "BST" or "GMT"
+        time_str = local_ts.strftime("%H:%M:%S")
         status = f'<span style="color:var(--error);">{c["error"][:30]}</span>' if c.get("error") else f'{c["duration_ms"]}ms'
         model_short = c["model"].split("/")[-1].replace("anthropic.", "")
         if len(model_short) > 20:
@@ -3427,24 +3432,30 @@ def _render_usage_meter(usage):
     recent_html = ""
     if recent_rows:
         recent_html = f'''<div style="margin-top:1rem;">
-            <div style="font-size:0.65rem;font-weight:600;color:var(--text);margin-bottom:0.4rem;">Recent calls</div>
             <table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                    <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Time ({tz_name})</th>
+                    <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
+                    <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Model</th>
+                    <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Tokens</th>
+                    <th style="text-align:right;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Duration</th>
+                </tr></thead>
                 <tbody>{recent_rows}</tbody>
             </table>
         </div>'''
 
+    recent_heading = f'<hr style="border:none;border-top:1px solid var(--divider);margin:1.2rem 0 0.8rem 0;"><h3 style="font-size:0.75rem;font-weight:600;margin:0 0 0.3rem 0;">Recent calls</h3>' if recent_html else ""
     return f'''
         <h2 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 0.8rem 0;">AI Usage</h2>
         {bars}
         {grid}
+        {recent_heading}
         {recent_html}'''
 
 
 def render_ai_config_page(configs, usage=None, message=None):
     """Render the AI configuration matrix page with usage meter."""
     msg_html = ""
-    if message:
-        msg_html = f'<div style="background:var(--accent);color:#fff;padding:0.6rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.8rem;">{message}</div>'
 
     # Build the matrix rows
     rows = ""
@@ -3460,25 +3471,27 @@ def render_ai_config_page(configs, usage=None, message=None):
             color = "#fff" if is_active else "var(--text-secondary)"
             border = "none" if is_active else "1px solid var(--divider)"
 
-            # Model selector (shown below the button when active)
+            # Model selector — always shown, pre-selects active model if this is the active provider
             model_opts = ""
             for m in prov["models"]:
-                sel = " selected" if m == active_model else ""
+                sel = " selected" if (is_active and m == active_model) else ""
                 short = m.split("/")[-1].replace("anthropic.", "")
-                model_opts += f'<option value="{m}"{sel}>{short}</option>'
+                price = MODEL_PRICING.get(m)
+                price_str = f" ${price[0]}/${price[1]}" if price else ""
+                model_opts += f'<option value="{m}"{sel}>{short}{price_str}</option>'
 
-            model_select = ""
-            if is_active:
-                model_select = f'''<select name="model" form="form-{app['key']}-{prov['key']}"
-                    style="margin-top:0.3rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--divider);border-radius:6px;padding:0.15rem;font-size:0.5rem;font-family:var(--font);"
-                    onchange="this.form.submit()">{model_opts}</select>'''
+            model_select = f'''<select name="model" form="form-{app['key']}-{prov['key']}"
+                style="margin-top:0.3rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--divider);border-radius:6px;padding:0.15rem;font-size:0.5rem;font-family:var(--font);"
+                onchange="submitAiConfig(this.form, this)">{model_opts}</select>'''
 
             cells += f'''<td style="padding:0.4rem;text-align:center;vertical-align:top;">
                 <form id="form-{app['key']}-{prov['key']}" method="POST" action="ai-config">
                     <input type="hidden" name="app" value="{app['key']}">
                     <input type="hidden" name="provider" value="{prov['key']}">
                     <input type="hidden" name="model" value="{prov['models'][0]}">
-                    <button type="submit" style="background:{bg};color:{color};border:{border};border-radius:6px;padding:0.3rem 0.5rem;font-size:0.6rem;cursor:pointer;font-family:var(--font);width:100%;min-width:3.5rem;">{prov['name']}</button>
+                    <button type="submit" onclick="handleProviderClick(event, this)"
+                        style="background:{bg};color:{color};border:{border};border-radius:6px;padding:0.3rem 0.5rem;font-size:0.6rem;cursor:pointer;font-family:var(--font);width:100%;min-width:3.5rem;"
+                        data-active="{'true' if is_active else 'false'}">{prov['name']}</button>
                 </form>
                 {model_select}
             </td>'''
@@ -3498,9 +3511,15 @@ def render_ai_config_page(configs, usage=None, message=None):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Configuration</title>
     {THEME_CSS_JS}
+<style>
+.ai-wrap{{max-width:600px;margin:0 auto;}}
+@media(min-width:768px){{
+  .ai-wrap{{max-width:860px;zoom:1.6;}}
+}}
+</style>
 </head>
 <body style="margin:0;padding:1rem;background:var(--bg);color:var(--text);font-family:var(--font);">
-    <div style="max-width:600px;margin:0 auto;">
+    <div class="ai-wrap">
         <div style="text-align:center;margin-bottom:1rem;">
             <a href="contents" style="color:var(--accent);text-decoration:none;font-size:0.75rem;">Home</a>
         </div>
@@ -3519,8 +3538,35 @@ def render_ai_config_page(configs, usage=None, message=None):
                 {rows}
             </tbody>
         </table>
+        <hr style="border:none;border-top:1px solid var(--divider);margin:1.2rem 0;">
         {_render_usage_meter(usage)}
     </div>
+<script>
+function handleProviderClick(e, btn) {{
+    e.preventDefault();
+    btn.style.background = '#34C759';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    var form = btn.closest('form');
+    submitAiConfig(form, null);
+}}
+
+function submitAiConfig(form, select) {{
+    var data = new FormData(form);
+    if (select) {{
+        data.set('model', select.value);
+        var btn = form.querySelector('button');
+        if (btn) {{
+            btn.style.background = '#34C759';
+            btn.style.color = '#fff';
+            btn.style.border = 'none';
+        }}
+    }}
+    fetch('/ai-config', {{method: 'POST', body: new URLSearchParams(data)}})
+        .then(function(r) {{ if (r.ok) window.location.reload(); }})
+        .catch(function(err) {{ console.error('ai-config POST failed:', err); }});
+}}
+</script>
 </body>
 </html>'''
 
@@ -5952,8 +5998,10 @@ def lambda_handler(event, context):
             model = urllib.parse.unquote_plus(params.get('model', ''))
             valid_apps = [a['key'] for a in AI_APPS]
             valid_providers = [p['key'] for p in AI_PROVIDERS]
+            print(f"ai-config POST body={body!r} app={app_key!r} provider={provider!r} model={model!r} valid={app_key in valid_apps and provider in valid_providers}")
             if app_key in valid_apps and provider in valid_providers:
                 set_ai_config(app_key, provider, model)
+                print(f"ai-config SSM written: {app_key} -> {provider}/{model}")
                 configs = get_ai_configs()
                 app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
                 prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
@@ -5961,14 +6009,17 @@ def lambda_handler(event, context):
                 return {
                     'statusCode': 200,
                     'body': render_ai_config_page(configs, usage, f"{app_name} switched to {prov_name}"),
-                    'headers': {'Content-Type': 'text/html; charset=utf-8'}
+                    'headers': {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'}
                 }
         configs = get_ai_configs()
         usage = get_ai_usage()
         return {
             'statusCode': 200,
             'body': render_ai_config_page(configs, usage),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            'headers': {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store',
+            }
         }
 
     elif path == f'/{stage}/pi-fleet' or path == '/pi-fleet':
