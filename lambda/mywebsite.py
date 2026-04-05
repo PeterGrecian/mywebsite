@@ -3654,16 +3654,52 @@ def render_claude_usage_page(quota):
 @media(min-width:768px){{
   .cu-wrap{{max-width:800px;zoom:1.6;}}
 }}
+body.desktop-override .cu-wrap{{max-width:800px;zoom:1.6;}}
+body.phone-override .cu-wrap{{max-width:500px;zoom:1;}}
+#home-btn{{position:fixed;top:0.8rem;left:0.8rem;color:var(--text-secondary);font-size:0.65rem;text-decoration:none;z-index:10000;opacity:0.5;font-family:var(--font);}}
+#home-btn:hover{{opacity:1;}}
 </style>
 </head>
 <body style="margin:0;padding:1rem;background:var(--bg);color:var(--text);font-family:var(--font);">
+    <a id="home-btn" href="contents">Home</a>
     <div class="cu-wrap">
-        <div style="text-align:center;margin-bottom:1rem;">
-            <a href="contents" style="color:var(--accent);text-decoration:none;font-size:0.75rem;">Home</a>
-        </div>
         <h1 style="font-size:1rem;font-weight:600;margin:0 0 1rem 0;text-align:center;">Claude Usage</h1>
         {content}
     </div>
+<script>
+document.addEventListener('DOMContentLoaded',function(){{
+  var body=document.body;
+  var stored=localStorage.getItem('cu-view');
+  if(stored==='desktop')body.classList.add('desktop-override');
+  else if(stored==='phone')body.classList.add('phone-override');
+
+  if(!window._settingsMenu)return;
+  var item=document.createElement('div');
+  item.className='settings-item';
+  var label=document.createElement('span');
+  var check=document.createElement('span');
+  check.className='check';
+  function update(){{
+    var v=localStorage.getItem('cu-view')||'auto';
+    label.textContent=v==='desktop'?'Phone view':v==='phone'?'Auto view':'Desktop view';
+    check.textContent='';
+  }}
+  update();
+  item.appendChild(label);
+  item.appendChild(check);
+  item.onclick=function(e){{
+    e.stopPropagation();
+    var v=localStorage.getItem('cu-view')||'auto';
+    var n=v==='auto'?'desktop':v==='desktop'?'phone':'auto';
+    localStorage.setItem('cu-view',n);
+    body.classList.remove('desktop-override','phone-override');
+    if(n==='desktop')body.classList.add('desktop-override');
+    else if(n==='phone')body.classList.add('phone-override');
+    update();
+  }};
+  window._settingsMenu.appendChild(item);
+}});
+</script>
 </body>
 </html>'''
 
