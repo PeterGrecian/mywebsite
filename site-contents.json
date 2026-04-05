@@ -1,5 +1,6 @@
 [
-  {"path": "cv", "title": "CV / Curriculum Vitae", "description": "professional experience and skills", "color": "pastel-lavender", "sort_order": 1, "visible": true},
+  {"path": "cv", "title": "CV / Curriculum Vitae", "description": "professional experience and skills", "color": "pastel-lavender", "sort_order": 1, "visible": false},
+  {"path": "claude-usage", "title": "Claude Usage", "description": "claude pro quota — 5h and 7d consumption rate", "color": "pastel-lavender", "sort_order": 0, "visible": true},
   {"path": "gardencam", "title": "Garden Camera", "description": "latest images from the garden", "color": "pastel-mint", "sort_order": 2, "visible": true, "auth_required": true},
   {"path": "springcam", "title": "Spring Camera", "description": "spring timelapse — every 20 minutes", "color": "pastel-green", "sort_order": 3, "visible": true, "auth_required": true},
   {"path": "pi-fleet", "title": "Pi Fleet Status", "description": "raspberry pi monitoring dashboard", "color": "pastel-peach", "sort_order": 4, "visible": true},
@@ -11,6 +12,6 @@
   {"path": "site-test", "title": "Site Test", "description": "page load times and status monitoring", "color": "pastel-lavender", "sort_order": 10, "visible": true},
   {"path": "us-vs-the-machines", "title": "Us vs the Machines", "description": "predict F1 results — humans vs AI", "color": "pastel-peach", "sort_order": 11, "visible": true},
   {"path": "betterverse", "external_url": "https://192.168.7.253:8443/?v=13", "title": "Betterverse v13", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 12, "visible": true},
-  {"path": "ai-config", "title": "AI Configuration", "description": "choose which AI model to use for each application", "color": "pastel-lavender", "sort_order": 13, "visible": true, "auth_required": true},
+  {"path": "ai-config", "title": "AI Configuration", "description": "choose which AI model to use for each application", "color": "pastel-lavender", "sort_order": 13, "visible": true},
   {"path": "srfcplus", "title": "SRFC Plus", "description": "surbiton racket & fitness club — bookings", "color": "pastel-blue", "sort_order": 14, "visible": true, "auth_required": true}
 ]
