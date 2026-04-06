@@ -690,6 +690,101 @@ def get_all_springcam_images(max_keys=None):
     return images
 
 
+SKYCAM_PREFIX = "skycam/"
+SKYCAM_KEY_PREFIX = "skycam/sky_"
+
+
+def skycam_thumb_key(key):
+    """Convert a skycam image key to its thumbnail key.
+
+    e.g. skycam/sky_20260406_093653.jpg
+      -> skycam/thumb_800px_sky_20260406_093653.jpg
+    """
+    folder, _, basename = key.rpartition('/')
+    return f"{folder}/thumb_800px_{basename}"
+
+
+def get_latest_skycam_images(count=3):
+    """Get presigned URLs for the latest N skycam images from S3."""
+    if not BOTO3_AVAILABLE:
+        return []
+
+    import time
+    t0 = time.time()
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    all_objects = []
+
+    # Fast path: try last 60 days by date prefix
+    for days_ago in range(60):
+        date = datetime.utcnow() - timedelta(days=days_ago)
+        prefix = f"skycam/sky_{date.strftime('%Y%m%d')}"
+        try:
+            response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
+            if "Contents" in response:
+                all_objects.extend(response["Contents"])
+            if len(all_objects) >= count * 2:
+                break
+        except Exception:
+            pass
+
+    # Fall back to full scan if fast path found nothing
+    if not all_objects:
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
+            if "Contents" in page:
+                all_objects.extend(page["Contents"])
+
+    if not all_objects:
+        return []
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+
+    images = []
+    for obj in objects[:count * 4]:
+        key = obj["Key"]
+        thumb_key = skycam_thumb_key(key)
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({
+            'url': get_presigned_url(thumb_key),
+            'full_url': get_presigned_url(key),
+            'timestamp': timestamp,
+            'key': key,
+        })
+        if len(images) >= count:
+            break
+
+    print(f"[TIMING] get_latest_skycam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
+    return images
+
+
+def get_all_skycam_images(max_keys=None):
+    """Get all skycam images from S3, newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    paginator = s3.get_paginator('list_objects_v2')
+    all_objects = []
+    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
+        if "Contents" in page:
+            all_objects.extend(page["Contents"])
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+    images = []
+    for obj in objects:
+        key = obj["Key"]
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({'key': key, 'timestamp': timestamp, 'last_modified': obj["LastModified"]})
+        if max_keys and len(images) >= max_keys:
+            break
+    return images
+
+
 def group_images_by_weeks(images):
     """Group images into weekly periods (Monday-Sunday)."""
     from collections import defaultdict
@@ -3109,8 +3204,8 @@ def render_site_test_page():
         {{ id: 't3', path: 't3', label: 'K2 Bus Times' }},
         {{ id: 'memspeed', path: 'memspeed', label: 'Memory Benchmark' }},
         {{ id: 'lambda-stats', path: 'lambda-stats', label: 'Lambda Statistics' }},
-        {{ id: 'gardencam', path: 'gardencam', label: 'Garden Camera' }},
         {{ id: 'springcam', path: 'springcam', label: 'Spring Camera' }},
+        {{ id: 'skycam', path: 'skycam', label: 'Sky Camera' }},
         {{ id: 'rcr', path: 'rcr', label: 'Recent Classical Recordings' }}
       ];
 
@@ -6463,6 +6558,123 @@ def lambda_handler(event, context):
                 .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }}
             </style>
             <div class="nav"><a href="../../contents">Home</a> | <a href="../springcam">Latest</a> | <a href="gallery">Gallery</a></div>
+            <div class="nav">{ts}</div>
+            <img src="{image_url}" alt="{ts}">
+            '''
+        else:
+            html += '<p>No image specified.</p>'
+
+    elif path == f'/{stage}/skycam' or path == '/skycam':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
+            }
+        images = get_latest_skycam_images(3)
+        if images:
+            html += f'''{THEME_CSS_JS}
+            <title>Sky Camera</title>
+            <style>
+                body {{ font-family: var(--font); text-align: center; margin: 1rem; background: var(--bg); color: var(--text); }}
+                h1 {{ margin-bottom: 1rem; font-size: 2rem; }}
+                .gallery-link {{ display: inline-block; margin-bottom: 1.5rem; padding: 0.5rem 1.5rem; background: var(--card-bg); color: var(--accent); text-decoration: none; border-radius: 8px; border: 1px solid var(--divider); transition: opacity 0.2s; }}
+                .gallery-link:hover {{ opacity: 0.8; }}
+                .gallery {{ display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; max-width: 1024px; margin: 0 auto; }}
+                .image-container {{ flex: 1; min-width: 280px; max-width: 340px; }}
+                .image-container img {{ width: 100%; height: auto; border-radius: 8px; }}
+                .timestamp {{ color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.9rem; }}
+                @media (max-width: 1024px) {{
+                    .gallery {{ flex-direction: column; }}
+                    .image-container {{ min-width: 100%; max-width: 100%; }}
+                }}
+            </style>
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
+            </div>
+            <h1>Sky Camera</h1>
+            <a href="skycam/gallery" class="gallery-link">View Full Gallery</a>
+            <div class="gallery">
+            '''
+            for img in images:
+                display_ts = img['timestamp']
+                html += f'''
+                <div class="image-container">
+                    <a href="skycam/fullres?key={img['key']}">
+                        <img src="{img['url']}" alt="Sky camera {display_ts}" loading="lazy">
+                    </a>
+                    <div class="timestamp">{display_ts}</div>
+                </div>'''
+            html += '</div>'
+        else:
+            return {
+                'statusCode': 502,
+                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Sky Camera</h1><p>No images yet.</p></body></html>',
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
+
+    elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
+            }
+        all_images = get_all_skycam_images(max_keys=500)
+        html += '''
+        <title>Sky Camera Gallery</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 1rem; }
+            h1 { text-align: center; margin-bottom: 1rem; }
+            .nav { text-align: center; margin-bottom: 1.5rem; }
+            .nav a { color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }
+            .gallery { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+            .thumb { width: 150px; height: 112px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+            .thumb:hover { opacity: 0.8; }
+            .ts { font-size: 0.7rem; color: #888; text-align: center; margin-top: 2px; }
+        </style>
+        <h1>Sky Camera Gallery</h1>
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href="../skycam">Latest</a>
+        </div>
+        <div class="gallery">
+        '''
+        for img in all_images:
+            thumb = skycam_thumb_key(img['key'])
+            thumb_url = get_presigned_url(thumb)
+            full_url = get_presigned_url(img['key'])
+            ts = img['timestamp'][:16] if img['timestamp'] else ''
+            html += f'''
+            <div>
+                <a href="{full_url}" target="_blank">
+                    <img class="thumb" src="{thumb_url}" alt="{ts}" loading="lazy">
+                </a>
+                <div class="ts">{ts}</div>
+            </div>'''
+        html += '</div>'
+
+    elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
+            }
+        params = event.get('queryStringParameters') or {}
+        image_key = params.get('key', '')
+        if image_key:
+            image_url = get_presigned_url(image_key)
+            ts = parse_timestamp_from_key(image_key) or image_key
+            html += f'''
+            <title>Sky Camera - Full Resolution</title>
+            <style>
+                body {{ background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; }}
+                img {{ max-width: 100%; height: auto; }}
+                .nav {{ color: #aaa; padding: 0.5rem; font-family: Arial, sans-serif; }}
+                .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }}
+            </style>
+            <div class="nav"><a href="../../contents">Home</a> | <a href="../skycam">Latest</a> | <a href="gallery">Gallery</a></div>
             <div class="nav">{ts}</div>
             <img src="{image_url}" alt="{ts}">
             '''
