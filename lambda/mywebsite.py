@@ -3546,6 +3546,8 @@ def fetch_claude_quota():
 def render_claude_usage_page(quota):
     """Render the Claude Pro usage page showing 5h and 7d quota buckets."""
     from datetime import datetime, timezone, timedelta
+    import zoneinfo
+    _london = zoneinfo.ZoneInfo("Europe/London")
 
     def bucket_html(label, data, window_hours=None):
         if not data or data.get('utilization') is None:
@@ -3567,7 +3569,7 @@ def render_claude_usage_page(quota):
                 current_rate = required_rate = projected = 0
             rate_unit = '/hr'
             elapsed_str = f'{elapsed_h:.1f}h / {window_hours}h ({elapsed_frac*100:.0f}%)'
-            reset_str = reset_dt.astimezone().strftime('%H:%M %a')
+            reset_str = reset_dt.astimezone(_london).strftime('%H:%M %a')
         else:
             week_start = reset_dt - timedelta(weeks=1)
             elapsed_d = (now_utc - week_start).total_seconds() / 86400
@@ -3581,7 +3583,7 @@ def render_claude_usage_page(quota):
                 current_rate = required_rate = projected = 0
             rate_unit = '/day'
             elapsed_str = f'{elapsed_d:.1f}d / 7d ({elapsed_frac*100:.0f}%)'
-            reset_str = reset_dt.astimezone().strftime('%a %d %b %H:%M')
+            reset_str = reset_dt.astimezone(_london).strftime('%a %d %b %H:%M')
 
         bar_color = 'var(--error)' if pct > 80 else 'var(--warning)' if pct > 60 else 'var(--accent)'
         proj_color = 'var(--error)' if projected > 100 else 'var(--warning)' if projected > 80 else 'var(--text-secondary)'
@@ -3589,19 +3591,32 @@ def render_claude_usage_page(quota):
         # If quota will be exhausted before reset, calculate when and the gap
         exhaust_html = ''
         if projected > 100 and current_rate > 0:
-            time_to_exhaust = (100 - pct) / current_rate  # hours or days
+            time_to_exhaust = (100 - pct) / current_rate  # hours or days (negative if already past)
             exhaust_dt = now_utc + timedelta(hours=time_to_exhaust if window_hours else time_to_exhaust * 24)
-            gap = (reset_dt - exhaust_dt).total_seconds()
-            exhaust_local = exhaust_dt.astimezone()
+            gap = (reset_dt - now_utc).total_seconds()
+            already_exhausted = time_to_exhaust <= 0
             if window_hours:
+                exhaust_local = exhaust_dt.astimezone(_london)
                 exhaust_str = exhaust_local.strftime('%H:%M')
-                in_str = f'in {time_to_exhaust*60:.0f}m' if time_to_exhaust < 1 else f'in {time_to_exhaust:.1f}h'
-                gap_str = f'{gap/3600:.1f}h gap until reset'
+                if already_exhausted:
+                    in_str = 'already exhausted'
+                elif time_to_exhaust < 1:
+                    in_str = f'in {time_to_exhaust*60:.0f}m'
+                else:
+                    in_str = f'in {time_to_exhaust:.1f}h'
+                gap_str = f'{gap/3600:.1f}h until reset'
             else:
+                exhaust_local = exhaust_dt.astimezone(_london)
                 exhaust_str = exhaust_local.strftime('%a %d %b %H:%M')
-                in_str = f'in {time_to_exhaust:.1f}d'
-                gap_str = f'{gap/3600:.0f}h gap until reset' if gap < 86400 else f'{gap/86400:.1f}d gap until reset'
-            exhaust_html = f'''<div style="background:var(--bg);border-radius:8px;padding:0.5rem;grid-column:1/-1;border:1px solid var(--error);">
+                in_str = 'already exhausted' if already_exhausted else f'in {time_to_exhaust:.1f}d'
+                gap_str = f'{gap/3600:.0f}h until reset' if gap < 86400 else f'{gap/86400:.1f}d until reset'
+            if already_exhausted:
+                exhaust_html = f'''<div style="background:var(--bg);border-radius:8px;padding:0.5rem;grid-column:1/-1;border:1px solid var(--error);">
+                    <div style="font-size:0.55rem;color:var(--error);margin-bottom:0.2rem;">Quota {in_str}</div>
+                    <div style="font-size:0.8rem;font-weight:600;color:var(--error);">{gap_str}</div>
+                </div>'''
+            else:
+                exhaust_html = f'''<div style="background:var(--bg);border-radius:8px;padding:0.5rem;grid-column:1/-1;border:1px solid var(--error);">
                     <div style="font-size:0.55rem;color:var(--error);margin-bottom:0.2rem;">Quota exhausted {in_str} at {exhaust_str}</div>
                     <div style="font-size:0.8rem;font-weight:600;color:var(--error);">{gap_str}</div>
                 </div>'''
