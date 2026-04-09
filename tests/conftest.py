@@ -30,8 +30,16 @@ def _mock_boto3():
 def mywebsite():
     """Import the Lambda module (with boto3 already mocked)."""
     import importlib.util
+    import os
+
+    # Add lambda/ to sys.path so `from routes.x import y` works
+    lambda_dir = os.path.join(os.path.dirname(__file__), "..", "lambda")
+    lambda_dir = os.path.abspath(lambda_dir)
+    if lambda_dir not in sys.path:
+        sys.path.insert(0, lambda_dir)
+
     spec = importlib.util.spec_from_file_location(
-        "mywebsite", "lambda/mywebsite.py"
+        "mywebsite", os.path.join(lambda_dir, "mywebsite.py")
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

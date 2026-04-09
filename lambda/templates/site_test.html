@@ -1,0 +1,190 @@
+<html lang="en">
+  <head>
+    <title>Site Test - Page Load Times and Status</title>
+    <style>
+      * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem; }}
+      .container {{ max-width: 1000px; margin: 0 auto; }}
+      h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; }}
+      .nav {{ text-align: center; margin-bottom: 2rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.5rem; display: inline-block; transition: opacity 0.2s; }}
+      .nav a:hover {{ opacity: 0.8; }}
+      .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
+      .table-wrapper {{ background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--divider); }}
+      table {{ width: 100%; border-collapse: collapse; }}
+      thead {{ background: var(--divider); color: var(--text); }}
+      th {{ padding: 1rem; text-align: left; font-weight: 600; color: var(--text); }}
+      td {{ padding: 0.8rem 1rem; border-bottom: 1px solid var(--divider); color: var(--text); }}
+      tbody tr:hover {{ background: rgba(142,142,147,0.1); }}
+      .page-name {{ font-weight: 500; color: var(--text); }}
+      .page-name a {{ color: var(--accent); text-decoration: none; }}
+      .page-name a:hover {{ text-decoration: underline; }}
+      .loading {{ color: var(--accent); font-style: italic; }}
+      .success {{ color: #10b981; font-weight: 600; }}
+      .error {{ color: var(--error); font-weight: 600; }}
+      .timeout {{ color: var(--warning); font-weight: 600; }}
+      .protected {{ color: var(--accent); font-weight: 600; }}
+      .time {{ font-family: monospace; text-align: right; font-size: 0.9rem; color: var(--text-secondary); }}
+      .controls {{ text-align: center; margin-bottom: 1.5rem; }}
+      button {{ background: var(--card-bg); color: var(--accent); border: 1px solid var(--divider); padding: 0.8rem 1.5rem; border-radius: 20px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 1rem; }}
+      button:hover {{ opacity: 0.8; }}
+      button:disabled {{ opacity: 0.4; cursor: not-allowed; }}
+      .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 2rem; }}
+      .stat-box {{ background: var(--card-bg); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--divider); }}
+      .stat-value {{ font-size: 2rem; font-weight: bold; color: var(--accent); }}
+      .stat-label {{ color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; }}
+    </style>
+    {theme_css_js}
+  </head>
+  <body>
+    <div class="container">
+      <h1>Site Test</h1>
+      <p class="subtitle">Page load times and status monitoring</p>
+      <div class="nav">
+        <a href="contents">&larr; Home</a>
+      </div>
+
+      <div class="controls">
+        <button id="testBtn" onclick="testAllPages()">Start Tests</button>
+        <button id="resetBtn" onclick="resetTests()" style="margin-left: 1rem;">Reset</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Status</th>
+              <th style="text-align: right;">Load Time</th>
+            </tr>
+          </thead>
+          <tbody id="testResults"></tbody>
+        </table>
+      </div>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-value" id="avgTime">&mdash;</div>
+          <div class="stat-label">Avg Load Time</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="successCount">0</div>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="protectedCount">0</div>
+          <div class="stat-label">Protected</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="errorCount">0</div>
+          <div class="stat-label">Errors</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const pages = [
+        {{ id: 'cv', path: 'cv', label: 'CV / Curriculum Vitae' }},
+        {{ id: 'pi-fleet', path: 'pi-fleet', label: 'Pi Fleet Status' }},
+        {{ id: 'ai-config', path: 'ai-config', label: 'AI Configuration' }},
+        {{ id: 't3', path: 't3', label: 'K2 Bus Times' }},
+        {{ id: 'memspeed', path: 'memspeed', label: 'Memory Benchmark' }},
+        {{ id: 'lambda-stats', path: 'lambda-stats', label: 'Lambda Statistics' }},
+        {{ id: 'springcam', path: 'springcam', label: 'Spring Camera' }},
+        {{ id: 'skycam', path: 'skycam', label: 'Sky Camera' }},
+        {{ id: 'rcr', path: 'rcr', label: 'Recent Classical Recordings' }}
+      ];
+
+      // Build table rows from pages array
+      const tbody = document.getElementById('testResults');
+      pages.forEach(page => {{
+        const tr = document.createElement('tr');
+        tr.id = `row-${{page.id}}`;
+        tr.innerHTML = `<td class="page-name"><a href="${{page.path}}" target="_blank">${{page.label}}</a></td><td class="loading">pending...</td><td class="time">&mdash;</td>`;
+        tbody.appendChild(tr);
+      }});
+
+      async function testPage(page) {{
+        const row = document.getElementById(`row-${{page.id}}`);
+        const statusCell = row.cells[1];
+        const timeCell = row.cells[2];
+
+        try {{
+          const startTime = performance.now();
+          const response = await fetch(page.path, {{
+            method: 'GET',
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          }});
+          const endTime = performance.now();
+          const loadTime = endTime - startTime;
+
+          if (response.status === 200) {{
+            statusCell.className = 'success';
+            statusCell.textContent = '\u2713 OK';
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'success', time: loadTime }};
+          }} else if (response.status === 401) {{
+            statusCell.className = 'protected';
+            statusCell.textContent = '\U0001f512 Auth Required';
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'protected', time: loadTime }};
+          }} else {{
+            statusCell.className = 'error';
+            statusCell.textContent = `\u2717 ${{response.status}}`;
+            timeCell.textContent = loadTime.toFixed(0) + ' ms';
+            return {{ status: 'error', time: loadTime }};
+          }}
+        }} catch (error) {{
+          if (error.name === 'AbortError') {{
+            statusCell.className = 'timeout';
+            statusCell.textContent = '\u23f1 Timeout';
+            timeCell.textContent = '10000+ ms';
+            return {{ status: 'timeout', time: 10000 }};
+          }} else {{
+            statusCell.className = 'error';
+            statusCell.textContent = error.message;
+            timeCell.textContent = '&mdash;';
+            return {{ status: 'error', time: 0 }};
+          }}
+        }}
+      }}
+
+      async function testAllPages() {{
+        const btn = document.getElementById('testBtn');
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+
+        const results = await Promise.all(pages.map(page => testPage(page)));
+
+        // Update statistics
+        const successful = results.filter(r => r.status === 'success').length;
+        const protected_pages = results.filter(r => r.status === 'protected').length;
+        const errors = results.filter(r => r.status === 'error' || r.status === 'timeout').length;
+        const successfulTimes = results.filter(r => r.status === 'success').map(r => r.time);
+        const avgTime = successfulTimes.length > 0 ? (successfulTimes.reduce((a, b) => a + b) / successfulTimes.length).toFixed(0) : '&mdash;';
+
+        document.getElementById('successCount').textContent = successful;
+        document.getElementById('protectedCount').textContent = protected_pages;
+        document.getElementById('errorCount').textContent = errors;
+        document.getElementById('avgTime').textContent = avgTime + (avgTime !== '&mdash;' ? ' ms' : '');
+
+        btn.disabled = false;
+        btn.textContent = 'Start Tests';
+      }}
+
+      function resetTests() {{
+        document.querySelectorAll('tbody tr').forEach(row => {{
+          const statusCell = row.cells[1];
+          const timeCell = row.cells[2];
+          statusCell.className = 'loading';
+          statusCell.textContent = 'pending...';
+          timeCell.textContent = '&mdash;';
+        }});
+        document.getElementById('avgTime').textContent = '&mdash;';
+        document.getElementById('successCount').textContent = '0';
+        document.getElementById('protectedCount').textContent = '0';
+        document.getElementById('errorCount').textContent = '0';
+      }}
+    </script>
+  </body>
+</html>

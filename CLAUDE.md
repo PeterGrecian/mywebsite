@@ -104,6 +104,11 @@ The `/t3` route has its own TfL API calls baked into `mywebsite.py`. There are n
 
 The `/t3` web page has no clear future. Options: retire it, or redirect it to call the `t3` Lambda instead of duplicating the logic. Leave it for now.
 
+## Timestamps
+
+- **S3 filenames** use UTC timestamps — this is correct, do not change
+- **Website display** must always show Europe/London local time (GMT/BST) — convert UTC timestamps before rendering
+
 ## AWS Region
 
 eu-west-1 (Ireland)

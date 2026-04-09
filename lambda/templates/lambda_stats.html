@@ -1,0 +1,284 @@
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <title>Lambda CloudWatch Metrics</title>
+        {theme_css_js}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <style>
+            body {{ font-family: var(--font); margin: 2rem; background: var(--bg); color: var(--text); }}
+            h1 {{ color: var(--text); }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: var(--card-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--divider); }}
+            table {{ width: 100%; border-collapse: collapse; margin: 2rem 0; }}
+            th, td {{ padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--divider); color: var(--text); }}
+            th {{ background: var(--divider); font-weight: 600; }}
+            tr:hover {{ background: rgba(142,142,147,0.1); }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }}
+            .stat-box {{ background: var(--card-bg); padding: 1.5rem; border-radius: 8px; text-align: center; border: 1px solid var(--divider); }}
+            .stat-value {{ font-size: 2rem; font-weight: bold; color: var(--accent); }}
+            .stat-label {{ margin-top: 0.5rem; color: var(--text-secondary); }}
+            .nav {{ text-align: center; margin-bottom: 2rem; }}
+            .nav a {{ color: var(--accent); text-decoration: none; padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 20px; }}
+            .loading {{ text-align: center; padding: 2rem; color: var(--accent); }}
+            .spinner {{ border: 3px solid var(--divider); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; }}
+            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            .error {{ background: rgba(255,59,48,0.1); padding: 1rem; border-radius: 4px; color: var(--error); margin: 1rem 0; }}
+            .chart-container {{ margin: 2rem 0; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--divider); }}
+            .free-tier {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }}
+            .tier-card {{ background: var(--card-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--divider); }}
+            .tier-card h3 {{ margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--text-secondary); }}
+            .tier-card .tier-value {{ font-size: 1.5rem; font-weight: bold; color: var(--accent); }}
+            .tier-card .tier-detail {{ font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem; }}
+            .tier-bar {{ height: 8px; background: var(--divider); border-radius: 4px; margin-top: 0.75rem; overflow: hidden; }}
+            .tier-bar-fill {{ height: 100%; border-radius: 4px; transition: width 0.5s; }}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+            <div class="nav"><a href="../contents">← Home</a></div>
+            <h1>📊 Lambda CloudWatch Metrics (Last 30 Days)</h1>
+
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading statistics data...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div class="stats-grid" id="summary-stats"></div>
+
+                <h2>Free Tier Usage (30 Days)</h2>
+                <div class="free-tier" id="free-tier"></div>
+
+                <h2>📈 Path Usage - Last 7 Days (28 × 6-hour buckets)</h2>
+                <div class="chart-container">
+                    <canvas id="histogramChart"></canvas>
+                </div>
+
+                <h2>Functions by Invocation Count</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Function Name</th>
+                            <th>Memory</th>
+                            <th>Invocations</th>
+                            <th>Errors</th>
+                            <th>Error Rate</th>
+                            <th>Avg Duration (ms)</th>
+                            <th>Max Duration (ms)</th>
+                            <th>GB-seconds</th>
+                        </tr>
+                    </thead>
+                    <tbody id="functions-tbody"></tbody>
+                </table>
+
+                <h2>📍 Path Analysis (Top Endpoints)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Path</th>
+                            <th>Requests</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paths-tbody"></tbody>
+                </table>
+
+                <h2>🌍 IP Address Analysis with Geolocation</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Country</th>
+                            <th>City</th>
+                            <th>Requests</th>
+                            <th>Top Path</th>
+                            <th>User-Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ips-tbody"></tbody>
+                </table>
+
+                <h2>📱 Top User-Agents (Browsers/Devices)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User-Agent</th>
+                            <th>Requests</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uas-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+        async function loadStats() {{
+            try {{
+                const response = await fetch('./lambda-stats/data');
+                if (!response.ok) throw new Error('Failed to load data');
+
+                const data = await response.json();
+
+                // Populate summary stats
+                const summary = data.summary;
+                document.getElementById('summary-stats').innerHTML = `
+                    <div class="stat-box">
+                        <div class="stat-value">${{summary.total_invocations.toLocaleString()}}</div>
+                        <div class="stat-label">Total Invocations</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${{summary.total_errors.toLocaleString()}}</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${{summary.total_throttles.toLocaleString()}}</div>
+                        <div class="stat-label">Throttles</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${{summary.error_rate.toFixed(2)}}%</div>
+                        <div class="stat-label">Error Rate</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${{Math.round(summary.avg_duration)}}ms</div>
+                        <div class="stat-label">Avg Duration</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${{Math.round(summary.max_duration)}}ms</div>
+                        <div class="stat-label">Max Duration</div>
+                    </div>
+                `;
+
+                // Populate free tier usage
+                const ft = data.free_tier;
+                const reqColor = ft.requests_pct < 50 ? '#30D158' : ft.requests_pct < 80 ? '#FF9500' : '#FF3B30';
+                const gbColor = ft.gb_seconds_pct < 50 ? '#30D158' : ft.gb_seconds_pct < 80 ? '#FF9500' : '#FF3B30';
+                document.getElementById('free-tier').innerHTML = `
+                    <div class="tier-card">
+                        <h3>Requests</h3>
+                        <div class="tier-value">${{ft.requests_pct}}%</div>
+                        <div class="tier-detail">${{ft.requests_used.toLocaleString()}} / ${{ft.requests_limit.toLocaleString()}}</div>
+                        <div class="tier-bar"><div class="tier-bar-fill" style="width: ${{Math.min(ft.requests_pct, 100)}}%; background: ${{reqColor}};"></div></div>
+                    </div>
+                    <div class="tier-card">
+                        <h3>Compute (GB-seconds)</h3>
+                        <div class="tier-value">${{ft.gb_seconds_pct}}%</div>
+                        <div class="tier-detail">${{ft.gb_seconds_used.toLocaleString()}} / ${{ft.gb_seconds_limit.toLocaleString()}}</div>
+                        <div class="tier-bar"><div class="tier-bar-fill" style="width: ${{Math.min(ft.gb_seconds_pct, 100)}}%; background: ${{gbColor}};"></div></div>
+                    </div>
+                `;
+
+                // Create histogram chart
+                const ctx = document.getElementById('histogramChart').getContext('2d');
+                new Chart(ctx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: data.histogram.labels,
+                        datasets: data.histogram.datasets
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 3,
+                        scales: {{
+                            x: {{
+                                stacked: true,
+                                title: {{
+                                    display: true,
+                                    text: 'Days Ago'
+                                }},
+                                ticks: {{
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                    font: {{ size: 10 }}
+                                }}
+                            }},
+                            y: {{
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {{
+                                    display: true,
+                                    text: 'Requests'
+                                }}
+                            }}
+                        }},
+                        plugins: {{
+                            legend: {{
+                                position: 'bottom',
+                                labels: {{ boxWidth: 15, font: {{ size: 11 }} }}
+                            }},
+                            title: {{
+                                display: true,
+                                text: 'Request Volume by Path (Stacked)',
+                                font: {{ size: 14 }}
+                            }}
+                        }}
+                    }}
+                }});
+
+                // Populate functions table
+                document.getElementById('functions-tbody').innerHTML = data.functions.map(f => `
+                    <tr>
+                        <td><strong>${{f.name}}</strong></td>
+                        <td>${{f.memory_mb}} MB</td>
+                        <td>${{f.invocations.toLocaleString()}}</td>
+                        <td>${{f.errors.toLocaleString()}}</td>
+                        <td>${{f.error_rate.toFixed(2)}}%</td>
+                        <td>${{Math.round(f.avg_duration)}}</td>
+                        <td>${{Math.round(f.max_duration)}}</td>
+                        <td>${{f.gb_seconds.toFixed(1)}}</td>
+                    </tr>
+                `).join('');
+
+                // Populate paths table
+                document.getElementById('paths-tbody').innerHTML = data.paths.map(p => `
+                    <tr>
+                        <td><code>${{p.path}}</code></td>
+                        <td>${{p.count.toLocaleString()}}</td>
+                        <td>${{p.percentage.toFixed(1)}}%</td>
+                    </tr>
+                `).join('');
+
+                // Populate IPs table
+                document.getElementById('ips-tbody').innerHTML = data.ips.map(ip => {{
+                    const ua = ip.top_ua.length > 80 ? ip.top_ua.substring(0, 80) + '...' : ip.top_ua;
+                    return `
+                        <tr>
+                            <td><code>${{ip.ip}}</code></td>
+                            <td>${{ip.country}}</td>
+                            <td>${{ip.city}}</td>
+                            <td>${{ip.count.toLocaleString()}}</td>
+                            <td><code>${{ip.top_path || '(root)'}}</code></td>
+                            <td style="font-size: 0.85rem;">${{ua}}</td>
+                        </tr>
+                    `;
+                }}).join('');
+
+                // Populate user agents table
+                document.getElementById('uas-tbody').innerHTML = data.user_agents.map(ua => {{
+                    const uaDisplay = ua.user_agent.length > 120 ? ua.user_agent.substring(0, 120) + '...' : ua.user_agent;
+                    return `
+                        <tr>
+                            <td style="font-size: 0.9rem; word-break: break-all;">${{uaDisplay}}</td>
+                            <td>${{ua.count.toLocaleString()}}</td>
+                        </tr>
+                    `;
+                }}).join('');
+
+                // Hide loading, show content
+                document.querySelector('.loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            }} catch (error) {{
+                document.querySelector('.loading').innerHTML = `
+                    <div class="error">
+                        <strong>Error loading statistics:</strong><br>
+                        ${{error.message}}
+                    </div>
+                `;
+            }}
+        }}
+
+        // Load data when page loads
+        loadStats();
+        </script>
+        </body>
+        </html>

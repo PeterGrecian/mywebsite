@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pi Fleet Status</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPCEtLSBCbHVlIFBldGVyIG5hdXRpY2FsIGZsYWcgLS0+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMDAzODkzIiByeD0iMyIvPgogIDxyZWN0IHg9IjkiIHk9IjkiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K">
+<style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; margin: 0; padding: 2rem; }}
+    .container {{ max-width: 1200px; margin: 0 auto; }}
+    h1 {{ color: var(--text); text-align: center; margin-bottom: 2rem; }}
+    .home-link {{ text-align: center; margin-bottom: 1rem; }}
+    .home-link a {{ color: var(--accent); text-decoration: none; font-size: 1rem; }}
+    .home-link a:hover {{ opacity: 0.8; }}
+    .summary {{ background: var(--card-bg); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--divider); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1rem; }}
+    .summary-item {{ text-align: center; }}
+    .summary-value {{ font-size: 2rem; font-weight: bold; margin-bottom: 0.25rem; }}
+    .summary-label {{ color: var(--text-secondary); font-size: 0.9rem; }}
+    .online {{ color: #10b981; }}
+    .offline {{ color: var(--error); }}
+    .total {{ color: var(--accent); }}
+    .pi-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }}
+    .pi-card {{ background: var(--card-bg); border-radius: 12px; padding: 1rem; border: 1px solid var(--divider); transition: opacity 0.2s; }}
+    .pi-card:hover {{ opacity: 0.9; }}
+    .pi-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--divider); }}
+    .pi-hostname {{ font-size: 1.1rem; font-weight: bold; color: var(--text); }}
+    .pi-status {{ font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 10px; }}
+    .status-online {{ background: rgba(16,185,129,0.2); color: #10b981; }}
+    .status-offline {{ background: rgba(255,59,48,0.2); color: var(--error); }}
+    .pi-info {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; }}
+    .info-item {{ font-size: 0.8rem; }}
+    .info-label {{ color: var(--text-secondary); font-weight: 500; font-size: 0.75rem; }}
+    .info-value {{ color: var(--text); font-weight: 600; }}
+    .metrics {{ display: flex; gap: 0.75rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--divider); }}
+    .metric {{ flex: 1; text-align: center; }}
+    .metric-value {{ font-size: 1.2rem; font-weight: bold; color: var(--accent); }}
+    .metric-label {{ font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; }}
+    .boot-progress {{ margin-top: 1rem; padding: 0.75rem; background: rgba(255,149,0,0.15); border-left: 4px solid var(--warning); border-radius: 4px; font-size: 0.85rem; color: var(--text); }}
+    .error-box {{ margin-top: 1rem; padding: 0.75rem; background: rgba(255,59,48,0.15); border-left: 4px solid var(--error); border-radius: 4px; font-size: 0.85rem; color: var(--error); }}
+    .empty-state {{ background: var(--card-bg); border-radius: 12px; padding: 3rem; text-align: center; border: 1px solid var(--divider); }}
+    .empty-state h2 {{ color: var(--text-secondary); }}
+    .auto-refresh {{ text-align: center; color: var(--text-secondary); margin-top: 2rem; font-size: 0.9rem; }}
+    @media (max-width: 768px) {{ .pi-grid {{ grid-template-columns: 1fr; }} .pi-info {{ grid-template-columns: 1fr; }} }}
+</style>
+{theme_css_js}
+</head>
+<body>
+<div class="container">
+    <div class="home-link">
+        <a href="contents">&larr; Home</a>
+    </div>
+
+    <h1>Pi Fleet Status</h1>
+
+    <div class="summary">
+        <div class="summary-item">
+            <div class="summary-value online">{online_count}</div>
+            <div class="summary-label">Online</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value offline">{offline_count}</div>
+            <div class="summary-label">Offline</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value total">{total_count}</div>
+            <div class="summary-label">Total Devices</div>
+        </div>
+    </div>
+
+    {cards_html}
+
+    <div class="auto-refresh">
+        Page auto-refreshes every 30 seconds &bull; <span id="countdown">refreshing in 30 seconds</span>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh with countdown
+    let secondsLeft = 30;
+    const countdownEl = document.getElementById('countdown');
+
+    function updateCountdown() {{
+        countdownEl.textContent = `refreshing in ${{secondsLeft}} second${{secondsLeft !== 1 ? 's' : ''}}`;
+        secondsLeft--;
+
+        if (secondsLeft < 0) {{
+            location.reload();
+        }}
+    }}
+
+    // Update immediately
+    updateCountdown();
+
+    // Update every second
+    setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
