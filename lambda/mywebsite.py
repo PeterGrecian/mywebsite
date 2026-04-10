@@ -2613,107 +2613,73 @@ def lambda_handler(event, context):
             html += render_video_error()
 
     elif path.startswith(f'/{stage}/gardencam/videos') or path.startswith('/gardencam/videos'):
-        # Timelapse video gallery page with thumbnails
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get timelapse videos from S3
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-        videos = []
+        weekly_videos = []
+        daily_videos = []
+        recent_videos = []
+
+        def _list_videos(prefix):
+            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
+            return [o for o in resp.get('Contents', []) if o['Key'].endswith('.mp4')]
+
+        def _presign(key):
+            return s3.generate_presigned_url(
+                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
 
         try:
-            # List videos from S3
-            response = s3.list_objects_v2(
-                Bucket=GARDENCAM_BUCKET,
-                Prefix='videos/timelapse_'
-            )
+            # Recent 4-hourly videos: recent_YYYYMMDD_HHMM.mp4
+            for obj in sorted(_list_videos('videos/recent_'), key=lambda o: o['Key'], reverse=True):
+                key = obj['Key']
+                ts_part = key.replace('videos/recent_', '').replace('.mp4', '')  # YYYYMMDD_HHMM
+                try:
+                    dt = datetime.strptime(ts_part, '%Y%m%d_%H%M')
+                    label = dt.strftime('%d %b %Y %H:%M')
+                except ValueError:
+                    label = ts_part
+                recent_videos.append({
+                    'id': key, 'key': key, 'url': _presign(key),
+                    'size_mb': obj['Size'] / 1048576,
+                    'label': label, 'type': 'recent',
+                })
 
-            if 'Contents' in response:
-                for obj in response['Contents']:
-                    key = obj['Key']
-                    if key.endswith('.mp4'):
-                        # Extract video ID from filename: videos/timelapse_YYYYMMDD-YYYYMMDD.mp4 or videos/timelapse_YYYYMMDD.mp4
-                        video_id = key.replace('videos/', '').replace('.mp4', '')
+            # Weekly/daily timelapse videos
+            for obj in _list_videos('videos/timelapse_'):
+                key = obj['Key']
+                video_id = key.replace('videos/', '').replace('.mp4', '')
+                try:
+                    date_part = video_id.replace('timelapse_', '')
+                    if '-' in date_part:
+                        start_date, end_date = date_part.split('-')
+                        video_type = 'weekly'
+                    else:
+                        start_date = end_date = date_part
+                        video_type = 'daily'
+                    start_formatted = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
+                    end_formatted = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
+                except Exception:
+                    start_formatted = end_formatted = 'Unknown'
+                    video_type = 'unknown'
 
-                        # Parse date range from filename
-                        try:
-                            date_part = video_id.replace('timelapse_', '')
-                            if '-' in date_part:
-                                # Weekly format: YYYYMMDD-YYYYMMDD
-                                start_date, end_date = date_part.split('-')
-                                video_type = 'weekly'
-                            else:
-                                # Daily format: YYYYMMDD
-                                start_date = date_part
-                                end_date = date_part
-                                video_type = 'daily'
+                v = {
+                    'id': video_id, 'key': key, 'url': _presign(key),
+                    'size_mb': obj['Size'] / 1048576,
+                    'last_modified': obj['LastModified'].isoformat(),
+                    'start_date': start_formatted, 'end_date': end_formatted,
+                    'frame_count': 0, 'duration': 5, 'type': video_type,
+                }
+                if video_type == 'weekly':
+                    weekly_videos.append(v)
+                else:
+                    daily_videos.append(v)
 
-                            start_formatted = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
-                            end_formatted = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
-                        except:
-                            start_formatted = "Unknown"
-                            end_formatted = "Unknown"
-                            video_type = 'unknown'
-
-                        # Get metadata from DynamoDB if available
-                        try:
-                            dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-                            metadata_table = dynamodb.Table('gardencam-video-metadata')
-                            metadata_response = metadata_table.get_item(Key={'video_id': video_id})
-
-                            if 'Item' in metadata_response:
-                                item = metadata_response['Item']
-                                # Convert Decimal to int
-                                frame_count = int(float(item.get('frame_count', 0)))
-                                duration = int(float(item.get('duration_seconds', 5)))
-                                print(f"Video {video_id}: {frame_count} frames, {duration}s")
-                            else:
-                                print(f"No metadata found for {video_id}")
-                                frame_count = 0
-                                duration = 5
-                        except Exception as e:
-                            print(f"Error getting metadata for {video_id}: {e}")
-                            frame_count = 0
-                            duration = 5
-
-                        # Generate presigned URL (valid for 1 hour)
-                        presigned_url = s3.generate_presigned_url(
-                            'get_object',
-                            Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-                            ExpiresIn=3600
-                        )
-
-                        videos.append({
-                            'id': video_id,
-                            'key': key,
-                            'url': presigned_url,
-                            'size_mb': obj['Size'] / 1048576,
-                            'last_modified': obj['LastModified'].isoformat(),
-                            'start_date': start_formatted,
-                            'end_date': end_formatted,
-                            'frame_count': frame_count,
-                            'duration': duration,
-                            'type': video_type
-                        })
-
-            # Sort by video ID (date) descending and separate by type
-            videos.sort(key=lambda v: v['id'], reverse=True)
-            weekly_videos = [v for v in videos if v['type'] == 'weekly']
-            daily_videos = [v for v in videos if v['type'] == 'daily']
+            weekly_videos.sort(key=lambda v: v['id'], reverse=True)
+            daily_videos.sort(key=lambda v: v['id'], reverse=True)
 
         except Exception as e:
             print(f"Error listing videos: {e}")
-            videos = []
 
         from routes.gardencam import render_videos_gallery
-        html += render_videos_gallery(weekly_videos, daily_videos)
+        html += render_videos_gallery(weekly_videos, daily_videos, recent_videos=recent_videos)
 
     elif path == f'/{stage}/gardencam' or path == '/gardencam':
         # Check authentication

@@ -671,7 +671,7 @@ def _render_video_card(video, is_weekly=True):
                     '''
 
 
-def render_videos_gallery(weekly_videos, daily_videos):
+def render_videos_gallery(weekly_videos, daily_videos, recent_videos=None):
     """Render the timelapse videos gallery page."""
     html = f'''
         <meta charset="UTF-8">
@@ -707,6 +707,27 @@ def render_videos_gallery(weekly_videos, daily_videos):
         </div>
         <h1>Timelapse Videos</h1>
         '''
+
+    if recent_videos:
+        cards = ''.join(f'''
+            <div class="video-card" style="background:#1e2a1e;">
+                <div class="video-thumbnail">
+                    <a href="{v['url']}" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+                        <div class="play-icon"></div>
+                    </a>
+                </div>
+                <div class="video-metadata">
+                    <h3>{v['label']}</h3>
+                    <p>100 most recent frames</p>
+                    <p style="color:#666;">{v['size_mb']:.1f} MB</p>
+                </div>
+            </div>''' for v in recent_videos)
+        html += f'''
+            <div style="max-width: 1400px; margin: 0 auto 3rem auto;">
+                <h2 style="color: #4a9eff; margin-bottom: 1rem; padding-left: 0.5rem;">Recent (4-hourly) — {len(recent_videos)} videos</h2>
+                <p style="color: #888; margin-bottom: 1.5rem; padding-left: 0.5rem;">Last 100 frames, generated every 4 hours</p>
+                <div class="video-grid">{cards}</div>
+            </div>'''
 
     if weekly_videos or daily_videos:
         if weekly_videos:
