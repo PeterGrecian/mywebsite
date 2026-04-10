@@ -39,17 +39,34 @@ def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, ful
             {cards}</div>'''
 
 
-def render_camera_gallery(camera_name, all_images, *, latest_path, thumb_key_fn, get_presigned_url):
+def render_camera_gallery(camera_name, all_images, *, latest_path, thumb_key_fn, get_presigned_url, fullres_path=None):
     """Render a camera thumbnail gallery page."""
+    import boto3
+    from concurrent.futures import ThreadPoolExecutor
+
+    s3 = boto3.client("s3", region_name="eu-west-1")
+
+    def _presign(key):
+        return s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': 'gardencam-berrylands-eu-west-1', 'Key': key},
+            ExpiresIn=3600,
+        )
+
+    thumb_keys = [thumb_key_fn(img['key']) for img in all_images]
+    with ThreadPoolExecutor(max_workers=20) as ex:
+        thumb_urls = list(ex.map(_presign, thumb_keys))
+
     thumbs = ''
-    for img in all_images:
-        thumb = thumb_key_fn(img['key'])
-        thumb_url = get_presigned_url(thumb)
-        full_url = get_presigned_url(img['key'])
+    for img, thumb_url in zip(all_images, thumb_urls):
+        if fullres_path:
+            full_url = f"{fullres_path}?key={img['key']}"
+        else:
+            full_url = _presign(img['key'])
         ts = img['timestamp'][:16] if img['timestamp'] else ''
         thumbs += f'''
             <div>
-                <a href="{full_url}" target="_blank">
+                <a href="{full_url}">
                     <img class="thumb" src="{thumb_url}" alt="{ts}" loading="lazy">
                 </a>
                 <div class="ts">{ts}</div>

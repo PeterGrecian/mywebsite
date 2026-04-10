@@ -767,28 +767,43 @@ def get_latest_skycam_images(count=3):
     return images
 
 
+_skycam_images_cache = None
+_skycam_images_cache_time = 0
+_SKYCAM_CACHE_TTL = 600  # 10 minutes
+
 def get_all_skycam_images(max_keys=None):
-    """Get all skycam images from S3, newest first."""
+    """Get all skycam images from S3, newest first. Cached for 10 minutes."""
+    import time
+    global _skycam_images_cache, _skycam_images_cache_time
     if not BOTO3_AVAILABLE:
         return []
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-    paginator = s3.get_paginator('list_objects_v2')
-    all_objects = []
-    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
-        if "Contents" in page:
-            all_objects.extend(page["Contents"])
 
-    objects = sorted(
-        [o for o in all_objects if o["Key"].endswith('.jpg')],
-        key=lambda x: x["Key"], reverse=True
-    )
-    images = []
-    for obj in objects:
-        key = obj["Key"]
-        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
-        images.append({'key': key, 'timestamp': timestamp, 'last_modified': obj["LastModified"]})
-        if max_keys and len(images) >= max_keys:
-            break
+    now = time.time()
+    if _skycam_images_cache is not None and (now - _skycam_images_cache_time) < _SKYCAM_CACHE_TTL:
+        images = _skycam_images_cache
+    else:
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        paginator = s3.get_paginator('list_objects_v2')
+        all_objects = []
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
+            if "Contents" in page:
+                all_objects.extend(page["Contents"])
+
+        objects = sorted(
+            [o for o in all_objects if o["Key"].endswith('.jpg')],
+            key=lambda x: x["Key"], reverse=True
+        )
+        images = []
+        for obj in objects:
+            key = obj["Key"]
+            timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+            images.append({'key': key, 'timestamp': timestamp, 'last_modified': obj["LastModified"]})
+
+        _skycam_images_cache = images
+        _skycam_images_cache_time = now
+
+    if max_keys:
+        return images[:max_keys]
     return images
 
 
@@ -3237,10 +3252,11 @@ def lambda_handler(event, context):
                 'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
                 'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
             }
-        all_images = get_all_springcam_images(max_keys=500)
+        all_images = get_all_springcam_images(max_keys=200)
         from routes.camera import render_camera_gallery
         html += render_camera_gallery('Spring Camera', all_images, latest_path='../springcam',
-                                      thumb_key_fn=springcam_thumb_key, get_presigned_url=get_presigned_url)
+                                      thumb_key_fn=springcam_thumb_key, get_presigned_url=get_presigned_url,
+                                      fullres_path='../springcam/fullres')
 
     elif path.startswith(f'/{stage}/springcam/fullres') or path.startswith('/springcam/fullres'):
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
@@ -3274,10 +3290,11 @@ def lambda_handler(event, context):
             }
 
     elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
-        all_images = get_all_skycam_images(max_keys=500)
+        all_images = get_all_skycam_images(max_keys=200)
         from routes.camera import render_camera_gallery
         html += render_camera_gallery('Sky Camera', all_images, latest_path='../skycam',
-                                      thumb_key_fn=skycam_thumb_key, get_presigned_url=get_presigned_url)
+                                      thumb_key_fn=skycam_thumb_key, get_presigned_url=get_presigned_url,
+                                      fullres_path='../skycam/fullres')
 
     elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
         params = event.get('queryStringParameters') or {}
