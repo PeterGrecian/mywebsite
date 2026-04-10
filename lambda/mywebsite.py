@@ -3261,12 +3261,6 @@ def lambda_handler(event, context):
             html += '<p>No image specified.</p>'
 
     elif path == f'/{stage}/skycam' or path == '/skycam':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
-            }
         images = get_latest_skycam_images(3)
         if images:
             from routes.camera import render_camera_latest
@@ -3280,24 +3274,12 @@ def lambda_handler(event, context):
             }
 
     elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
-            }
         all_images = get_all_skycam_images(max_keys=500)
         from routes.camera import render_camera_gallery
         html += render_camera_gallery('Sky Camera', all_images, latest_path='../skycam',
                                       thumb_key_fn=skycam_thumb_key, get_presigned_url=get_presigned_url)
 
     elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Sky Camera"'}
-            }
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
