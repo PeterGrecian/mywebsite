@@ -1,5 +1,6 @@
 """Claude usage and AI config page renderers."""
 
+import json
 import sys
 
 # These are set by the first call from mywebsite.py stubs

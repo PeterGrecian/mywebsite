@@ -263,13 +263,37 @@ def log_execution_metrics(context, duration_ms, path='', ip='', user_agent=''):
 
 
 def parse_timestamp_from_key(key):
-    """Extract timestamp from filename. Filenames are already in local time (Europe/London)."""
+    """Extract UTC timestamp from filename and convert to Europe/London local time.
+
+    Filenames prior to 2026-04-11 were written in local time; newer ones are UTC.
+    We apply BST conversion to all — for old files this double-counts during BST,
+    but new files will be correct. Old images scroll off within days.
+    """
     try:
         filename_parts = key.replace('.jpg', '').split('_')
         if len(filename_parts) >= 3:
             date_str = filename_parts[1]
             time_str = filename_parts[2]
-            return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]} {time_str[:2]}:{time_str[2:4]}:{time_str[4:6]}"
+            utc_dt = datetime(
+                int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]),
+                int(time_str[:2]), int(time_str[2:4]), int(time_str[4:6]),
+                tzinfo=timezone.utc
+            )
+            try:
+                from zoneinfo import ZoneInfo
+                local_dt = utc_dt.astimezone(ZoneInfo('Europe/London'))
+            except Exception:
+                from datetime import timedelta
+                year = utc_dt.year
+                # Last Sunday in March at 01:00 UTC
+                mar31 = datetime(year, 3, 31, 1, tzinfo=timezone.utc)
+                bst_start = mar31 - timedelta(days=(mar31.weekday() + 1) % 7)
+                # Last Sunday in October at 01:00 UTC
+                oct31 = datetime(year, 10, 31, 1, tzinfo=timezone.utc)
+                bst_end = oct31 - timedelta(days=(oct31.weekday() + 1) % 7)
+                offset = timedelta(hours=1) if bst_start <= utc_dt < bst_end else timedelta(0)
+                local_dt = utc_dt + offset
+            return local_dt.strftime('%Y-%m-%d %H:%M:%S')
     except Exception:
         pass
     return None
@@ -798,6 +822,46 @@ def get_all_skycam_images(max_keys=None):
     if max_keys:
         return images[:max_keys]
     return images
+
+
+SKYCAM_EARLIEST_DATE = "2026-04-06"  # First skycam image
+
+
+def get_skycam_day_list():
+    """Generate list of days with skycam images, newest first. No S3 queries."""
+    start = datetime.strptime(SKYCAM_EARLIEST_DATE, '%Y-%m-%d')
+    end = datetime.utcnow()
+    days = []
+    current = end
+    while current >= start:
+        day_str = current.strftime('%Y-%m-%d')
+        day_label = current.strftime('%Y-%m-%d (%A)')
+        days.append({'date': day_str, 'label': day_label})
+        current -= timedelta(days=1)
+    return days
+
+
+def get_skycam_images_for_date(date_str):
+    """Get skycam images for a specific date (YYYY-MM-DD), newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    prefix = f"skycam/sky_{date_str.replace('-', '')}"
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    try:
+        images = []
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if not key.endswith('.jpg'):
+                    continue
+                timestamp = parse_timestamp_from_key(key) or obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S')
+                images.append({'key': key, 'timestamp': timestamp})
+        images.sort(key=lambda x: x['timestamp'], reverse=True)
+        return images
+    except Exception as e:
+        print(f"Error fetching skycam images for {date_str}: {e}")
+        return []
 
 
 def group_images_by_weeks(images):
@@ -3240,7 +3304,8 @@ def lambda_handler(event, context):
         if images:
             from routes.camera import render_camera_latest
             html += render_camera_latest('Sky Camera', images, theme_css_js=THEME_CSS_JS,
-                                         gallery_path='skycam/gallery', fullres_path='skycam/fullres')
+                                         gallery_path='skycam/gallery', fullres_path='skycam/fullres',
+                                         videos_path='skycam/videos')
         else:
             return {
                 'statusCode': 502,
@@ -3249,11 +3314,33 @@ def lambda_handler(event, context):
             }
 
     elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
-        all_images = get_all_skycam_images(max_keys=200)
-        from routes.camera import render_camera_gallery
-        html += render_camera_gallery('Sky Camera', all_images, latest_path='../skycam',
-                                      thumb_key_fn=skycam_thumb_key, get_presigned_url=get_presigned_url,
-                                      fullres_path='../skycam/fullres')
+        query_params = event.get('queryStringParameters', {}) or {}
+        day_param = query_params.get('day', '')
+        page_param = int(query_params.get('page', '1'))
+        per_page = 20
+
+        if not day_param:
+            # Day index
+            days = get_skycam_day_list()
+            from routes.camera import render_camera_day_index
+            html += render_camera_day_index('Sky Camera', days,
+                                            gallery_path='gallery', latest_path='../skycam',
+                                            videos_path='videos')
+        else:
+            # Images for a specific day, paginated
+            all_day_images = get_skycam_images_for_date(day_param)
+            total = len(all_day_images)
+            total_pages = max(1, math.ceil(total / per_page))
+            page_param = max(1, min(page_param, total_pages))
+            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+
+            from routes.camera import render_camera_day_gallery
+            html += render_camera_day_gallery(
+                'Sky Camera', day_param, page_images,
+                page=page_param, total_pages=total_pages, total_images=total,
+                thumb_key_fn=skycam_thumb_key,
+                gallery_path='gallery', latest_path='../skycam', fullres_path='../skycam/fullres',
+            )
 
     elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
         params = event.get('queryStringParameters') or {}
@@ -3266,6 +3353,36 @@ def lambda_handler(event, context):
                                           latest_path='../skycam', gallery_path='gallery')
         else:
             html += '<p>No image specified.</p>'
+
+    elif path.startswith(f'/{stage}/skycam/videos') or path.startswith('/skycam/videos'):
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        recent_videos = []
+
+        def _presign_vid(key):
+            return s3.generate_presigned_url(
+                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
+
+        try:
+            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix='videos/recent_')
+            for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key'], reverse=True):
+                key = obj['Key']
+                if not key.endswith('.mp4'):
+                    continue
+                ts_part = key.replace('videos/recent_', '').replace('.mp4', '')
+                try:
+                    dt = datetime.strptime(ts_part, '%Y%m%d_%H%M')
+                    label = dt.strftime('%d %b %Y %H:%M')
+                except ValueError:
+                    label = ts_part
+                recent_videos.append({
+                    'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576, 'label': label,
+                })
+        except Exception as e:
+            print(f"Error listing skycam videos: {e}")
+
+        from routes.camera import render_camera_videos
+        html += render_camera_videos('Sky Camera', recent_videos,
+                                     latest_path='../skycam', gallery_path='gallery')
 
     elif path == f'/{stage}/srfcplus' or path == '/srfcplus':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):

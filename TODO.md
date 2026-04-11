@@ -1,3 +1,7 @@
+claude usage should have a clock saying how long ago it was last refreshed.  That's a good pattern for these real time things. and a button for refreshing
+
+get the icon fixed ffs
+
 better name.  this is my website publishing core.  better docs about how it works and facilitates projects.  invocation stats
 
 ## Major: API Gateway + Lambda Architecture Reorganization
