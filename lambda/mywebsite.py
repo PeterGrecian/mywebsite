@@ -263,21 +263,14 @@ def log_execution_metrics(context, duration_ms, path='', ip='', user_agent=''):
 
 
 def parse_timestamp_from_key(key):
-    """Extract timestamp from filename (UTC) and convert to Europe/London local time."""
+    """Extract timestamp from filename. Filenames are already in local time (Europe/London)."""
     try:
-        from zoneinfo import ZoneInfo
         filename_parts = key.replace('.jpg', '').split('_')
         if len(filename_parts) >= 3:
             date_str = filename_parts[1]
             time_str = filename_parts[2]
-            utc_dt = datetime(
-                int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]),
-                int(time_str[:2]), int(time_str[2:4]), int(time_str[4:6]),
-                tzinfo=timezone.utc
-            )
-            local_dt = utc_dt.astimezone(ZoneInfo('Europe/London'))
-            return local_dt.strftime('%Y-%m-%d %H:%M:%S')
-    except:
+            return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]} {time_str[:2]}:{time_str[2:4]}:{time_str[4:6]}"
+    except Exception:
         pass
     return None
 
