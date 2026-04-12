@@ -1,3 +1,5 @@
+why does cleft work but the claude usage page does not?
+
 claude usage should have a clock saying how long ago it was last refreshed.  That's a good pattern for these real time things. and a button for refreshing
 
 get the icon fixed ffs
