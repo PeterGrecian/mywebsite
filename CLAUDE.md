@@ -41,6 +41,19 @@ The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's person
 | IAM role | `mywebsite-lambda-role` | Access to shared data stores |
 | SES | Email forwarding | `peter@petergrecian.co.uk` → Gmail; DNS MX records non-proxied in Cloudflare |
 
+## PWA Homepage (Cloudflare Pages)
+
+Testing a static, installable PWA homepage:
+
+- **`public/index.html`** — captured contents page with PWA manifest + service worker references
+- **`public/manifest.json`** — app metadata (name, icons, standalone display mode)
+- **`public/sw.js`** — service worker (network-first navigation, cache-first assets)
+- **`public/icon-{192,512}.png`** — app icons (+ maskable variants for adaptive icons)
+- **Deploy:** Connect repo to Cloudflare Pages (output: `public/`, no build step)
+- **Test:** Visit `/newhome` → Chrome on Android shows "Install app" → proper home screen icon
+
+Lambda stays at `/` and `/contents` for backward compatibility. Pages handles `/newhome` test.
+
 ## Site Contents
 
 The contents/navigation page is data-driven:
