@@ -1,3 +1,7 @@
+I need Instead of clicking around the Cloudflare dashboard, you can have your AI write a single configuration file (a "Workflow") inside your GitHub repo. Whenever you or your AI pushes code to GitHub, Cloudflare will automatically grab it and publish it.
+
+mush of the below will be out of date.  I'm changing to a hybrid cloudflare/lambda model anyway
+
 why does cleft work but the claude usage page does not?
 
 claude usage should have a clock saying how long ago it was last refreshed.  That's a good pattern for these real time things. and a button for refreshing
