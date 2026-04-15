@@ -1,0 +1,11 @@
+name = "petergrecian-homepage"
+type = "javascript"
+compatibility_date = "2024-12-16"
+
+# Cloudflare Pages configuration
+pages_build_output_dir = "public"
+
+[env.production]
+routes = [
+  { pattern = "petergrecian.co.uk/newhome*", zone_name = "petergrecian.co.uk" }
+]

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="Peter Grecian — projects, dashboards, and experiments">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <title>Peter Grecian</title>
+  <style>
+    body { font-family: var(--font); text-align: center; background: var(--bg); min-height: 100vh; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }
+    h1 { color: var(--text); font-size: 2.5rem; margin-bottom: 2rem; }
+    .links-container { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 500px; }
+    .link-ellipse { display: block; padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none; font-size: 1.1rem; font-weight: 500; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); transition: opacity 0.2s; }
+    .link-ellipse:hover { opacity: 0.8; }
+    .link-ellipse .description { display: block; font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-secondary); font-weight: normal; }
+    .hero-img { width: 100%; max-width: 500px; border-radius: 12px; margin-bottom: 1.5rem; object-fit: cover; max-height: 200px; }
+    @media (max-width: 768px) { h1 { font-size: 2rem; margin-bottom: 1.5rem; } .link-ellipse { padding: 0.8rem 1.5rem; font-size: 1rem; } }
+  </style>
+  <script>
+(function(){
+  var s=localStorage.getItem('theme');
+  var p=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));
+})();
+</script>
+<style>
+:root{font-size:21px;--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
+:root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
+#settings-btn{position:fixed;top:0.8rem;right:0.8rem;background:none;border:none;color:var(--text-secondary);font-size:1.2rem;cursor:pointer;z-index:10000;font-family:var(--font);padding:0.3rem;line-height:1;letter-spacing:2px;opacity:0.5;}
+#settings-btn:hover{opacity:1;}
+#settings-menu{display:none;position:fixed;top:2.4rem;right:0.8rem;background:var(--card-bg);border:1px solid var(--divider);border-radius:10px;padding:0.3rem 0;z-index:10000;min-width:160px;font-family:var(--font);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+#settings-menu.open{display:block;}
+.settings-item{display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.8rem;font-size:0.8rem;color:var(--text);cursor:pointer;white-space:nowrap;}
+.settings-item:hover{background:var(--divider);}
+.settings-item .check{color:var(--accent);font-size:0.7rem;width:1.2rem;text-align:center;}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var btn=document.createElement('button');
+  btn.id='settings-btn';
+  btn.textContent='⋯';
+  btn.title='Settings';
+  var menu=document.createElement('div');
+  menu.id='settings-menu';
+  // Theme toggle
+  var themeItem=document.createElement('div');
+  themeItem.className='settings-item';
+  var themeLabel=document.createElement('span');
+  var themeCheck=document.createElement('span');
+  themeCheck.className='check';
+  function updateThemeItem(){
+    var t=document.documentElement.getAttribute('data-theme');
+    themeLabel.textContent=t==='dark'?'Light mode':'Dark mode';
+    themeCheck.textContent='';
+  }
+  updateThemeItem();
+  themeItem.appendChild(themeLabel);
+  themeItem.appendChild(themeCheck);
+  themeItem.onclick=function(e){
+    e.stopPropagation();
+    var c=document.documentElement.getAttribute('data-theme');
+    var n=c==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',n);
+    localStorage.setItem('theme',n);
+    updateThemeItem();
+  };
+  menu.appendChild(themeItem);
+  // Allow pages to add items
+  window._settingsMenu=menu;
+  btn.onclick=function(e){e.stopPropagation();menu.classList.toggle('open');};
+  document.addEventListener('click',function(){menu.classList.remove('open');});
+  document.body.appendChild(btn);
+  document.body.appendChild(menu);
+});
+</script>
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker registered');
+      }).catch(err => {
+        console.log('Service Worker registration failed:', err);
+      });
+    }
+  </script>
+</head>
+<body>
+  <img class="hero-img" src="https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/PXL_20260113_100124014.jpg" alt="Waterloo station">
+  <h1>Peter Grecian</h1>
+  <div class="links-container">
+    <a href="/claude-usage" class="link-ellipse">
+      Claude Usage
+      <span class="description">claude pro quota — 5h and 7d consumption rate</span>
+    </a>
+    <a href="/skycam" class="link-ellipse">
+      Sky Camera
+      <span class="description">sky and astronomy timelapse from zeropi</span>
+    </a>
+    <a href="/springcam" class="link-ellipse">
+      Spring Camera<sup style="font-size:0.55em; vertical-align:super; color:var(--text-secondary); font-weight:400; letter-spacing:0.05em;">PRIVATE</sup>
+      <span class="description">spring timelapse — every 20 minutes</span>
+    </a>
+    <a href="/pi-fleet" class="link-ellipse">
+      Pi Fleet Status
+      <span class="description">raspberry pi monitoring dashboard</span>
+    </a>
+    <a href="/t3" class="link-ellipse">
+      K2 Bus Times
+      <span class="description">terse transport times for local buses</span>
+    </a>
+    <a href="/memspeed" class="link-ellipse">
+      Memory Benchmark
+      <span class="description">memory bandwidth benchmark results</span>
+    </a>
+    <a href="/lambda-stats" class="link-ellipse">
+      Lambda Statistics
+      <span class="description">execution metrics and cost tracking</span>
+    </a>
+    <a href="/gotg" class="link-ellipse">
+      Götterdämmerung on the Go
+      <span class="description">scene-by-scene listening guide to Wagner's Götterdämmerung</span>
+    </a>
+    <a href="/rcr" class="link-ellipse">
+      Recent Classical Recordings
+      <span class="description">find well-recorded classical performances on YouTube Music</span>
+    </a>
+    <a href="/site-test" class="link-ellipse">
+      Site Test
+      <span class="description">page load times and status monitoring</span>
+    </a>
+    <a href="/us-vs-the-machines" class="link-ellipse">
+      Us vs the Machines
+      <span class="description">predict F1 results — humans vs AI</span>
+    </a>
+    <a href="https://192.168.7.253:8443/?v=13" class="link-ellipse">
+      Betterverse v13
+      <span class="description">VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)</span>
+    </a>
+    <a href="/ai-config" class="link-ellipse">
+      AI Configuration
+      <span class="description">choose which AI model to use for each application</span>
+    </a>
+    <a href="/srfcplus" class="link-ellipse">
+      SRFC Plus<sup style="font-size:0.55em; vertical-align:super; color:var(--text-secondary); font-weight:400; letter-spacing:0.05em;">PRIVATE</sup>
+      <span class="description">surbiton racket & fitness club — bookings</span>
+    </a>
+    <a href="/gardencam/videos" class="link-ellipse">
+      Timelapse Videos
+      <span class="description">4-hourly and weekly gardencam timelapses</span>
+    </a>
+  </div>
+</body>
+</html>

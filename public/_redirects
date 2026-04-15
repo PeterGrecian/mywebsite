@@ -1,0 +1,5 @@
+# Route /newhome to index.html (test the new PWA homepage)
+/newhome /index.html 200
+
+# For now, proxy everything else to the Lambda backend
+/* https://www.petergrecian.co.uk:443 200
