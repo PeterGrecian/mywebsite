@@ -8,8 +8,11 @@ The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's person
 
 - **Lambda** (`lambda/mywebsite.py`): Main handler with all routes
 - **API Gateway**: HTTP API v2, custom domain `www.petergrecian.co.uk`
+- **Cloudflare**: DNS + WAF + rate limiting (proxies traffic to API Gateway)
 - **DynamoDB**: `mywebsite-contents` table drives the contents/navigation page
-- **Terraform** (`terraform/`): All AWS infrastructure
+- **Terraform**:
+  - `terraform/`: AWS infrastructure (Lambda, API Gateway, DynamoDB, SES, Route53)
+  - `cloudflare/`: Cloudflare DNS, WAF, and rate limiting (separate TF state)
 
 ## Routes
 
@@ -32,10 +35,11 @@ The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's person
 | Resource | Name | Notes |
 |----------|------|-------|
 | Lambda | `mywebsite` | Python 3.12, 128MB, 30s timeout |
-| API Gateway | `mywebsite-api` | HTTP API v2 |
-| Custom domain | `www.petergrecian.co.uk` | Uses wildcard ACM cert |
+| API Gateway | `mywebsite-api` | HTTP API v2; origin for Cloudflare CNAME |
+| Custom domain | `www.petergrecian.co.uk` | Uses wildcard ACM cert; proxied by Cloudflare |
 | DynamoDB | `mywebsite-contents` | Navigation data (partition key: `path`) |
 | IAM role | `mywebsite-lambda-role` | Access to shared data stores |
+| SES | Email forwarding | `peter@petergrecian.co.uk` → Gmail; DNS MX records non-proxied in Cloudflare |
 
 ## Site Contents
 
@@ -112,3 +116,59 @@ The `/t3` web page has no clear future. Options: retire it, or redirect it to ca
 ## AWS Region
 
 eu-west-1 (Ireland)
+
+## Cloudflare Setup
+
+**DNS & WAF fronting the website** — separate Terraform in `cloudflare/` with its own S3 state (`cloudflare-tfstate`).
+
+### Records in Cloudflare
+
+| Name | Type | Proxied | Purpose |
+|---|---|---|---|
+| `www` | CNAME | ✅ **Yes** | Points to API Gateway; enables WAF/caching |
+| `@` (apex) | MX | ❌ **No** | `inbound-smtp.eu-west-1.amazonaws.com` for SES email |
+| `@` | TXT | ❌ **No** | SPF + Google site verification |
+| `_amazonses` | TXT | ❌ **No** | SES domain verification token |
+| `<token>._domainkey` ×3 | CNAME | ❌ **No** | SES DKIM records (orange cloud OFF — real DNS required) |
+
+### WAF & Rate Limiting
+
+**Managed Rules:** Cloudflare Managed Ruleset (free tier) blocks XSS, SQLi, bots.
+
+**Rate Limiting:**
+- `/gardencam/capture` POST: 10 requests/min per IP → challenge
+- `/pi-fleet`: 30 requests/min per IP → challenge
+
+### Deployment
+
+```bash
+# Store API key in SSM (one-time setup)
+aws ssm put-parameter \
+  --name /cloudflare/global-api-key \
+  --value "$(cat ~/.config/cloudflare.key)" \
+  --type SecureString --region eu-west-1
+
+# Plan/apply with key from SSM
+cd cloudflare
+CF_KEY=$(aws ssm get-parameter --name /cloudflare/global-api-key --with-decryption --query Parameter.Value --output text)
+terraform init -backend-config=backends.tfvars
+terraform plan -var="cloudflare_api_key=$CF_KEY"
+terraform apply -var="cloudflare_api_key=$CF_KEY"
+```
+
+### After Initial Apply: Nameserver Migration
+
+1. Copy Cloudflare nameservers from `terraform output nameservers`
+2. Update registrar (who/where: TBD) to point to Cloudflare nameservers
+3. Wait for propagation (minutes to ~1 hour); check with `dig NS petergrecian.co.uk`
+4. Verify: `curl -v https://www.petergrecian.co.uk` → 200 from Cloudflare edge
+5. Test email: send to `peter@petergrecian.co.uk`, confirm forwarding to Gmail
+
+**Route53 records stay in place** (become dormant) — useful for rollback if needed.
+
+### Cloudflare Global API Key
+
+Stored in AWS SSM (`/cloudflare/global-api-key`). Never commit to git. If the key rotates:
+1. Update in `~/.config/cloudflare.key`
+2. Re-run the SSM put-parameter command above
+3. Re-run terraform apply

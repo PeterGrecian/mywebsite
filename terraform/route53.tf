@@ -1,3 +1,7 @@
+# NOTE: DNS is now managed by Cloudflare (cloudflare/ Terraform state).
+# These Route53 records become dormant after nameservers are updated at the registrar.
+# They are kept here for reference and potential rollback.
+
 # Custom Domain Name for API Gateway
 resource "aws_apigatewayv2_domain_name" "www" {
   domain_name = "www.petergrecian.co.uk"
