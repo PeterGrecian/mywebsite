@@ -139,6 +139,19 @@ eu-west-1 (Ireland)
 - `/gardencam/capture` POST: 10 requests/min per IP → challenge
 - `/pi-fleet`: 30 requests/min per IP → challenge
 
+### Edge Caching (`cloudflare/cache.tf`)
+
+Static and slow-changing routes are cached at Cloudflare's edge to avoid Lambda invocations:
+
+| Route | Edge TTL | Browser TTL | Notes |
+|-------|----------|-------------|-------|
+| `/cv` | 24h | 1h | Static HTML file read |
+| `/gitinfo` | 24h | 1h | Static HTML file read |
+| `/robots.txt` | 7d | 24h | Hardcoded string |
+| `/contents` | 1h | 5m | DynamoDB-driven, changes on `sync-contents.py` |
+
+**Cache purge:** `./deploy` automatically purges all four cached URLs after uploading to Lambda. Manual purge available via Cloudflare dashboard or API.
+
 ### Deployment
 
 ```bash
