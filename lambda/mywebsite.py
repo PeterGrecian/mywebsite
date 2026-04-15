@@ -1861,21 +1861,26 @@ AI_APPS = [
     {"key": "uvtm", "name": "Us vs Machines", "desc": "F1 predictions"},
 ]
 AI_PROVIDERS = [
-    {"key": "gemini", "name": "Gemini", "models": ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"]},
-    {"key": "openai", "name": "OpenAI", "models": ["gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"]},
-    {"key": "bedrock", "name": "Bedrock", "models": ["eu.anthropic.claude-3-5-sonnet-20241022-v2:0", "anthropic.claude-3-haiku-20240307-v1:0"]},
+    {"key": "gemini",     "name": "Gemini",     "models": ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"]},
+    {"key": "openai",     "name": "OpenAI",     "models": ["gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"]},
+    {"key": "bedrock",    "name": "Bedrock",    "models": ["anthropic.claude-3-haiku-20240307-v1:0", "anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic.claude-3-7-sonnet-20250219-v1:0"]},
+    {"key": "cloudflare", "name": "Cloudflare", "models": ["@cf/meta/llama-3.1-8b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/google/gemma-3-12b-it"]},
 ]
 
 # USD per million tokens (input, output)
 MODEL_PRICING = {
-    "gemini-2.5-pro":                               (1.25, 10.00),
-    "gemini-2.5-flash":                             (0.30,  2.50),
-    "gemini-2.0-flash":                             (0.10,  0.40),
-    "gpt-4o-mini":                                  (0.15,  0.60),
-    "gpt-4o":                                       (2.50, 10.00),
-    "gpt-4.1-mini":                                 (0.40,  1.60),
-    "eu.anthropic.claude-3-5-sonnet-20241022-v2:0": (3.00, 15.00),
-    "anthropic.claude-3-haiku-20240307-v1:0":       (0.25,  1.25),
+    "gemini-2.5-pro":                                (1.25, 10.00),
+    "gemini-2.5-flash":                              (0.30,  2.50),
+    "gemini-2.0-flash":                              (0.10,  0.40),
+    "gpt-4o-mini":                                   (0.15,  0.60),
+    "gpt-4o":                                        (2.50, 10.00),
+    "gpt-4.1-mini":                                  (0.40,  1.60),
+    "anthropic.claude-3-haiku-20240307-v1:0":        (0.25,  1.25),
+    "anthropic.claude-haiku-4-5-20251001-v1:0":      (0.80,  4.00),
+    "anthropic.claude-3-7-sonnet-20250219-v1:0":     (3.00, 15.00),
+    "@cf/meta/llama-3.1-8b-instruct":               (0.00,  0.00),
+    "@cf/meta/llama-3.3-70b-instruct-fp8-fast":     (0.00,  0.00),
+    "@cf/google/gemma-3-12b-it":                    (0.00,  0.00),
 }
 
 
