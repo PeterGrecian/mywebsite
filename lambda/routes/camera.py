@@ -244,8 +244,9 @@ def _skycam_video_cards(videos):
         return '<p style="color:#888; text-align:center;">No videos for this period.</p>'
     cards = ''
     for v in videos:
+        extra_class = ' video-card-daily' if v.get('is_daily') else ''
         cards += f'''
-            <a href="{v['url']}" class="video-card">
+            <a href="{v['url']}" class="video-card{extra_class}">
                 <div class="video-thumbnail">
                     <div class="play-icon"></div>
                 </div>
@@ -375,4 +376,6 @@ _VIDEO_PAGE_STYLE = '''
             .day-link { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
             .day-link:hover { background: #3a3a3a; }
             .day-link .count { color: #888; font-size: 0.85rem; }
+            .video-card-daily { grid-column: 1 / -1; max-width: 400px; border: 1px solid #4a9eff; }
+            .video-card-daily .video-meta h3 { font-size: 1rem; }
         </style>'''

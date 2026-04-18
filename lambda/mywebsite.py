@@ -3381,19 +3381,28 @@ def lambda_handler(event, context):
                             continue
                         basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
                         ts_part = basename.replace('sky_', '')
-                        try:
-                            dt = datetime.strptime(ts_part, '%Y%m%d_%H')
-                            label = dt.strftime('%H:00')
-                        except ValueError:
-                            label = ts_part
-                            dt = obj['LastModified'].replace(tzinfo=None)
+                        is_daily = ts_part.endswith('_daily')
+                        if is_daily:
+                            date_part = ts_part.replace('_daily', '')
+                            try:
+                                dt = datetime.strptime(date_part, '%Y%m%d')
+                            except ValueError:
+                                dt = obj['LastModified'].replace(tzinfo=None)
+                            label = 'Full Day'
+                        else:
+                            try:
+                                dt = datetime.strptime(ts_part, '%Y%m%d_%H')
+                                label = dt.strftime('%H:00')
+                            except ValueError:
+                                label = ts_part
+                                dt = obj['LastModified'].replace(tzinfo=None)
                         vids.append({
                             'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576,
-                            'label': label, 'dt': dt,
+                            'label': label, 'dt': dt, 'is_daily': is_daily,
                         })
             except Exception as e:
                 print(f"Error listing skycam videos ({prefix}): {e}")
-            vids.sort(key=lambda v: v['dt'], reverse=True)
+            vids.sort(key=lambda v: (not v.get('is_daily'), v['dt']), reverse=True)
             return vids
 
         day_param = query_params.get('day', '')
