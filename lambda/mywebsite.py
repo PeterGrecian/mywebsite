@@ -3488,8 +3488,26 @@ def lambda_handler(event, context):
                 'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
                 ExpiresIn=7200)
             basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+
+            # Find the hourly segments for the clock overlay
+            day_prefix = video_key.rsplit('/', 1)[0] + '/'
+            hours = []
+            try:
+                resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
+                for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
+                    k = obj['Key']
+                    if k.endswith('.mp4') and '_daily' not in k:
+                        b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+                        try:
+                            h = datetime.strptime(b, '%Y%m%d_%H')
+                            hours.append(h.hour)
+                        except ValueError:
+                            pass
+            except Exception:
+                pass
+
             from routes.camera import render_skycam_player
-            html += render_skycam_player(video_url, basename)
+            html += render_skycam_player(video_url, basename, hours)
         except Exception as e:
             print(f"Error loading video for player: {e}")
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">No daily video available yet today.</p>'

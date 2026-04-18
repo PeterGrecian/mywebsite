@@ -386,53 +386,82 @@ _VIDEO_PAGE_STYLE = '''
         </style>'''
 
 
-def render_skycam_player(video_url, title):
-    """Render a cast-enabled video player page."""
+def render_skycam_player(video_url, title, hours=None):
+    """Render a cast-enabled video player with clock overlay and loop."""
+    import json
+    hours_json = json.dumps(hours or [])
+
     return f'''
         <title>Sky Camera — {title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #000; color: #fff; }}
-            .nav {{ text-align: center; margin-bottom: 1rem; }}
+            body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: #000; color: #fff; }}
+            .nav {{ text-align: center; padding: 0.5rem; }}
             .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 1rem; }}
-            h1 {{ text-align: center; font-size: 1.2rem; margin-bottom: 1rem; }}
-            .player {{ max-width: 1280px; margin: 0 auto; }}
-            video {{ width: 100%; border-radius: 8px; background: #111; }}
-            .controls {{ text-align: center; margin-top: 1rem; }}
+            .player-wrap {{ position: relative; max-width: 1280px; margin: 0 auto; }}
+            video {{ width: 100%; display: block; background: #000; }}
+            .clock {{
+                position: absolute; top: 1rem; right: 1rem;
+                font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+                font-size: 2rem; font-weight: 600;
+                color: #fff; text-shadow: 0 0 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6);
+                pointer-events: none; z-index: 10;
+                opacity: 0.9;
+            }}
+            .controls {{ text-align: center; padding: 0.75rem; }}
             .cast-btn {{
-                display: inline-block; padding: 0.75rem 2rem;
+                display: inline-block; padding: 0.5rem 1.5rem;
                 background: #4a9eff; color: #fff; border: none; border-radius: 8px;
-                font-size: 1rem; cursor: pointer; transition: opacity 0.2s;
+                font-size: 0.9rem; cursor: pointer; transition: opacity 0.2s;
             }}
             .cast-btn:hover {{ opacity: 0.8; }}
             .cast-btn:disabled {{ opacity: 0.4; cursor: default; }}
-            .cast-status {{ color: #888; margin-top: 0.5rem; font-size: 0.85rem; }}
+            .cast-status {{ color: #888; margin-top: 0.3rem; font-size: 0.8rem; }}
             google-cast-launcher {{
-                display: inline-block; width: 32px; height: 32px;
-                vertical-align: middle; margin-left: 1rem; cursor: pointer;
+                display: inline-block; width: 28px; height: 28px;
+                vertical-align: middle; margin-left: 0.75rem; cursor: pointer;
                 --connected-color: #4a9eff; --disconnected-color: #888;
             }}
         </style>
         <div class="nav">
             <a href="../contents">Home</a> |
             <a href="videos">Videos</a>
+            <google-cast-launcher></google-cast-launcher>
         </div>
-        <h1>{title} <google-cast-launcher></google-cast-launcher></h1>
-        <div class="player">
-            <video id="player" controls autoplay playsinline>
+        <div class="player-wrap">
+            <video id="player" controls autoplay loop playsinline>
                 <source src="{video_url}" type="video/mp4">
             </video>
-            <div class="controls">
-                <button class="cast-btn" id="castBtn" onclick="castVideo()" disabled>Cast to TV</button>
-                <div class="cast-status" id="castStatus"></div>
-            </div>
+            <div class="clock" id="clock"></div>
+        </div>
+        <div class="controls">
+            <button class="cast-btn" id="castBtn" onclick="castVideo()" disabled>Cast to TV</button>
+            <div class="cast-status" id="castStatus"></div>
         </div>
         <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
         <script>
             const VIDEO_URL = "{video_url}";
             const VIDEO_TITLE = "{title}";
+            const HOURS = {hours_json};
             let castSession = null;
 
+            // Clock overlay: map video position to real time
+            const player = document.getElementById('player');
+            const clockEl = document.getElementById('clock');
+
+            function updateClock() {{
+                if (!player.duration || HOURS.length === 0) return;
+                const frac = player.currentTime / player.duration;
+                const segIdx = Math.min(Math.floor(frac * HOURS.length), HOURS.length - 1);
+                const segFrac = (frac * HOURS.length) - segIdx;
+                const hour = HOURS[segIdx];
+                const mins = Math.floor(segFrac * 60);
+                clockEl.textContent = String(hour).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
+            }}
+            player.addEventListener('timeupdate', updateClock);
+            player.addEventListener('loadedmetadata', updateClock);
+
+            // Cast SDK
             window['__onGCastApiAvailable'] = function(isAvailable) {{
                 if (isAvailable) {{
                     const ctx = cast.framework.CastContext.getInstance();
