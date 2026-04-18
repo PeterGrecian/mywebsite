@@ -3471,6 +3471,29 @@ def lambda_handler(event, context):
             months_list = sorted(months_seen, reverse=True)
             html += render_skycam_videos_index(today.strftime('%Y-%m-%d'), today_videos, months_list)
 
+    elif path.startswith(f'/{stage}/skycam/play') or path.startswith('/skycam/play'):
+        query_params = event.get('queryStringParameters', {}) or {}
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+
+        # Find the video to play: ?key=... or default to today's daily
+        video_key = query_params.get('key', '')
+        if not video_key:
+            today = datetime.utcnow()
+            date_str = today.strftime('%Y%m%d')
+            video_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_daily.mp4"
+
+        try:
+            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
+            video_url = s3.generate_presigned_url(
+                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
+                ExpiresIn=7200)
+            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+            from routes.camera import render_skycam_player
+            html += render_skycam_player(video_url, basename)
+        except Exception as e:
+            print(f"Error loading video for player: {e}")
+            html += '<p style="color:#888; text-align:center; margin-top:3rem;">No daily video available yet today.</p>'
+
     elif path == f'/{stage}/srfcplus' or path == '/srfcplus':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {

@@ -272,6 +272,9 @@ def render_skycam_videos_index(today_str, today_videos, months_list):
     """Landing page: today's videos + links to browse by month."""
     from datetime import datetime
 
+    has_daily = any(v.get('is_daily') for v in today_videos)
+    cast_link = '<a href="play" class="cast-link">Cast today\'s timelapse</a>' if has_daily else ''
+
     month_links = ''
     for m in months_list:
         try:
@@ -291,7 +294,7 @@ def render_skycam_videos_index(today_str, today_videos, months_list):
         <h1>Sky Camera — Hourly Timelapses</h1>
         <p style="color:#888; text-align:center; margin-bottom:1.5rem;">One video per daylight hour, ~360 frames at 24fps (~15s each)</p>
         <div class="content">
-            <h2 class="section-heading">Today — {today_str}</h2>
+            <h2 class="section-heading">Today — {today_str} {cast_link}</h2>
             {_skycam_video_cards(today_videos)}
             <h2 class="section-heading" style="margin-top:2.5rem;">Browse by Month</h2>
             <div class="month-list">{month_links}</div>
@@ -378,4 +381,92 @@ _VIDEO_PAGE_STYLE = '''
             .day-link .count { color: #888; font-size: 0.85rem; }
             .video-card-daily { grid-column: 1 / -1; max-width: 400px; border: 1px solid #4a9eff; }
             .video-card-daily .video-meta h3 { font-size: 1rem; }
+            .cast-link { font-size: 0.85rem; font-weight: normal; color: #4a9eff; text-decoration: none; margin-left: 1rem; }
+            .cast-link:hover { text-decoration: underline; }
         </style>'''
+
+
+def render_skycam_player(video_url, title):
+    """Render a cast-enabled video player page."""
+    return f'''
+        <title>Sky Camera — {title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #000; color: #fff; }}
+            .nav {{ text-align: center; margin-bottom: 1rem; }}
+            .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 1rem; }}
+            h1 {{ text-align: center; font-size: 1.2rem; margin-bottom: 1rem; }}
+            .player {{ max-width: 1280px; margin: 0 auto; }}
+            video {{ width: 100%; border-radius: 8px; background: #111; }}
+            .controls {{ text-align: center; margin-top: 1rem; }}
+            .cast-btn {{
+                display: inline-block; padding: 0.75rem 2rem;
+                background: #4a9eff; color: #fff; border: none; border-radius: 8px;
+                font-size: 1rem; cursor: pointer; transition: opacity 0.2s;
+            }}
+            .cast-btn:hover {{ opacity: 0.8; }}
+            .cast-btn:disabled {{ opacity: 0.4; cursor: default; }}
+            .cast-status {{ color: #888; margin-top: 0.5rem; font-size: 0.85rem; }}
+            google-cast-launcher {{
+                display: inline-block; width: 32px; height: 32px;
+                vertical-align: middle; margin-left: 1rem; cursor: pointer;
+                --connected-color: #4a9eff; --disconnected-color: #888;
+            }}
+        </style>
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href="videos">Videos</a>
+        </div>
+        <h1>{title} <google-cast-launcher></google-cast-launcher></h1>
+        <div class="player">
+            <video id="player" controls autoplay playsinline>
+                <source src="{video_url}" type="video/mp4">
+            </video>
+            <div class="controls">
+                <button class="cast-btn" id="castBtn" onclick="castVideo()" disabled>Cast to TV</button>
+                <div class="cast-status" id="castStatus"></div>
+            </div>
+        </div>
+        <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+        <script>
+            const VIDEO_URL = "{video_url}";
+            const VIDEO_TITLE = "{title}";
+            let castSession = null;
+
+            window['__onGCastApiAvailable'] = function(isAvailable) {{
+                if (isAvailable) {{
+                    const ctx = cast.framework.CastContext.getInstance();
+                    ctx.setOptions({{
+                        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                    }});
+                    ctx.addEventListener(
+                        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                        function(e) {{
+                            if (e.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+                                e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {{
+                                castSession = ctx.getCurrentSession();
+                                document.getElementById('castBtn').disabled = false;
+                                document.getElementById('castStatus').textContent = 'Connected to ' + castSession.getCastDevice().friendlyName;
+                            }} else {{
+                                castSession = null;
+                                document.getElementById('castBtn').disabled = true;
+                                document.getElementById('castStatus').textContent = '';
+                            }}
+                        }}
+                    );
+                }}
+            }};
+
+            function castVideo() {{
+                if (!castSession) return;
+                const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
+                mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+                mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
+                const request = new chrome.cast.media.LoadRequest(mediaInfo);
+                castSession.loadMedia(request).then(
+                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV'; }},
+                    function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
+                );
+            }}
+        </script>'''
