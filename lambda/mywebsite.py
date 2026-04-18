@@ -3382,13 +3382,21 @@ def lambda_handler(event, context):
                         basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
                         ts_part = basename.replace('sky_', '')
                         is_daily = ts_part.endswith('_daily')
+                        is_combined = ts_part.endswith('_combined')
                         if is_daily:
                             date_part = ts_part.replace('_daily', '')
                             try:
                                 dt = datetime.strptime(date_part, '%Y%m%d')
                             except ValueError:
                                 dt = obj['LastModified'].replace(tzinfo=None)
-                            label = 'Full Day'
+                            label = 'Full Day (sky only)'
+                        elif is_combined:
+                            date_part = ts_part.replace('_combined', '')
+                            try:
+                                dt = datetime.strptime(date_part, '%Y%m%d')
+                            except ValueError:
+                                dt = obj['LastModified'].replace(tzinfo=None)
+                            label = 'Full Day (sky + garden)'
                         else:
                             try:
                                 dt = datetime.strptime(ts_part, '%Y%m%d_%H')
@@ -3398,7 +3406,8 @@ def lambda_handler(event, context):
                                 dt = obj['LastModified'].replace(tzinfo=None)
                         vids.append({
                             'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576,
-                            'label': label, 'dt': dt, 'is_daily': is_daily,
+                            'label': label, 'dt': dt,
+                            'is_daily': is_daily or is_combined,
                         })
             except Exception as e:
                 print(f"Error listing skycam videos ({prefix}): {e}")
@@ -3475,12 +3484,18 @@ def lambda_handler(event, context):
         query_params = event.get('queryStringParameters', {}) or {}
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
 
-        # Find the video to play: ?key=... or default to today's daily
+        # Find the video to play: ?key=... or default to today's combined, falling back to daily
         video_key = query_params.get('key', '')
         if not video_key:
             today = datetime.utcnow()
             date_str = today.strftime('%Y%m%d')
-            video_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_daily.mp4"
+            combined_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_combined.mp4"
+            daily_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_daily.mp4"
+            try:
+                s3.head_object(Bucket=GARDENCAM_BUCKET, Key=combined_key)
+                video_key = combined_key
+            except Exception:
+                video_key = daily_key
 
         try:
             s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
@@ -3496,7 +3511,7 @@ def lambda_handler(event, context):
                 resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
                 for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
                     k = obj['Key']
-                    if k.endswith('.mp4') and '_daily' not in k:
+                    if k.endswith('.mp4') and '_daily' not in k and '_combined' not in k:
                         b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
                         try:
                             h = datetime.strptime(b, '%Y%m%d_%H')
