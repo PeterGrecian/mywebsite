@@ -1,71 +1,41 @@
 // Service Worker for petergrecian.co.uk
-const CACHE_NAME = 'petergrecian-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-];
+const CACHE_NAME = 'petergrecian-v2';
 
-// Install: cache essential assets
+// Only these paths belong to the PWA — everything else passes through to Lambda
+const PWA_PATHS = new Set(['/', '/index.html', '/manifest.json', '/sw.js',
+  '/icon-192.png', '/icon-192-maskable.png', '/icon-512.png', '/icon-512-maskable.png']);
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      return cache.addAll(['/', '/index.html', '/manifest.json']);
     })
   );
+  self.skipWaiting();
 });
 
-// Activate: clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((name) => {
-          if (name !== CACHE_NAME) {
-            return caches.delete(name);
-          }
-        })
-      );
-    })
+    caches.keys().then((names) =>
+      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+    )
   );
+  self.clients.claim();
 });
 
-// Fetch: network-first for navigations, cache-first for assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  // Only intercept PWA assets — let everything else go straight to network
+  if (!PWA_PATHS.has(url.pathname)) {
     return;
   }
 
-  // Navigation requests: network first, fall back to cache
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful responses
-          if (response.ok) {
-            const cache = caches.open(CACHE_NAME);
-            cache.then((c) => c.put(request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fall back to cached version
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/index.html');
-          });
-        })
-    );
-    return;
-  }
-
-  // For other requests, use cache-first strategy
+  // Cache-first for PWA assets
   event.respondWith(
-    caches.match(request).then((cached) => {
-      return cached || fetch(request);
-    })
+    caches.match(request).then((cached) => cached || fetch(request))
   );
 });
