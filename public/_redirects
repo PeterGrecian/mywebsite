@@ -2,5 +2,5 @@
 / /index.html 200
 /newhome /index.html 200
 
-# Proxy everything else to the Lambda backend
-/* https://www.petergrecian.co.uk:443 200
+# Proxy everything else to the Lambda backend (API Gateway direct — avoids loop via Pages)
+/* https://qtm01ybq9k.execute-api.eu-west-1.amazonaws.com:443 200
