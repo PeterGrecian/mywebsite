@@ -209,7 +209,7 @@ def render_camera_fullres(camera_name, image_url, ts, *, latest_path, gallery_pa
 
 
 def render_camera_videos(camera_name, recent_videos, *, latest_path, gallery_path):
-    """Render a timelapse videos page for a camera."""
+    """Render a timelapse videos page for a camera (generic, flat list)."""
     cards = ''
     for v in recent_videos:
         cards += f'''
@@ -224,31 +224,155 @@ def render_camera_videos(camera_name, recent_videos, *, latest_path, gallery_pat
             </a>'''
 
     if not recent_videos:
-        cards = '<p style="color:#888; text-align:center;">No timelapse videos yet. Videos are generated every 4 hours.</p>'
+        cards = '<p style="color:#888; text-align:center;">No timelapse videos yet.</p>'
 
     return f'''
         <title>{camera_name} - Timelapse Videos</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }}
-            .nav {{ text-align: center; margin-bottom: 2rem; }}
-            .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 1rem; }}
-            .nav a:hover {{ text-decoration: underline; }}
-            h1 {{ text-align: center; margin-bottom: 2rem; }}
-            .video-grid {{ max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }}
-            .video-card {{ background: #2a2a2a; border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; display: block; transition: transform 0.2s; }}
-            .video-card:hover {{ transform: translateY(-4px); }}
-            .video-thumbnail {{ height: 140px; background: linear-gradient(135deg, #1e2a1e 0%, #1a1a1a 100%); display: flex; align-items: center; justify-content: center; }}
-            .play-icon {{ width: 50px; height: 50px; background: rgba(74,158,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; }}
-            .play-icon::after {{ content: ''; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 18px; border-color: transparent transparent transparent #fff; margin-left: 3px; }}
-            .video-meta {{ padding: 0.75rem; }}
-            .video-meta h3 {{ margin: 0 0 0.25rem 0; color: #4a9eff; font-size: 0.95rem; }}
-            .video-meta p {{ margin: 0; color: #888; font-size: 0.8rem; }}
-        </style>
+        {_VIDEO_PAGE_STYLE}
         <div class="nav">
             <a href="../contents">Home</a> |
             <a href="{latest_path}">Latest</a> |
             <a href="{gallery_path}">Gallery</a>
         </div>
         <h1>{camera_name} — Timelapse Videos</h1>
-        <p style="color:#888; text-align:center; margin-bottom:1.5rem;">100 most recent frames, generated every 4 hours</p>
         <div class="video-grid">{cards}</div>'''
+
+
+def _skycam_video_cards(videos):
+    """Render video cards for a list of skycam videos."""
+    if not videos:
+        return '<p style="color:#888; text-align:center;">No videos for this period.</p>'
+    cards = ''
+    for v in videos:
+        cards += f'''
+            <a href="{v['url']}" class="video-card">
+                <div class="video-thumbnail">
+                    <div class="play-icon"></div>
+                </div>
+                <div class="video-meta">
+                    <h3>{v['label']}</h3>
+                    <p>{v['size_mb']:.1f} MB</p>
+                </div>
+            </a>'''
+    return f'<div class="video-grid">{cards}</div>'
+
+
+def _skycam_nav():
+    return '''
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href="../skycam">Latest</a> |
+            <a href="gallery">Gallery</a> |
+            <a href="videos">Videos</a>
+        </div>'''
+
+
+def render_skycam_videos_index(today_str, today_videos, months_list):
+    """Landing page: today's videos + links to browse by month."""
+    from datetime import datetime
+
+    month_links = ''
+    for m in months_list:
+        try:
+            dt = datetime.strptime(m + '-01', '%Y-%m-%d')
+            label = dt.strftime('%B %Y')
+        except ValueError:
+            label = m
+        month_links += f'<a href="videos?month={m}" class="month-link">{label}</a>'
+
+    if not month_links:
+        month_links = '<p style="color:#888;">No archived months yet.</p>'
+
+    return f'''
+        <title>Sky Camera - Hourly Timelapses</title>
+        {_VIDEO_PAGE_STYLE}
+        {_skycam_nav()}
+        <h1>Sky Camera — Hourly Timelapses</h1>
+        <p style="color:#888; text-align:center; margin-bottom:1.5rem;">One video per daylight hour, ~360 frames at 24fps (~15s each)</p>
+        <div class="content">
+            <h2 class="section-heading">Today — {today_str}</h2>
+            {_skycam_video_cards(today_videos)}
+            <h2 class="section-heading" style="margin-top:2.5rem;">Browse by Month</h2>
+            <div class="month-list">{month_links}</div>
+        </div>'''
+
+
+def render_skycam_videos_month(month_str, days_list):
+    """Month view: list of days with video counts."""
+    from datetime import datetime
+
+    try:
+        dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
+        month_label = dt.strftime('%B %Y')
+    except ValueError:
+        month_label = month_str
+
+    day_links = ''
+    for day_str, count in days_list:
+        try:
+            dt = datetime.strptime(day_str, '%Y-%m-%d')
+            label = dt.strftime('%A %d %B')
+        except ValueError:
+            label = day_str
+        day_links += f'<a href="videos?day={day_str}" class="day-link">{label}<span class="count">{count} video{"s" if count != 1 else ""}</span></a>'
+
+    if not day_links:
+        day_links = '<p style="color:#888; text-align:center;">No videos recorded this month.</p>'
+
+    return f'''
+        <title>Sky Camera - {month_label}</title>
+        {_VIDEO_PAGE_STYLE}
+        {_skycam_nav()}
+        <h1>{month_label}</h1>
+        <div class="content">
+            <div class="day-list">{day_links}</div>
+        </div>'''
+
+
+def render_skycam_videos_day(day_str, videos):
+    """Day view: all hourly videos for a specific day."""
+    from datetime import datetime
+
+    try:
+        dt = datetime.strptime(day_str, '%Y-%m-%d')
+        day_label = dt.strftime('%A %d %B %Y')
+    except ValueError:
+        day_label = day_str
+
+    return f'''
+        <title>Sky Camera - {day_label}</title>
+        {_VIDEO_PAGE_STYLE}
+        {_skycam_nav()}
+        <h1>{day_label}</h1>
+        <p style="color:#888; text-align:center; margin-bottom:1.5rem;">{len(videos)} video{"s" if len(videos) != 1 else ""}</p>
+        <div class="content">
+            {_skycam_video_cards(videos)}
+        </div>'''
+
+
+_VIDEO_PAGE_STYLE = '''
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+            .nav { text-align: center; margin-bottom: 2rem; }
+            .nav a { color: #4a9eff; text-decoration: none; margin: 0 1rem; }
+            .nav a:hover { text-decoration: underline; }
+            h1 { text-align: center; margin-bottom: 0.5rem; }
+            .content { max-width: 1400px; margin: 0 auto; }
+            .section-heading { color: #4a9eff; margin: 2rem 0 1rem 0; padding-left: 0.5rem; font-size: 1.2rem; }
+            .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+            .video-card { background: #2a2a2a; border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; display: block; transition: transform 0.2s; }
+            .video-card:hover { transform: translateY(-4px); }
+            .video-thumbnail { height: 100px; background: linear-gradient(135deg, #1e2a1e 0%, #1a1a1a 100%); display: flex; align-items: center; justify-content: center; }
+            .play-icon { width: 40px; height: 40px; background: rgba(74,158,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+            .play-icon::after { content: ''; width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px; border-color: transparent transparent transparent #fff; margin-left: 2px; }
+            .video-meta { padding: 0.5rem 0.75rem; }
+            .video-meta h3 { margin: 0 0 0.25rem 0; color: #4a9eff; font-size: 0.85rem; }
+            .video-meta p { margin: 0; color: #888; font-size: 0.75rem; }
+            .month-list { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+            .month-link { display: block; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
+            .month-link:hover { background: #3a3a3a; }
+            .day-list { display: flex; flex-direction: column; gap: 0.5rem; }
+            .day-link { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
+            .day-link:hover { background: #3a3a3a; }
+            .day-link .count { color: #888; font-size: 0.85rem; }
+        </style>'''

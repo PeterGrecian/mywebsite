@@ -3360,34 +3360,107 @@ def lambda_handler(event, context):
             html += '<p>No image specified.</p>'
 
     elif path.startswith(f'/{stage}/skycam/videos') or path.startswith('/skycam/videos'):
+        query_params = event.get('queryStringParameters', {}) or {}
+        from routes.camera import render_skycam_videos_index, render_skycam_videos_month, render_skycam_videos_day
+
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-        recent_videos = []
 
         def _presign_vid(key):
             return s3.generate_presigned_url(
                 'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
 
-        try:
-            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix='videos/recent_')
-            for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key'], reverse=True):
-                key = obj['Key']
-                if not key.endswith('.mp4'):
-                    continue
-                ts_part = key.replace('videos/recent_', '').replace('.mp4', '')
-                try:
-                    dt = datetime.strptime(ts_part, '%Y%m%d_%H%M')
-                    label = dt.strftime('%d %b %Y %H:%M')
-                except ValueError:
-                    label = ts_part
-                recent_videos.append({
-                    'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576, 'label': label,
-                })
-        except Exception as e:
-            print(f"Error listing skycam videos: {e}")
+        def _list_videos_for_prefix(prefix):
+            """List mp4 videos under an S3 prefix, return sorted newest-first."""
+            vids = []
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                    for obj in page.get('Contents', []):
+                        key = obj['Key']
+                        if not key.endswith('.mp4'):
+                            continue
+                        basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                        ts_part = basename.replace('sky_', '')
+                        try:
+                            dt = datetime.strptime(ts_part, '%Y%m%d_%H')
+                            label = dt.strftime('%H:00')
+                        except ValueError:
+                            label = ts_part
+                            dt = obj['LastModified'].replace(tzinfo=None)
+                        vids.append({
+                            'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576,
+                            'label': label, 'dt': dt,
+                        })
+            except Exception as e:
+                print(f"Error listing skycam videos ({prefix}): {e}")
+            vids.sort(key=lambda v: v['dt'], reverse=True)
+            return vids
 
-        from routes.camera import render_camera_videos
-        html += render_camera_videos('Sky Camera', recent_videos,
-                                     latest_path='../skycam', gallery_path='gallery')
+        day_param = query_params.get('day', '')
+        month_param = query_params.get('month', '')
+
+        if day_param:
+            # /skycam/videos?day=2026-04-18  →  videos for that day
+            try:
+                day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+            except ValueError:
+                day_dt = datetime.utcnow()
+                day_param = day_dt.strftime('%Y-%m-%d')
+            prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+            videos = _list_videos_for_prefix(prefix)
+            html += render_skycam_videos_day(day_param, videos)
+
+        elif month_param:
+            # /skycam/videos?month=2026-04  →  list days in that month
+            try:
+                month_dt = datetime.strptime(month_param + '-01', '%Y-%m-%d')
+            except ValueError:
+                month_dt = datetime.utcnow().replace(day=1)
+                month_param = month_dt.strftime('%Y-%m')
+            prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
+            # List all objects to find which days have videos
+            days_seen = {}
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                    for obj in page.get('Contents', []):
+                        key = obj['Key']
+                        if not key.endswith('.mp4'):
+                            continue
+                        # key: skycam/videos/YYYY/MM/DD/...
+                        parts = key.split('/')
+                        if len(parts) >= 5:
+                            day_str = f"{parts[2]}-{parts[3]}-{parts[4]}"
+                            days_seen[day_str] = days_seen.get(day_str, 0) + 1
+            except Exception as e:
+                print(f"Error listing skycam videos for month {month_param}: {e}")
+            days_list = sorted(days_seen.items(), reverse=True)
+            html += render_skycam_videos_month(month_param, days_list)
+
+        else:
+            # /skycam/videos  →  index: today's videos + month links
+            today = datetime.utcnow()
+            today_prefix = f"skycam/videos/{today.strftime('%Y/%m/%d')}/"
+            today_videos = _list_videos_for_prefix(today_prefix)
+
+            # Find which months have videos
+            months_seen = set()
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/videos/', Delimiter='/'):
+                    for cp in page.get('CommonPrefixes', []):
+                        year = cp['Prefix'].rstrip('/').split('/')[-1]
+                        # List months under each year
+                        for mpage in s3.get_paginator('list_objects_v2').paginate(
+                                Bucket=GARDENCAM_BUCKET, Prefix=f'skycam/videos/{year}/', Delimiter='/'):
+                            for mcp in mpage.get('CommonPrefixes', []):
+                                month_dir = mcp['Prefix'].rstrip('/').split('/')
+                                months_seen.add(f"{month_dir[-2]}-{month_dir[-1]}")
+            except Exception as e:
+                print(f"Error listing skycam video months: {e}")
+
+            months_list = sorted(months_seen, reverse=True)
+            html += render_skycam_videos_index(today.strftime('%Y-%m-%d'), today_videos, months_list)
 
     elif path == f'/{stage}/srfcplus' or path == '/srfcplus':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
