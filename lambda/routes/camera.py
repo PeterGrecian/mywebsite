@@ -387,7 +387,8 @@ _VIDEO_PAGE_STYLE = '''
 
 
 def render_skycam_player(video_url, title):
-    """Render a cast-enabled video player page."""
+    """Render a video player page. Chrome's native <video> controls include
+    a cast button when a Chromecast is on the network — no SDK needed."""
     return f'''
         <title>Sky Camera — {title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -398,75 +399,16 @@ def render_skycam_player(video_url, title):
             h1 {{ text-align: center; font-size: 1.2rem; margin-bottom: 1rem; }}
             .player {{ max-width: 1280px; margin: 0 auto; }}
             video {{ width: 100%; border-radius: 8px; background: #111; }}
-            .controls {{ text-align: center; margin-top: 1rem; }}
-            .cast-btn {{
-                display: inline-block; padding: 0.75rem 2rem;
-                background: #4a9eff; color: #fff; border: none; border-radius: 8px;
-                font-size: 1rem; cursor: pointer; transition: opacity 0.2s;
-            }}
-            .cast-btn:hover {{ opacity: 0.8; }}
-            .cast-btn:disabled {{ opacity: 0.4; cursor: default; }}
-            .cast-status {{ color: #888; margin-top: 0.5rem; font-size: 0.85rem; }}
-            google-cast-launcher {{
-                display: inline-block; width: 32px; height: 32px;
-                vertical-align: middle; margin-left: 1rem; cursor: pointer;
-                --connected-color: #4a9eff; --disconnected-color: #888;
-            }}
+            .hint {{ color: #888; text-align: center; margin-top: 1rem; font-size: 0.85rem; }}
         </style>
         <div class="nav">
             <a href="../contents">Home</a> |
             <a href="videos">Videos</a>
         </div>
-        <h1>{title} <google-cast-launcher></google-cast-launcher></h1>
+        <h1>Sky Camera — {title}</h1>
         <div class="player">
-            <video id="player" controls autoplay playsinline>
+            <video controls autoplay playsinline>
                 <source src="{video_url}" type="video/mp4">
             </video>
-            <div class="controls">
-                <button class="cast-btn" id="castBtn" onclick="castVideo()" disabled>Cast to TV</button>
-                <div class="cast-status" id="castStatus"></div>
-            </div>
-        </div>
-        <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-        <script>
-            const VIDEO_URL = "{video_url}";
-            const VIDEO_TITLE = "{title}";
-            let castSession = null;
-
-            window['__onGCastApiAvailable'] = function(isAvailable) {{
-                if (isAvailable) {{
-                    const ctx = cast.framework.CastContext.getInstance();
-                    ctx.setOptions({{
-                        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-                        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-                    }});
-                    ctx.addEventListener(
-                        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-                        function(e) {{
-                            if (e.sessionState === cast.framework.SessionState.SESSION_STARTED ||
-                                e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {{
-                                castSession = ctx.getCurrentSession();
-                                document.getElementById('castBtn').disabled = false;
-                                document.getElementById('castStatus').textContent = 'Connected to ' + castSession.getCastDevice().friendlyName;
-                            }} else {{
-                                castSession = null;
-                                document.getElementById('castBtn').disabled = true;
-                                document.getElementById('castStatus').textContent = '';
-                            }}
-                        }}
-                    );
-                }}
-            }};
-
-            function castVideo() {{
-                if (!castSession) return;
-                const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
-                mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
-                mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
-                const request = new chrome.cast.media.LoadRequest(mediaInfo);
-                castSession.loadMedia(request).then(
-                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV'; }},
-                    function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
-                );
-            }}
-        </script>'''
+            <p class="hint">In Chrome: use the cast icon in the video controls (three dots menu or right-click) to send to Chromecast.</p>
+        </div>'''
