@@ -3383,6 +3383,8 @@ def lambda_handler(event, context):
                         ts_part = basename.replace('sky_', '')
                         is_daily = ts_part.endswith('_daily')
                         is_combined = ts_part.endswith('_combined')
+                        is_night = ts_part.endswith('_night')
+                        is_special = is_daily or is_combined or is_night
                         if is_daily:
                             date_part = ts_part.replace('_daily', '')
                             try:
@@ -3397,6 +3399,13 @@ def lambda_handler(event, context):
                             except ValueError:
                                 dt = obj['LastModified'].replace(tzinfo=None)
                             label = 'Full Day (sky + garden)'
+                        elif is_night:
+                            date_part = ts_part.replace('_night', '')
+                            try:
+                                dt = datetime.strptime(date_part, '%Y%m%d')
+                            except ValueError:
+                                dt = obj['LastModified'].replace(tzinfo=None)
+                            label = 'Night Sky'
                         else:
                             try:
                                 dt = datetime.strptime(ts_part, '%Y%m%d_%H')
@@ -3407,7 +3416,7 @@ def lambda_handler(event, context):
                         vids.append({
                             'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576,
                             'label': label, 'dt': dt,
-                            'is_daily': is_daily or is_combined,
+                            'is_daily': is_special,
                         })
             except Exception as e:
                 print(f"Error listing skycam videos ({prefix}): {e}")
@@ -3511,7 +3520,7 @@ def lambda_handler(event, context):
                 resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
                 for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
                     k = obj['Key']
-                    if k.endswith('.mp4') and '_daily' not in k and '_combined' not in k:
+                    if k.endswith('.mp4') and not any(x in k for x in ['_daily', '_combined', '_night']):
                         b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
                         try:
                             h = datetime.strptime(b, '%Y%m%d_%H')
