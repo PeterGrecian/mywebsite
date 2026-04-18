@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded',function(){
   document.body.appendChild(menu);
 });
 </script>
-  <!-- Service Worker Registration -->
+  <!-- Service Worker: unregister any old SW then re-register -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
-        console.log('Service Worker registered');
-      }).catch(err => {
-        console.log('Service Worker registration failed:', err);
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        return Promise.all(regs.map(r => r.unregister()));
+      }).then(() => {
+        return navigator.serviceWorker.register('/sw.js');
       });
     }
   </script>
