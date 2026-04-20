@@ -1,5 +1,9 @@
 # mywebsite TODO
 
+important - still getting contents page where links change the location bar but not the contents
+
+there's something about the cloudflare purge which is faulty
+
 Updated 2026-04-18. Hybrid Cloudflare Pages (static/PWA) + Lambda (API) architecture is live.
 
 ## Done
