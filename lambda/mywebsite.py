@@ -738,41 +738,49 @@ def get_latest_skycam_images(count=3):
     s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
     all_objects = []
 
-    # Fast path: try last 60 days by date prefix
+    # Fast path: try last 60 days by date prefix (both old flat and new date-based paths)
     for days_ago in range(60):
         date = datetime.utcnow() - timedelta(days=days_ago)
-        prefix = f"skycam/sky_{date.strftime('%Y%m%d')}"
-        try:
-            response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
-            if "Contents" in response:
-                all_objects.extend(response["Contents"])
-            if len(all_objects) >= count * 2:
-                break
-        except Exception:
-            pass
+        for prefix in [f"skycam/{date.strftime('%Y/%m/%d')}/sky_",
+                       f"skycam/sky_{date.strftime('%Y%m%d')}"]:
+            try:
+                response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
+                if "Contents" in response:
+                    all_objects.extend(response["Contents"])
+            except Exception:
+                pass
+        if len(all_objects) >= count * 2:
+            break
 
     # Fall back to full scan if fast path found nothing
     if not all_objects:
-        paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
-            if "Contents" in page:
-                all_objects.extend(page["Contents"])
+        for pfx in [SKYCAM_KEY_PREFIX, "skycam/20"]:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=pfx):
+                if "Contents" in page:
+                    all_objects.extend(page["Contents"])
 
     if not all_objects:
         return []
 
     objects = sorted(
         [o for o in all_objects if o["Key"].endswith('.jpg')],
-        key=lambda x: x["Key"], reverse=True
+        key=lambda x: x["LastModified"], reverse=True
     )
 
     images = []
     for obj in objects[:count * 4]:
         key = obj["Key"]
         thumb_key = skycam_thumb_key(key)
+        # Use thumbnail if it exists, otherwise fall back to full image
+        try:
+            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=thumb_key)
+            thumb_url = get_presigned_url(thumb_key)
+        except Exception:
+            thumb_url = get_presigned_url(key)
         timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
         images.append({
-            'url': get_presigned_url(thumb_key),
+            'url': thumb_url,
             'full_url': get_presigned_url(key),
             'timestamp': timestamp,
             'key': key,
@@ -802,13 +810,15 @@ def get_all_skycam_images(max_keys=None):
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
         paginator = s3.get_paginator('list_objects_v2')
         all_objects = []
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SKYCAM_KEY_PREFIX):
-            if "Contents" in page:
-                all_objects.extend(page["Contents"])
+        # Search both old flat path and new date-based path
+        for pfx in [SKYCAM_KEY_PREFIX, "skycam/20"]:
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=pfx):
+                if "Contents" in page:
+                    all_objects.extend(page["Contents"])
 
         objects = sorted(
             [o for o in all_objects if o["Key"].endswith('.jpg')],
-            key=lambda x: x["Key"], reverse=True
+            key=lambda x: x["LastModified"], reverse=True
         )
         images = []
         for obj in objects:
@@ -824,7 +834,32 @@ def get_all_skycam_images(max_keys=None):
     return images
 
 
+SPRINGCAM_EARLIEST_DATE = "2026-03-04"  # First springcam image
+
 SKYCAM_EARLIEST_DATE = "2026-04-06"  # First skycam image
+
+
+def get_springcam_images_for_date(date_str):
+    """Get springcam images for a specific date (YYYY-MM-DD), newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    prefix = f"springcam/spring_{date_str.replace('-', '')}"
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    try:
+        images = []
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if not key.endswith('.jpg'):
+                    continue
+                timestamp = parse_timestamp_from_key(key) or obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S')
+                images.append({'key': key, 'timestamp': timestamp})
+        images.sort(key=lambda x: x['timestamp'], reverse=True)
+        return images
+    except Exception as e:
+        print(f"Error fetching springcam images for {date_str}: {e}")
+        return []
 
 
 def get_skycam_day_list():
@@ -845,23 +880,114 @@ def get_skycam_images_for_date(date_str):
     """Get skycam images for a specific date (YYYY-MM-DD), newest first."""
     if not BOTO3_AVAILABLE:
         return []
-    prefix = f"skycam/sky_{date_str.replace('-', '')}"
+    date_compact = date_str.replace('-', '')
+    # Search both old flat path and new date-based path
+    prefixes = [
+        f"skycam/{date_str.replace('-', '/')}/sky_",     # new: skycam/2026/04/19/sky_
+        f"skycam/sky_{date_compact}",                     # old: skycam/sky_20260419
+    ]
     s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
     try:
         images = []
         paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-            for obj in page.get('Contents', []):
-                key = obj['Key']
-                if not key.endswith('.jpg'):
-                    continue
-                timestamp = parse_timestamp_from_key(key) or obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S')
-                images.append({'key': key, 'timestamp': timestamp})
+        for prefix in prefixes:
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.jpg'):
+                        continue
+                    timestamp = parse_timestamp_from_key(key) or obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S')
+                    images.append({'key': key, 'timestamp': timestamp})
         images.sort(key=lambda x: x['timestamp'], reverse=True)
         return images
     except Exception as e:
         print(f"Error fetching skycam images for {date_str}: {e}")
         return []
+
+
+def _iso_week_for_date(date_str):
+    """Return ISO week string like '2026-W16' for a date string 'YYYY-MM-DD'."""
+    dt = datetime.strptime(date_str, '%Y-%m-%d')
+    iso_year, iso_week, _ = dt.isocalendar()
+    return f"{iso_year}-W{iso_week:02d}"
+
+
+def _today_london():
+    """Return today's date as YYYY-MM-DD in Europe/London timezone."""
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo('Europe/London'))
+    except ImportError:
+        now = datetime.utcnow()
+    return now.strftime('%Y-%m-%d')
+
+
+def _days_in_week(week_iso, earliest_date):
+    """Return list of YYYY-MM-DD strings for days in given ISO week, bounded by earliest_date and today."""
+    from datetime import date
+    iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
+    monday = date.fromisocalendar(iso_year, iso_week, 1)
+    earliest = date.fromisoformat(earliest_date)
+    today = date.fromisoformat(_today_london())
+    days = []
+    for i in range(7):
+        d = monday + timedelta(days=i)
+        if d < earliest:
+            continue
+        if d > today:
+            break
+        days.append(d.isoformat())
+    return days
+
+
+def _days_in_month(month_str, earliest_date):
+    """Return list of YYYY-MM-DD strings for days in given month, bounded by earliest_date and today."""
+    from datetime import date
+    import calendar
+    year, month = int(month_str[:4]), int(month_str[5:7])
+    earliest = date.fromisoformat(earliest_date)
+    today = date.fromisoformat(_today_london())
+    _, last_day = calendar.monthrange(year, month)
+    days = []
+    for d in range(1, last_day + 1):
+        day = date(year, month, d)
+        if day < earliest:
+            continue
+        if day > today:
+            break
+        days.append(day.isoformat())
+    return days
+
+
+def _weeks_in_month(month_str, earliest_date):
+    """Return ordered list of ISO week strings that overlap with the given month."""
+    days = _days_in_month(month_str, earliest_date)
+    seen = []
+    for d in days:
+        w = _iso_week_for_date(d)
+        if w not in seen:
+            seen.append(w)
+    return seen
+
+
+def _months_in_year(year_str, earliest_date):
+    """Return list of YYYY-MM strings for months in given year with possible content."""
+    from datetime import date
+    year = int(year_str)
+    earliest = date.fromisoformat(earliest_date)
+    today = date.fromisoformat(_today_london())
+    months = []
+    for m in range(1, 13):
+        first = date(year, m, 1)
+        if first > today:
+            break
+        import calendar
+        _, last_day = calendar.monthrange(year, m)
+        last = date(year, m, last_day)
+        if last < earliest:
+            continue
+        months.append(f"{year}-{m:02d}")
+    return months
 
 
 def group_images_by_weeks(images):
@@ -2501,248 +2627,6 @@ def lambda_handler(event, context):
             from routes.gardencam import render_s3_stats_error
             html += render_s3_stats_error(cache_error)
 
-    elif path.startswith(f'/{stage}/gardencam/timelapse/schedule') or path.startswith('/gardencam/timelapse/schedule'):
-        # Timelapse schedule page
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        from routes.gardencam_static import render_timelapse_schedule
-        html += render_timelapse_schedule()
-
-    elif path.startswith(f'/{stage}/gardencam/timelapse/videos') or path.startswith('/gardencam/timelapse/videos'):
-        # Redirect to /gardencam/videos
-        return {
-            'statusCode': 302,
-            'headers': {
-                'Location': f'/{stage}/gardencam/videos'
-            }
-        }
-
-    elif path.startswith(f'/{stage}/gardencam/timelapse') or path.startswith('/gardencam/timelapse'):
-        # Timelapse index page
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get latest 3 videos
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-        videos = []
-
-        try:
-            response = s3.list_objects_v2(
-                Bucket=GARDENCAM_BUCKET,
-                Prefix='videos/timelapse_'
-            )
-
-            if 'Contents' in response:
-                for obj in response['Contents']:
-                    key = obj['Key']
-                    if key.endswith('.mp4'):
-                        video_id = key.replace('videos/', '').replace('.mp4', '')
-                        date_part = video_id.replace('timelapse_', '')
-                        try:
-                            if '-' in date_part:
-                                # Weekly format
-                                start_date, end_date = date_part.split('-')
-                                video_type = 'weekly'
-                            else:
-                                # Daily format
-                                start_date = date_part
-                                end_date = date_part
-                                video_type = 'daily'
-
-                            start_formatted = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
-                            end_formatted = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
-                        except:
-                            start_formatted = "Unknown"
-                            end_formatted = "Unknown"
-                            video_type = 'unknown'
-
-                        videos.append({
-                            'id': video_id,
-                            'key': key,
-                            'size_mb': obj['Size'] / 1048576,
-                            'start_date': start_formatted,
-                            'end_date': end_formatted,
-                            'type': video_type
-                        })
-
-            videos.sort(key=lambda v: v['id'], reverse=True)
-            weekly_videos = [v for v in videos if v['type'] == 'weekly']
-            daily_videos = [v for v in videos if v['type'] == 'daily']
-            latest_weekly = weekly_videos[:3]
-            latest_daily = daily_videos[:3]
-            total_videos = len(videos)
-
-        except Exception as e:
-            print(f"Error listing videos: {e}")
-            latest_videos = []
-            total_videos = 0
-
-        from routes.gardencam import render_timelapse_index
-        html += render_timelapse_index(total_videos, weekly_videos, daily_videos, latest_weekly, latest_daily)
-
-    elif (path.startswith(f'/{stage}/gardencam/video?') or path.startswith('/gardencam/video?') or
-          path == f'/{stage}/gardencam/video' or path == '/gardencam/video'):
-        # Single timelapse video player page (not /videos)
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get video ID from query parameters
-        query_params = event.get('queryStringParameters') or {}
-        video_id = query_params.get('id')
-
-        if not video_id:
-            return {
-                'statusCode': 400,
-                'body': '<html><body><h1>400 Bad Request</h1><p>Missing video ID parameter.</p></body></html>',
-                'headers': {'Content-Type': 'text/html'}
-            }
-
-        # Get video from S3
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-        key = f"videos/{video_id}.mp4"
-
-        try:
-            # Check if video exists
-            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
-
-            # Parse date range from video ID
-            try:
-                date_part = video_id.replace('timelapse_', '')
-                start_date, end_date = date_part.split('-')
-                start_formatted = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
-                end_formatted = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
-            except:
-                start_formatted = "Unknown"
-                end_formatted = "Unknown"
-
-            # Get metadata from DynamoDB
-            frame_count = 0
-            duration = 20
-            try:
-                dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-                metadata_table = dynamodb.Table('gardencam-video-metadata')
-                metadata_response = metadata_table.get_item(Key={'video_id': video_id})
-
-                if 'Item' in metadata_response:
-                    item = metadata_response['Item']
-                    frame_count = int(float(item.get('frame_count', 0)))
-                    duration = int(float(item.get('duration_seconds', 20)))
-            except Exception as e:
-                print(f"Error getting metadata for {video_id}: {e}")
-
-            # Generate presigned URL
-            presigned_url = s3.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-                ExpiresIn=3600
-            )
-
-            # Get file size
-            obj_info = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
-            size_mb = obj_info['ContentLength'] / 1048576
-
-            from routes.gardencam import render_video_player
-            html += render_video_player(start_formatted, end_formatted, presigned_url, frame_count, duration, size_mb)
-
-        except s3.exceptions.NoSuchKey:
-            from routes.gardencam import render_video_not_found
-            html += render_video_not_found(video_id)
-        except Exception as e:
-            print(f"Error loading video {video_id}: {e}")
-            from routes.gardencam import render_video_error
-            html += render_video_error()
-
-    elif path.startswith(f'/{stage}/gardencam/videos') or path.startswith('/gardencam/videos'):
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-        weekly_videos = []
-        daily_videos = []
-        recent_videos = []
-
-        def _list_videos(prefix):
-            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
-            return [o for o in resp.get('Contents', []) if o['Key'].endswith('.mp4')]
-
-        def _presign(key):
-            return s3.generate_presigned_url(
-                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
-
-        try:
-            # Recent 4-hourly videos: recent_YYYYMMDD_HHMM.mp4
-            for obj in sorted(_list_videos('videos/recent_'), key=lambda o: o['Key'], reverse=True):
-                key = obj['Key']
-                ts_part = key.replace('videos/recent_', '').replace('.mp4', '')  # YYYYMMDD_HHMM
-                try:
-                    dt = datetime.strptime(ts_part, '%Y%m%d_%H%M')
-                    label = dt.strftime('%d %b %Y %H:%M')
-                except ValueError:
-                    label = ts_part
-                recent_videos.append({
-                    'id': key, 'key': key, 'url': _presign(key),
-                    'size_mb': obj['Size'] / 1048576,
-                    'label': label, 'type': 'recent',
-                })
-
-            # Weekly/daily timelapse videos
-            for obj in _list_videos('videos/timelapse_'):
-                key = obj['Key']
-                video_id = key.replace('videos/', '').replace('.mp4', '')
-                try:
-                    date_part = video_id.replace('timelapse_', '')
-                    if '-' in date_part:
-                        start_date, end_date = date_part.split('-')
-                        video_type = 'weekly'
-                    else:
-                        start_date = end_date = date_part
-                        video_type = 'daily'
-                    start_formatted = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
-                    end_formatted = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
-                except Exception:
-                    start_formatted = end_formatted = 'Unknown'
-                    video_type = 'unknown'
-
-                v = {
-                    'id': video_id, 'key': key, 'url': _presign(key),
-                    'size_mb': obj['Size'] / 1048576,
-                    'last_modified': obj['LastModified'].isoformat(),
-                    'start_date': start_formatted, 'end_date': end_formatted,
-                    'frame_count': 0, 'duration': 5, 'type': video_type,
-                }
-                if video_type == 'weekly':
-                    weekly_videos.append(v)
-                else:
-                    daily_videos.append(v)
-
-            weekly_videos.sort(key=lambda v: v['id'], reverse=True)
-            daily_videos.sort(key=lambda v: v['id'], reverse=True)
-
-        except Exception as e:
-            print(f"Error listing videos: {e}")
-
-        from routes.gardencam import render_videos_gallery
-        html += render_videos_gallery(weekly_videos, daily_videos, recent_videos=recent_videos)
-
     elif path == f'/{stage}/gardencam' or path == '/gardencam':
         # Check authentication
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
@@ -3265,7 +3149,8 @@ def lambda_handler(event, context):
         if images:
             from routes.camera import render_camera_latest
             html += render_camera_latest('Spring Camera', images, theme_css_js=THEME_CSS_JS,
-                                         gallery_path='springcam/gallery', fullres_path='springcam/fullres')
+                                         gallery_path='springcam/gallery', fullres_path='springcam/fullres',
+                                         videos_path='springcam/videos')
         else:
             return {
                 'statusCode': 502,
@@ -3280,11 +3165,140 @@ def lambda_handler(event, context):
                 'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
                 'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
             }
-        all_images = get_all_springcam_images(max_keys=200)
-        from routes.camera import render_camera_gallery
-        html += render_camera_gallery('Spring Camera', all_images, latest_path='../springcam',
-                                      thumb_key_fn=springcam_thumb_key, get_presigned_url=get_presigned_url,
-                                      fullres_path='../springcam/fullres')
+        query_params = event.get('queryStringParameters', {}) or {}
+        day_param = query_params.get('day', '')
+        week_param = query_params.get('week', '')
+        month_param = query_params.get('month', '')
+        year_param = query_params.get('year', '')
+        page_param = int(query_params.get('page', '1'))
+        per_page = 20
+
+        if year_param:
+            # Year view: list months
+            months = _months_in_year(year_param, SPRINGCAM_EARLIEST_DATE)
+            months_with_counts = []
+            for m in reversed(months):
+                days = _days_in_month(m, SPRINGCAM_EARLIEST_DATE)
+                count = sum(len(get_springcam_images_for_date(d)) for d in days)
+                if count > 0:
+                    months_with_counts.append((m, count))
+            from routes.camera import render_gallery_year
+            html += render_gallery_year('Spring Camera', year_param, months_with_counts,
+                                        gallery_path='gallery', latest_path='../springcam')
+
+        elif month_param:
+            # Month view: weeks with their days
+            weeks = _weeks_in_month(month_param, SPRINGCAM_EARLIEST_DATE)
+            weeks_with_days = []
+            for w in reversed(weeks):
+                w_days = _days_in_week(w, SPRINGCAM_EARLIEST_DATE)
+                # Filter to only days in this month
+                w_days = [d for d in w_days if d[:7] == month_param]
+                day_counts = []
+                for d in reversed(w_days):
+                    count = len(get_springcam_images_for_date(d))
+                    if count > 0:
+                        day_counts.append((d, count))
+                if day_counts:
+                    weeks_with_days.append((w, day_counts))
+            from routes.camera import render_gallery_month
+            html += render_gallery_month('Spring Camera', month_param, weeks_with_days,
+                                          gallery_path='gallery', latest_path='../springcam',
+                                          year_str=month_param[:4])
+
+        elif week_param:
+            # Week view: list days in this week
+            w_days = _days_in_week(week_param, SPRINGCAM_EARLIEST_DATE)
+            days_with_counts = []
+            for d in reversed(w_days):
+                count = len(get_springcam_images_for_date(d))
+                if count > 0:
+                    days_with_counts.append((d, count))
+            # Determine month for zoom-out (use the Thursday of the week for ISO month)
+            from datetime import date as _date
+            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+            month_str = thursday.strftime('%Y-%m')
+            from routes.camera import render_gallery_week
+            html += render_gallery_week('Spring Camera', week_param, days_with_counts,
+                                         gallery_path='gallery', latest_path='../springcam',
+                                         month_str=month_str)
+
+        else:
+            # Day view (default: today)
+            if not day_param:
+                day_param = _today_london()
+            all_day_images = get_springcam_images_for_date(day_param)
+            total = len(all_day_images)
+            total_pages = max(1, math.ceil(total / per_page))
+            page_param = max(1, min(page_param, total_pages))
+            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+            week_iso = _iso_week_for_date(day_param)
+            from routes.camera import render_gallery_day
+            html += render_gallery_day(
+                'Spring Camera', day_param, page_images,
+                page=page_param, total_pages=total_pages, total_images=total,
+                thumb_key_fn=springcam_thumb_key,
+                gallery_path='gallery', latest_path='../springcam', fullres_path='../springcam/fullres',
+                week_iso=week_iso,
+            )
+
+    elif path.startswith(f'/{stage}/springcam/videos') or path.startswith('/springcam/videos'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
+            }
+
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        videos = []
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='springcam/videos/'):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.mp4'):
+                        continue
+                    basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                    videos.append({
+                        'key': key,
+                        'url': f"play?key={key}",
+                        'size_mb': obj['Size'] / 1048576,
+                        'label': basename,
+                        'is_daily': False,
+                    })
+        except Exception as e:
+            print(f"Error listing springcam videos: {e}")
+
+        from routes.camera import render_videos_day
+        html += render_videos_day('Spring Camera', _today_london(), videos,
+                                   latest_path='../springcam', gallery_path='gallery',
+                                   videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
+
+    elif path.startswith(f'/{stage}/springcam/play') or path.startswith('/springcam/play'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
+            }
+
+        query_params = event.get('queryStringParameters', {}) or {}
+        video_key = query_params.get('key', '')
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+
+        try:
+            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
+            video_url = s3.generate_presigned_url(
+                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
+                ExpiresIn=7200)
+            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
+            from routes.camera import render_skycam_player
+            html += render_skycam_player(video_url, basename, hours=[])
+        except Exception as e:
+            print(f"Error loading springcam video: {e}")
+            html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
 
     elif path.startswith(f'/{stage}/springcam/fullres') or path.startswith('/springcam/fullres'):
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
@@ -3310,7 +3324,7 @@ def lambda_handler(event, context):
             from routes.camera import render_camera_latest
             html += render_camera_latest('Sky Camera', images, theme_css_js=THEME_CSS_JS,
                                          gallery_path='skycam/gallery', fullres_path='skycam/fullres',
-                                         videos_path='skycam/videos')
+                                         videos_path='skycam/videos', starcam_path='skycam/starcam')
         else:
             return {
                 'statusCode': 502,
@@ -3321,30 +3335,75 @@ def lambda_handler(event, context):
     elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
+        week_param = query_params.get('week', '')
+        month_param = query_params.get('month', '')
+        year_param = query_params.get('year', '')
         page_param = int(query_params.get('page', '1'))
         per_page = 20
 
-        if not day_param:
-            # Day index
-            days = get_skycam_day_list()
-            from routes.camera import render_camera_day_index
-            html += render_camera_day_index('Sky Camera', days,
-                                            gallery_path='gallery', latest_path='../skycam',
-                                            videos_path='videos')
+        if year_param:
+            months = _months_in_year(year_param, SKYCAM_EARLIEST_DATE)
+            months_with_counts = []
+            for m in reversed(months):
+                days = _days_in_month(m, SKYCAM_EARLIEST_DATE)
+                count = sum(len(get_skycam_images_for_date(d)) for d in days)
+                if count > 0:
+                    months_with_counts.append((m, count))
+            from routes.camera import render_gallery_year
+            html += render_gallery_year('Sky Camera', year_param, months_with_counts,
+                                        gallery_path='gallery', latest_path='../skycam',
+                                        videos_path='videos')
+
+        elif month_param:
+            weeks = _weeks_in_month(month_param, SKYCAM_EARLIEST_DATE)
+            weeks_with_days = []
+            for w in reversed(weeks):
+                w_days = _days_in_week(w, SKYCAM_EARLIEST_DATE)
+                w_days = [d for d in w_days if d[:7] == month_param]
+                day_counts = []
+                for d in reversed(w_days):
+                    count = len(get_skycam_images_for_date(d))
+                    if count > 0:
+                        day_counts.append((d, count))
+                if day_counts:
+                    weeks_with_days.append((w, day_counts))
+            from routes.camera import render_gallery_month
+            html += render_gallery_month('Sky Camera', month_param, weeks_with_days,
+                                          gallery_path='gallery', latest_path='../skycam',
+                                          year_str=month_param[:4], videos_path='videos')
+
+        elif week_param:
+            w_days = _days_in_week(week_param, SKYCAM_EARLIEST_DATE)
+            days_with_counts = []
+            for d in reversed(w_days):
+                count = len(get_skycam_images_for_date(d))
+                if count > 0:
+                    days_with_counts.append((d, count))
+            from datetime import date as _date
+            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+            month_str = thursday.strftime('%Y-%m')
+            from routes.camera import render_gallery_week
+            html += render_gallery_week('Sky Camera', week_param, days_with_counts,
+                                         gallery_path='gallery', latest_path='../skycam',
+                                         month_str=month_str, videos_path='videos')
+
         else:
-            # Images for a specific day, paginated
+            if not day_param:
+                day_param = _today_london()
             all_day_images = get_skycam_images_for_date(day_param)
             total = len(all_day_images)
             total_pages = max(1, math.ceil(total / per_page))
             page_param = max(1, min(page_param, total_pages))
             page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
-
-            from routes.camera import render_camera_day_gallery
-            html += render_camera_day_gallery(
+            week_iso = _iso_week_for_date(day_param)
+            from routes.camera import render_gallery_day
+            html += render_gallery_day(
                 'Sky Camera', day_param, page_images,
                 page=page_param, total_pages=total_pages, total_images=total,
                 thumb_key_fn=skycam_thumb_key,
                 gallery_path='gallery', latest_path='../skycam', fullres_path='../skycam/fullres',
+                week_iso=week_iso, videos_path='videos',
             )
 
     elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
@@ -3361,7 +3420,6 @@ def lambda_handler(event, context):
 
     elif path.startswith(f'/{stage}/skycam/videos') or path.startswith('/skycam/videos'):
         query_params = event.get('queryStringParameters', {}) or {}
-        from routes.camera import render_skycam_videos_index, render_skycam_videos_month, render_skycam_videos_day
 
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
 
@@ -3414,7 +3472,9 @@ def lambda_handler(event, context):
                                 label = ts_part
                                 dt = obj['LastModified'].replace(tzinfo=None)
                         vids.append({
-                            'url': _presign_vid(key), 'size_mb': obj['Size'] / 1048576,
+                            'key': key,
+                            'url': f"play?key={key}",
+                            'size_mb': obj['Size'] / 1048576,
                             'label': label, 'dt': dt,
                             'is_daily': is_special,
                         })
@@ -3423,29 +3483,45 @@ def lambda_handler(event, context):
             vids.sort(key=lambda v: (not v.get('is_daily'), v['dt']), reverse=True)
             return vids
 
-        day_param = query_params.get('day', '')
-        month_param = query_params.get('month', '')
-
-        if day_param:
-            # /skycam/videos?day=2026-04-18  →  videos for that day
+        def _count_videos_for_day(day_str):
+            """Count videos for a specific day via S3 prefix."""
             try:
-                day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+                day_dt = datetime.strptime(day_str, '%Y-%m-%d')
             except ValueError:
-                day_dt = datetime.utcnow()
-                day_param = day_dt.strftime('%Y-%m-%d')
+                return 0
             prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
-            videos = _list_videos_for_prefix(prefix)
-            html += render_skycam_videos_day(day_param, videos)
-
-        elif month_param:
-            # /skycam/videos?month=2026-04  →  list days in that month
+            count = 0
             try:
-                month_dt = datetime.strptime(month_param + '-01', '%Y-%m-%d')
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                    count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
+            except Exception:
+                pass
+            return count
+
+        def _count_videos_for_month(month_str):
+            """Count videos for a month."""
+            try:
+                month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
             except ValueError:
-                month_dt = datetime.utcnow().replace(day=1)
-                month_param = month_dt.strftime('%Y-%m')
+                return 0
             prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
-            # List all objects to find which days have videos
+            count = 0
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                    count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
+            except Exception:
+                pass
+            return count
+
+        def _days_with_videos_in_month(month_str):
+            """Return list of (day_str, count) for days with videos, newest first."""
+            try:
+                month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
+            except ValueError:
+                return []
+            prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
             days_seen = {}
             try:
                 paginator = s3.get_paginator('list_objects_v2')
@@ -3454,40 +3530,210 @@ def lambda_handler(event, context):
                         key = obj['Key']
                         if not key.endswith('.mp4'):
                             continue
-                        # key: skycam/videos/YYYY/MM/DD/...
                         parts = key.split('/')
                         if len(parts) >= 5:
                             day_str = f"{parts[2]}-{parts[3]}-{parts[4]}"
                             days_seen[day_str] = days_seen.get(day_str, 0) + 1
             except Exception as e:
-                print(f"Error listing skycam videos for month {month_param}: {e}")
-            days_list = sorted(days_seen.items(), reverse=True)
-            html += render_skycam_videos_month(month_param, days_list)
+                print(f"Error listing skycam videos for month {month_str}: {e}")
+            return sorted(days_seen.items(), reverse=True)
+
+        day_param = query_params.get('day', '')
+        week_param = query_params.get('week', '')
+        month_param = query_params.get('month', '')
+        year_param = query_params.get('year', '')
+        # Video earliest date matches skycam images
+        VIDEO_EARLIEST = SKYCAM_EARLIEST_DATE
+
+        if year_param:
+            months = _months_in_year(year_param, VIDEO_EARLIEST)
+            months_with_counts = []
+            for m in reversed(months):
+                count = _count_videos_for_month(m)
+                if count > 0:
+                    months_with_counts.append((m, count))
+            from routes.camera import render_videos_year
+            html += render_videos_year('Sky Camera', year_param, months_with_counts,
+                                       latest_path='../skycam', gallery_path='gallery', videos_path='videos')
+
+        elif month_param:
+            days_list = _days_with_videos_in_month(month_param)
+            from routes.camera import render_videos_month
+            html += render_videos_month('Sky Camera', month_param, days_list,
+                                         latest_path='../skycam', gallery_path='gallery',
+                                         videos_path='videos', year_str=month_param[:4])
+
+        elif week_param:
+            w_days = _days_in_week(week_param, VIDEO_EARLIEST)
+            days_with_counts = []
+            for d in reversed(w_days):
+                count = _count_videos_for_day(d)
+                if count > 0:
+                    days_with_counts.append((d, count))
+            from datetime import date as _date
+            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+            month_str = thursday.strftime('%Y-%m')
+            from routes.camera import render_videos_week
+            html += render_videos_week('Sky Camera', week_param, days_with_counts,
+                                        latest_path='../skycam', gallery_path='gallery',
+                                        videos_path='videos', month_str=month_str)
 
         else:
-            # /skycam/videos  →  index: today's videos + month links
-            today = datetime.utcnow()
-            today_prefix = f"skycam/videos/{today.strftime('%Y/%m/%d')}/"
-            today_videos = _list_videos_for_prefix(today_prefix)
+            # Day view (default: today, falling back to most recent day with videos)
+            if not day_param:
+                day_param = _today_london()
+                try:
+                    day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+                except ValueError:
+                    day_dt = datetime.utcnow()
+                    day_param = day_dt.strftime('%Y-%m-%d')
+                prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+                videos = _list_videos_for_prefix(prefix)
+                # If today is empty, scan backwards to find the most recent day with videos
+                if not videos:
+                    for days_ago in range(1, 30):
+                        fallback_dt = day_dt - timedelta(days=days_ago)
+                        fb_prefix = f"skycam/videos/{fallback_dt.strftime('%Y/%m/%d')}/"
+                        videos = _list_videos_for_prefix(fb_prefix)
+                        if videos:
+                            day_param = fallback_dt.strftime('%Y-%m-%d')
+                            break
+            else:
+                try:
+                    day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+                except ValueError:
+                    day_dt = datetime.utcnow()
+                    day_param = day_dt.strftime('%Y-%m-%d')
+                prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+                videos = _list_videos_for_prefix(prefix)
+            week_iso = _iso_week_for_date(day_param)
+            from routes.camera import render_videos_day
+            html += render_videos_day('Sky Camera', day_param, videos,
+                                       latest_path='../skycam', gallery_path='gallery',
+                                       videos_path='videos', week_iso=week_iso)
 
-            # Find which months have videos
-            months_seen = set()
+    elif path == f'/{stage}/skycam/starcam' or path == '/skycam/starcam':
+        # Starcam index: list all nights with stacked images
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        from collections import defaultdict
+        nights = defaultdict(int)  # evening_date -> count
+
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/'):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if '_stacked.jpg' not in key:
+                    continue
+                # Extract timestamp from filename: sky_YYYYMMDD_HHMMSS_stacked.jpg
+                fname = key.rsplit('/', 1)[-1]
+                ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
+                try:
+                    ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
+                    # Heuristic: UTC hour < 12 = belongs to previous evening
+                    if ts.hour < 12:
+                        evening = (ts - timedelta(days=1)).strftime('%Y-%m-%d')
+                    else:
+                        evening = ts.strftime('%Y-%m-%d')
+                    nights[evening] += 1
+                except ValueError:
+                    pass
+
+        sorted_nights = sorted(nights.items(), reverse=True)
+        from routes.camera import render_starcam_index
+        html += render_starcam_index(sorted_nights)
+
+    elif path.startswith(f'/{stage}/skycam/starcam/night') or path.startswith('/skycam/starcam/night'):
+        # Starcam night: show stacked images for a specific night
+        query_params = event.get('queryStringParameters', {}) or {}
+        evening_date = query_params.get('date', '')
+        if not evening_date:
+            html += '<p style="color:#888; text-align:center;">No date specified.</p>'
+        else:
+            s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+            from zoneinfo import ZoneInfo
+            ev_dt = datetime.strptime(evening_date, '%Y-%m-%d')
+            morning_dt = ev_dt + timedelta(days=1)
+
+            # Search evening date (hours >= 12 UTC) and morning date (hours < 12 UTC)
+            stacked = []
+            for search_date, hour_filter in [(ev_dt, lambda h: h >= 12), (morning_dt, lambda h: h < 12)]:
+                prefix = f"skycam/{search_date.strftime('%Y/%m/%d')}/"
+                try:
+                    paginator = s3.get_paginator('list_objects_v2')
+                    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                        for obj in page.get('Contents', []):
+                            key = obj['Key']
+                            if '_stacked.jpg' not in key:
+                                continue
+                            fname = key.rsplit('/', 1)[-1]
+                            ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
+                            try:
+                                ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
+                                if hour_filter(ts.hour):
+                                    local_ts = ts.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/London"))
+                                    url = s3.generate_presigned_url(
+                                        'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
+                                        ExpiresIn=7200)
+                                    # Read S3 metadata for stats
+                                    meta = {}
+                                    try:
+                                        head = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
+                                        meta = head.get('Metadata', {})
+                                    except Exception:
+                                        pass
+                                    local_h = local_ts.hour + local_ts.minute / 60
+                                    delta = local_h if local_h < 12 else local_h - 24
+                                    stacked.append({
+                                        'url': url,
+                                        'key': key,
+                                        'timestamp': local_ts.strftime('%H:%M BST'),
+                                        'sort_key': ts.isoformat(),
+                                        'stack_count': meta.get('stack-count', ''),
+                                        'darkest_100_avg': meta.get('darkest-100-avg', ''),
+                                        'delta': round(delta, 2),
+                                    })
+                            except ValueError:
+                                pass
+                except Exception:
+                    pass
+
+            stacked.sort(key=lambda x: x.get('sort_key', x['timestamp']))
+
+            # Query DynamoDB for hourly brightness through the night
+            # Filenames are predictable: sky_YYYYMMDD_HH0000.jpg
+            brightness_data = []
             try:
-                paginator = s3.get_paginator('list_objects_v2')
-                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/videos/', Delimiter='/'):
-                    for cp in page.get('CommonPrefixes', []):
-                        year = cp['Prefix'].rstrip('/').split('/')[-1]
-                        # List months under each year
-                        for mpage in s3.get_paginator('list_objects_v2').paginate(
-                                Bucket=GARDENCAM_BUCKET, Prefix=f'skycam/videos/{year}/', Delimiter='/'):
-                            for mcp in mpage.get('CommonPrefixes', []):
-                                month_dir = mcp['Prefix'].rstrip('/').split('/')
-                                months_seen.add(f"{month_dir[-2]}-{month_dir[-1]}")
+                from zoneinfo import ZoneInfo
+                dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+                stats_table = dynamodb.Table('gardencam-stats')
+                # Evening hours (18-23 UTC on evening date) + morning hours (00-11 UTC on morning date)
+                hours = [(ev_dt, h) for h in range(18, 24)] + [(morning_dt, h) for h in range(0, 12)]
+                for dt, h in hours:
+                    filename = f"sky_{dt.strftime('%Y%m%d')}_{h:02d}0000.jpg"
+                    try:
+                        resp = stats_table.get_item(Key={'filename': filename})
+                        item = resp.get('Item')
+                        if item:
+                            avg_b = float(item.get('avg_brightness', 0))
+                            utc_ts = datetime(dt.year, dt.month, dt.day, h, tzinfo=timezone.utc)
+                            local_ts = utc_ts.astimezone(ZoneInfo("Europe/London"))
+                            local_h = local_ts.hour + local_ts.minute / 60
+                            delta = local_h if local_h < 12 else local_h - 24
+                            brightness_data.append({
+                                'time': local_ts.strftime('%H:%M'),
+                                'value': round(avg_b, 1),
+                                'sort_key': utc_ts.isoformat(),
+                                'delta': round(delta, 2),
+                            })
+                    except Exception:
+                        pass
+                brightness_data.sort(key=lambda x: x['sort_key'])
             except Exception as e:
-                print(f"Error listing skycam video months: {e}")
+                print(f"Starcam brightness query failed: {e}")
 
-            months_list = sorted(months_seen, reverse=True)
-            html += render_skycam_videos_index(today.strftime('%Y-%m-%d'), today_videos, months_list)
+            from routes.camera import render_starcam_night
+            html += render_starcam_night(evening_date, stacked, brightness_data)
 
     elif path.startswith(f'/{stage}/skycam/play') or path.startswith('/skycam/play'):
         query_params = event.get('queryStringParameters', {}) or {}
@@ -3513,22 +3759,38 @@ def lambda_handler(event, context):
                 ExpiresIn=7200)
             basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
 
-            # Find the hourly segments for the clock overlay
-            day_prefix = video_key.rsplit('/', 1)[0] + '/'
+            # Find the hourly segments for the clock overlay (convert UTC → London)
+            from zoneinfo import ZoneInfo
             hours = []
-            try:
-                resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
-                for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
-                    k = obj['Key']
-                    if k.endswith('.mp4') and not any(x in k for x in ['_daily', '_combined', '_night']):
-                        b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
-                        try:
-                            h = datetime.strptime(b, '%Y%m%d_%H')
-                            hours.append(h.hour)
-                        except ValueError:
-                            pass
-            except Exception:
-                pass
+            video_basename = video_key.rsplit('/', 1)[-1]
+            is_multi = any(x in video_basename for x in ['_daily', '_combined', '_night'])
+
+            if is_multi:
+                # Daily/combined: list all hourly segments for the clock
+                day_prefix = video_key.rsplit('/', 1)[0] + '/'
+                try:
+                    resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
+                    for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
+                        k = obj['Key']
+                        if k.endswith('.mp4') and not any(x in k for x in ['_daily', '_combined', '_night']):
+                            b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+                            try:
+                                h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
+                                local_h = h.astimezone(ZoneInfo("Europe/London"))
+                                hours.append(local_h.hour)
+                            except ValueError:
+                                pass
+                except Exception:
+                    pass
+            else:
+                # Single hourly video: just that hour
+                b = video_basename.replace('.mp4', '').replace('sky_', '')
+                try:
+                    h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
+                    local_h = h.astimezone(ZoneInfo("Europe/London"))
+                    hours.append(local_h.hour)
+                except ValueError:
+                    pass
 
             from routes.camera import render_skycam_player
             html += render_skycam_player(video_url, basename, hours)

@@ -40,6 +40,9 @@ fn=mywebsite
 aws lambda update-function-code --zip-file fileb://$PWD/mywebsite.zip \
   --function-name $fn | grep CodeSize
 
+# Wait for code update to complete before changing configuration
+aws lambda wait function-updated --function-name $fn
+
 # Ensure handler is correct (guard against it being changed to cv.lambda_handler etc.)
 aws lambda update-function-configuration --function-name $fn \
   --handler mywebsite.lambda_handler | grep Handler

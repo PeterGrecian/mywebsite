@@ -1,7 +1,7 @@
 """Shared camera page renderers for springcam and skycam."""
 
 
-def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, fullres_path, videos_path=None):
+def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, fullres_path, videos_path=None, starcam_path=None):
     """Render a camera latest-images page."""
     cards = ''
     for img in images:
@@ -15,6 +15,7 @@ def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, ful
                 </div>'''
 
     videos_link = f'<a href="{videos_path}" class="gallery-link">Timelapse Videos</a>' if videos_path else ''
+    starcam_link = f'<a href="{starcam_path}" class="gallery-link">Starcam</a>' if starcam_path else ''
 
     return f'''{theme_css_js}
             <title>{camera_name}</title>
@@ -38,112 +39,82 @@ def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, ful
             <h1>{camera_name}</h1>
             <a href="{gallery_path}" class="gallery-link">View Full Gallery</a>
             {videos_link}
+            {starcam_link}
             <div class="gallery">
             {cards}</div>'''
 
 
-def render_camera_gallery(camera_name, all_images, *, latest_path, thumb_key_fn, get_presigned_url, fullres_path=None):
-    """Render a camera thumbnail gallery page."""
+_GALLERY_STYLE = '''
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+            .nav { text-align: center; margin-bottom: 1rem; }
+            .nav a { color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }
+            .nav a:hover { text-decoration: underline; }
+            .breadcrumb { text-align: center; margin-bottom: 1.5rem; font-size: 0.9rem; color: #888; }
+            .breadcrumb a { color: #4a9eff; text-decoration: none; }
+            .breadcrumb a:hover { text-decoration: underline; }
+            .zoom-out { display: block; text-align: center; margin-bottom: 1.5rem; }
+            .zoom-out a { display: inline-block; padding: 0.5rem 1.5rem; background: #2a2a2a; color: #4a9eff; text-decoration: none; border-radius: 8px; font-size: 1rem; transition: background 0.3s; }
+            .zoom-out a:hover { background: #3a3a3a; }
+            h1 { text-align: center; margin-bottom: 0.5rem; }
+            .subtitle { text-align: center; color: #888; margin-bottom: 1.5rem; font-size: 0.9rem; }
+            .gallery { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+            .thumb { width: 150px; height: 112px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+            .thumb:hover { opacity: 0.8; }
+            .ts { font-size: 0.7rem; color: #888; text-align: center; margin-top: 2px; }
+            .item-list { max-width: 800px; margin: 0 auto; }
+            .item-link { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; margin-bottom: 0.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
+            .item-link:hover { background: #3a3a3a; }
+            .item-link .count { color: #888; font-size: 0.85rem; }
+            .day-section { margin-bottom: 2rem; }
+            .day-heading { color: #4a9eff; margin: 1.5rem 0 0.75rem; font-size: 1.1rem; padding-left: 0.5rem; }
+            .pagination { text-align: center; margin: 1.5rem 0; }
+            .pagination a { color: #4a9eff; text-decoration: none; padding: 0.5rem 1rem; background: #2a2a2a; border-radius: 6px; display: inline-block; }
+            .pagination a:hover { background: #3a3a3a; }
+            .page-info { color: #888; margin: 0 1rem; }
+        </style>'''
+
+
+def _gallery_nav(camera_name, latest_path, videos_path=None):
+    """Standard nav bar for gallery pages."""
+    videos_link = f' | <a href="{videos_path}">Videos</a>' if videos_path else ''
+    return f'''
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href="{latest_path}">Latest</a> |
+            <a href="gallery">Gallery</a>{videos_link}
+        </div>'''
+
+
+def _presign_thumbs(images, thumb_key_fn):
+    """Presign thumbnail URLs for a list of images. Falls back to full image if thumb missing."""
     import boto3
     from concurrent.futures import ThreadPoolExecutor
 
     s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = 'gardencam-berrylands-eu-west-1'
 
-    def _presign(key):
+    def _presign(img_key):
+        thumb_key = thumb_key_fn(img_key)
+        # Check if thumbnail exists; fall back to full image
+        try:
+            s3.head_object(Bucket=bucket, Key=thumb_key)
+            key = thumb_key
+        except Exception:
+            key = img_key
         return s3.generate_presigned_url(
             'get_object',
-            Params={'Bucket': 'gardencam-berrylands-eu-west-1', 'Key': key},
+            Params={'Bucket': bucket, 'Key': key},
             ExpiresIn=3600,
         )
 
-    thumb_keys = [thumb_key_fn(img['key']) for img in all_images]
+    keys = [img['key'] for img in images]
     with ThreadPoolExecutor(max_workers=20) as ex:
-        thumb_urls = list(ex.map(_presign, thumb_keys))
-
-    thumbs = ''
-    for img, thumb_url in zip(all_images, thumb_urls):
-        if fullres_path:
-            full_url = f"{fullres_path}?key={img['key']}"
-        else:
-            full_url = _presign(img['key'])
-        ts = img['timestamp'][:16] if img['timestamp'] else ''
-        thumbs += f'''
-            <div>
-                <a href="{full_url}">
-                    <img class="thumb" src="{thumb_url}" alt="{ts}" loading="lazy">
-                </a>
-                <div class="ts">{ts}</div>
-            </div>'''
-
-    return f'''
-        <title>{camera_name} Gallery</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 1rem; }}
-            h1 {{ text-align: center; margin-bottom: 1rem; }}
-            .nav {{ text-align: center; margin-bottom: 1.5rem; }}
-            .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }}
-            .gallery {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }}
-            .thumb {{ width: 150px; height: 112px; object-fit: cover; border-radius: 4px; cursor: pointer; }}
-            .thumb:hover {{ opacity: 0.8; }}
-            .ts {{ font-size: 0.7rem; color: #888; text-align: center; margin-top: 2px; }}
-        </style>
-        <h1>{camera_name} Gallery</h1>
-        <div class="nav">
-            <a href="../contents">Home</a> |
-            <a href="{latest_path}">Latest</a>
-        </div>
-        <div class="gallery">
-        {thumbs}</div>'''
+        return list(ex.map(_presign, keys))
 
 
-def render_camera_day_index(camera_name, days, *, gallery_path, latest_path, videos_path=None):
-    """Render a day-based gallery index page."""
-    day_links = ''
-    for day in days:
-        day_links += f'''
-            <a href="{gallery_path}?day={day['date']}" class="day-link">{day['label']}</a>'''
-
-    videos_nav = f' | <a href="{videos_path}">Videos</a>' if videos_path else ''
-
-    return f'''
-        <title>{camera_name} Gallery</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }}
-            .nav {{ text-align: center; margin-bottom: 2rem; }}
-            .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 1rem; }}
-            .nav a:hover {{ text-decoration: underline; }}
-            h1 {{ text-align: center; margin-bottom: 2rem; }}
-            .day-list {{ max-width: 800px; margin: 0 auto; }}
-            .day-link {{ display: block; padding: 1rem 1.5rem; margin-bottom: 0.75rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1.1rem; transition: background 0.3s; }}
-            .day-link:hover {{ background: #3a3a3a; }}
-        </style>
-        <div class="nav">
-            <a href="../contents">Home</a> |
-            <a href="{latest_path}">Latest</a>{videos_nav}
-        </div>
-        <h1>{camera_name} Gallery</h1>
-        <div class="day-list">{day_links}</div>'''
-
-
-def render_camera_day_gallery(camera_name, day_str, images, *, page, total_pages, total_images,
-                              thumb_key_fn, gallery_path, latest_path, fullres_path):
-    """Render a paginated day gallery page with thumbnails."""
-    import boto3
-
-    s3 = boto3.client("s3", region_name="eu-west-1")
-
-    def _presign(key):
-        return s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': 'gardencam-berrylands-eu-west-1', 'Key': key},
-            ExpiresIn=3600,
-        )
-
-    from concurrent.futures import ThreadPoolExecutor
-    thumb_keys = [thumb_key_fn(img['key']) for img in images]
-    with ThreadPoolExecutor(max_workers=20) as ex:
-        thumb_urls = list(ex.map(_presign, thumb_keys))
-
+def _render_thumb_grid(images, thumb_urls, fullres_path):
+    """Render a grid of thumbnail images with timestamps."""
     thumbs = ''
     for img, thumb_url in zip(images, thumb_urls):
         ts = img['timestamp'][:16] if img.get('timestamp') else ''
@@ -155,41 +126,163 @@ def render_camera_day_gallery(camera_name, day_str, images, *, page, total_pages
                 </a>
                 <div class="ts">{ts}</div>
             </div>'''
+    return thumbs
 
-    # Pagination links
-    pagination = '<div class="pagination">'
-    if page > 1:
-        pagination += f'<a href="{gallery_path}?day={day_str}&page={page - 1}">&larr; Prev</a> '
-    pagination += f'<span class="page-info">Page {page} of {total_pages} ({total_images} images)</span>'
-    if page < total_pages:
-        pagination += f' <a href="{gallery_path}?day={day_str}&page={page + 1}">Next &rarr;</a>'
-    pagination += '</div>'
+
+def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total_images,
+                       thumb_key_fn, gallery_path, latest_path, fullres_path, week_iso, videos_path=None):
+    """Day view: today's thumbnails with 'This week' zoom-out link at top."""
+    from datetime import datetime
+
+    thumb_urls = _presign_thumbs(images, thumb_key_fn)
+    thumbs = _render_thumb_grid(images, thumb_urls, fullres_path)
+
+    try:
+        dt = datetime.strptime(day_str, '%Y-%m-%d')
+        day_label = dt.strftime('%A %d %B %Y')
+    except ValueError:
+        day_label = day_str
+
+    # Pagination
+    pagination = ''
+    if total_pages > 1:
+        pagination = '<div class="pagination">'
+        if page > 1:
+            pagination += f'<a href="{gallery_path}?day={day_str}&page={page - 1}">&larr; Prev</a> '
+        pagination += f'<span class="page-info">Page {page} of {total_pages} ({total_images} images)</span>'
+        if page < total_pages:
+            pagination += f' <a href="{gallery_path}?day={day_str}&page={page + 1}">Next &rarr;</a>'
+        pagination += '</div>'
 
     return f'''
-        <title>{camera_name} - {day_str}</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 1rem; }}
-            h1 {{ text-align: center; margin-bottom: 1rem; }}
-            .nav {{ text-align: center; margin-bottom: 1.5rem; }}
-            .nav a {{ color: #4a9eff; text-decoration: none; margin: 0 0.5rem; }}
-            .gallery {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }}
-            .thumb {{ width: 150px; height: 112px; object-fit: cover; border-radius: 4px; cursor: pointer; }}
-            .thumb:hover {{ opacity: 0.8; }}
-            .ts {{ font-size: 0.7rem; color: #888; text-align: center; margin-top: 2px; }}
-            .pagination {{ text-align: center; margin: 1.5rem 0; }}
-            .pagination a {{ color: #4a9eff; text-decoration: none; padding: 0.5rem 1rem; background: #2a2a2a; border-radius: 6px; display: inline-block; }}
-            .pagination a:hover {{ background: #3a3a3a; }}
-            .page-info {{ color: #888; margin: 0 1rem; }}
-        </style>
-        <div class="nav">
-            <a href="../contents">Home</a> |
-            <a href="{gallery_path}">All Days</a> |
-            <a href="{latest_path}">Latest</a>
-        </div>
-        <h1>{day_str}</h1>
+        <title>{camera_name} - {day_label}</title>
+        {_GALLERY_STYLE}
+        {_gallery_nav(camera_name, latest_path, videos_path)}
+        <div class="zoom-out"><a href="{gallery_path}?week={week_iso}">This week &rarr;</a></div>
+        <h1>{day_label}</h1>
+        <div class="subtitle">{total_images} image{"s" if total_images != 1 else ""}</div>
         {pagination}
         <div class="gallery">{thumbs}</div>
         {pagination}'''
+
+
+def render_gallery_week(camera_name, week_iso, days_with_counts, *,
+                        gallery_path, latest_path, month_str, videos_path=None):
+    """Week view: list of days this week, with zoom-out to month."""
+    from datetime import datetime
+
+    day_links = ''
+    for day_str, count in days_with_counts:
+        try:
+            dt = datetime.strptime(day_str, '%Y-%m-%d')
+            label = dt.strftime('%A %d %B')
+        except ValueError:
+            label = day_str
+        day_links += f'''
+            <a href="{gallery_path}?day={day_str}" class="item-link">
+                {label}
+                <span class="count">{count} image{"s" if count != 1 else ""}</span>
+            </a>'''
+
+    if not day_links:
+        day_links = '<p style="color:#888; text-align:center;">No images this week.</p>'
+
+    # Parse week for display
+    try:
+        from datetime import date
+        iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
+        monday = date.fromisocalendar(iso_year, iso_week, 1)
+        sunday = date.fromisocalendar(iso_year, iso_week, 7)
+        week_label = f"Week of {monday.strftime('%d %B')} — {sunday.strftime('%d %B %Y')}"
+    except (ValueError, IndexError):
+        week_label = week_iso
+
+    return f'''
+        <title>{camera_name} - {week_label}</title>
+        {_GALLERY_STYLE}
+        {_gallery_nav(camera_name, latest_path, videos_path)}
+        <div class="zoom-out"><a href="{gallery_path}?month={month_str}">{_month_label(month_str)} &rarr;</a></div>
+        <h1>{week_label}</h1>
+        <div class="item-list">{day_links}</div>'''
+
+
+def render_gallery_month(camera_name, month_str, weeks_with_days, *,
+                         gallery_path, latest_path, year_str, videos_path=None):
+    """Month view: weeks in this month, each listing its days."""
+    from datetime import datetime
+
+    content = ''
+    for week_iso, days in weeks_with_days:
+        try:
+            from datetime import date
+            iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
+            monday = date.fromisocalendar(iso_year, iso_week, 1)
+            sunday = date.fromisocalendar(iso_year, iso_week, 7)
+            week_label = f"{monday.strftime('%d %b')} — {sunday.strftime('%d %b')}"
+        except (ValueError, IndexError):
+            week_label = week_iso
+
+        day_links = ''
+        for day_str, count in days:
+            try:
+                dt = datetime.strptime(day_str, '%Y-%m-%d')
+                label = dt.strftime('%A %d')
+            except ValueError:
+                label = day_str
+            day_links += f'''
+                <a href="{gallery_path}?day={day_str}" class="item-link">
+                    {label}
+                    <span class="count">{count}</span>
+                </a>'''
+
+        content += f'''
+            <div class="day-section">
+                <h2 class="day-heading"><a href="{gallery_path}?week={week_iso}" style="color:#4a9eff; text-decoration:none;">{week_label}</a></h2>
+                <div class="item-list">{day_links}</div>
+            </div>'''
+
+    if not content:
+        content = '<p style="color:#888; text-align:center;">No images this month.</p>'
+
+    return f'''
+        <title>{camera_name} - {_month_label(month_str)}</title>
+        {_GALLERY_STYLE}
+        {_gallery_nav(camera_name, latest_path, videos_path)}
+        <div class="zoom-out"><a href="{gallery_path}?year={year_str}">{year_str} &rarr;</a></div>
+        <h1>{_month_label(month_str)}</h1>
+        <div class="content" style="max-width:800px; margin:0 auto;">{content}</div>'''
+
+
+def render_gallery_year(camera_name, year_str, months_with_counts, *,
+                        gallery_path, latest_path, videos_path=None):
+    """Year view: list of months with image counts."""
+    month_links = ''
+    for month_str, count in months_with_counts:
+        month_links += f'''
+            <a href="{gallery_path}?month={month_str}" class="item-link">
+                {_month_label(month_str)}
+                <span class="count">{count} image{"s" if count != 1 else ""}</span>
+            </a>'''
+
+    if not month_links:
+        month_links = '<p style="color:#888; text-align:center;">No images this year.</p>'
+
+    return f'''
+        <title>{camera_name} - {year_str}</title>
+        {_GALLERY_STYLE}
+        {_gallery_nav(camera_name, latest_path, videos_path)}
+        <h1>{year_str}</h1>
+        <div class="item-list">{month_links}</div>'''
+
+
+def _month_label(month_str):
+    """Convert '2026-04' to 'April 2026'."""
+    from datetime import datetime
+    try:
+        dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
+        return dt.strftime('%B %Y')
+    except ValueError:
+        return month_str
 
 
 def render_camera_fullres(camera_name, image_url, ts, *, latest_path, gallery_path):
@@ -238,8 +331,8 @@ def render_camera_videos(camera_name, recent_videos, *, latest_path, gallery_pat
         <div class="video-grid">{cards}</div>'''
 
 
-def _skycam_video_cards(videos):
-    """Render video cards for a list of skycam videos."""
+def _video_cards(videos, play_path='play'):
+    """Render video cards for a list of videos."""
     if not videos:
         return '<p style="color:#888; text-align:center;">No videos for this period.</p>'
     cards = ''
@@ -258,83 +351,19 @@ def _skycam_video_cards(videos):
     return f'<div class="video-grid">{cards}</div>'
 
 
-def _skycam_nav():
-    return '''
+def _video_nav(camera_name, latest_path, gallery_path, videos_path):
+    """Standard nav bar for video pages."""
+    return f'''
         <div class="nav">
             <a href="../contents">Home</a> |
-            <a href="../skycam">Latest</a> |
-            <a href="gallery">Gallery</a> |
-            <a href="videos">Videos</a>
+            <a href="{latest_path}">Latest</a> |
+            <a href="{gallery_path}">Gallery</a> |
+            <a href="{videos_path}">Videos</a>
         </div>'''
 
 
-def render_skycam_videos_index(today_str, today_videos, months_list):
-    """Landing page: today's videos + links to browse by month."""
-    from datetime import datetime
-
-    has_daily = any(v.get('is_daily') for v in today_videos)
-    cast_link = '<a href="play" class="cast-link">Cast today\'s timelapse</a>' if has_daily else ''
-
-    month_links = ''
-    for m in months_list:
-        try:
-            dt = datetime.strptime(m + '-01', '%Y-%m-%d')
-            label = dt.strftime('%B %Y')
-        except ValueError:
-            label = m
-        month_links += f'<a href="videos?month={m}" class="month-link">{label}</a>'
-
-    if not month_links:
-        month_links = '<p style="color:#888;">No archived months yet.</p>'
-
-    return f'''
-        <title>Sky Camera - Hourly Timelapses</title>
-        {_VIDEO_PAGE_STYLE}
-        {_skycam_nav()}
-        <h1>Sky Camera — Hourly Timelapses</h1>
-        <p style="color:#888; text-align:center; margin-bottom:1.5rem;">One video per daylight hour, ~360 frames at 24fps (~15s each)</p>
-        <div class="content">
-            <h2 class="section-heading">Today — {today_str} {cast_link}</h2>
-            {_skycam_video_cards(today_videos)}
-            <h2 class="section-heading" style="margin-top:2.5rem;">Browse by Month</h2>
-            <div class="month-list">{month_links}</div>
-        </div>'''
-
-
-def render_skycam_videos_month(month_str, days_list):
-    """Month view: list of days with video counts."""
-    from datetime import datetime
-
-    try:
-        dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
-        month_label = dt.strftime('%B %Y')
-    except ValueError:
-        month_label = month_str
-
-    day_links = ''
-    for day_str, count in days_list:
-        try:
-            dt = datetime.strptime(day_str, '%Y-%m-%d')
-            label = dt.strftime('%A %d %B')
-        except ValueError:
-            label = day_str
-        day_links += f'<a href="videos?day={day_str}" class="day-link">{label}<span class="count">{count} video{"s" if count != 1 else ""}</span></a>'
-
-    if not day_links:
-        day_links = '<p style="color:#888; text-align:center;">No videos recorded this month.</p>'
-
-    return f'''
-        <title>Sky Camera - {month_label}</title>
-        {_VIDEO_PAGE_STYLE}
-        {_skycam_nav()}
-        <h1>{month_label}</h1>
-        <div class="content">
-            <div class="day-list">{day_links}</div>
-        </div>'''
-
-
-def render_skycam_videos_day(day_str, videos):
-    """Day view: all hourly videos for a specific day."""
+def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path, videos_path, week_iso):
+    """Day view: today's videos with 'This week' zoom-out link."""
     from datetime import datetime
 
     try:
@@ -343,26 +372,125 @@ def render_skycam_videos_day(day_str, videos):
     except ValueError:
         day_label = day_str
 
+    has_daily = any(v.get('is_daily') for v in videos)
+    cast_link = f' <a href="play" class="cast-link">Cast timelapse</a>' if has_daily else ''
+
     return f'''
-        <title>Sky Camera - {day_label}</title>
+        <title>{camera_name} Videos - {day_label}</title>
         {_VIDEO_PAGE_STYLE}
-        {_skycam_nav()}
-        <h1>{day_label}</h1>
+        {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
+        <div class="zoom-out"><a href="{videos_path}?week={week_iso}">This week &rarr;</a></div>
+        <h1>{day_label}{cast_link}</h1>
         <p style="color:#888; text-align:center; margin-bottom:1.5rem;">{len(videos)} video{"s" if len(videos) != 1 else ""}</p>
         <div class="content">
-            {_skycam_video_cards(videos)}
+            {_video_cards(videos)}
         </div>'''
+
+
+def render_videos_week(camera_name, week_iso, days_with_counts, *,
+                       latest_path, gallery_path, videos_path, month_str):
+    """Week view: list of days this week with video counts."""
+    from datetime import datetime
+
+    day_links = ''
+    for day_str, count in days_with_counts:
+        try:
+            dt = datetime.strptime(day_str, '%Y-%m-%d')
+            label = dt.strftime('%A %d %B')
+        except ValueError:
+            label = day_str
+        day_links += f'''
+            <a href="{videos_path}?day={day_str}" class="item-link">
+                {label}
+                <span class="count">{count} video{"s" if count != 1 else ""}</span>
+            </a>'''
+
+    if not day_links:
+        day_links = '<p style="color:#888; text-align:center;">No videos this week.</p>'
+
+    try:
+        from datetime import date
+        iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
+        monday = date.fromisocalendar(iso_year, iso_week, 1)
+        sunday = date.fromisocalendar(iso_year, iso_week, 7)
+        week_label = f"Week of {monday.strftime('%d %B')} — {sunday.strftime('%d %B %Y')}"
+    except (ValueError, IndexError):
+        week_label = week_iso
+
+    return f'''
+        <title>{camera_name} Videos - {week_label}</title>
+        {_VIDEO_PAGE_STYLE}
+        {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
+        <div class="zoom-out"><a href="{videos_path}?month={month_str}">{_month_label(month_str)} &rarr;</a></div>
+        <h1>{week_label}</h1>
+        <div class="item-list">{day_links}</div>'''
+
+
+def render_videos_month(camera_name, month_str, days_list, *,
+                        latest_path, gallery_path, videos_path, year_str):
+    """Month view: list of days with video counts."""
+    from datetime import datetime
+
+    day_links = ''
+    for day_str, count in days_list:
+        try:
+            dt = datetime.strptime(day_str, '%Y-%m-%d')
+            label = dt.strftime('%A %d %B')
+        except ValueError:
+            label = day_str
+        day_links += f'''
+            <a href="{videos_path}?day={day_str}" class="item-link">
+                {label}
+                <span class="count">{count} video{"s" if count != 1 else ""}</span>
+            </a>'''
+
+    if not day_links:
+        day_links = '<p style="color:#888; text-align:center;">No videos this month.</p>'
+
+    return f'''
+        <title>{camera_name} Videos - {_month_label(month_str)}</title>
+        {_VIDEO_PAGE_STYLE}
+        {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
+        <div class="zoom-out"><a href="{videos_path}?year={year_str}">{year_str} &rarr;</a></div>
+        <h1>{_month_label(month_str)}</h1>
+        <div class="content">
+            <div class="item-list">{day_links}</div>
+        </div>'''
+
+
+def render_videos_year(camera_name, year_str, months_with_counts, *,
+                       latest_path, gallery_path, videos_path):
+    """Year view: list of months with video counts."""
+    month_links = ''
+    for month_str, count in months_with_counts:
+        month_links += f'''
+            <a href="{videos_path}?month={month_str}" class="item-link">
+                {_month_label(month_str)}
+                <span class="count">{count} video{"s" if count != 1 else ""}</span>
+            </a>'''
+
+    if not month_links:
+        month_links = '<p style="color:#888; text-align:center;">No videos this year.</p>'
+
+    return f'''
+        <title>{camera_name} Videos - {year_str}</title>
+        {_VIDEO_PAGE_STYLE}
+        {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
+        <h1>{year_str}</h1>
+        <div class="item-list">{month_links}</div>'''
 
 
 _VIDEO_PAGE_STYLE = '''
         <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
-            .nav { text-align: center; margin-bottom: 2rem; }
+            .nav { text-align: center; margin-bottom: 1rem; }
             .nav a { color: #4a9eff; text-decoration: none; margin: 0 1rem; }
             .nav a:hover { text-decoration: underline; }
+            .zoom-out { display: block; text-align: center; margin-bottom: 1.5rem; }
+            .zoom-out a { display: inline-block; padding: 0.5rem 1.5rem; background: #2a2a2a; color: #4a9eff; text-decoration: none; border-radius: 8px; font-size: 1rem; transition: background 0.3s; }
+            .zoom-out a:hover { background: #3a3a3a; }
             h1 { text-align: center; margin-bottom: 0.5rem; }
             .content { max-width: 1400px; margin: 0 auto; }
-            .section-heading { color: #4a9eff; margin: 2rem 0 1rem 0; padding-left: 0.5rem; font-size: 1.2rem; }
             .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
             .video-card { background: #2a2a2a; border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; display: block; transition: transform 0.2s; }
             .video-card:hover { transform: translateY(-4px); }
@@ -372,13 +500,10 @@ _VIDEO_PAGE_STYLE = '''
             .video-meta { padding: 0.5rem 0.75rem; }
             .video-meta h3 { margin: 0 0 0.25rem 0; color: #4a9eff; font-size: 0.85rem; }
             .video-meta p { margin: 0; color: #888; font-size: 0.75rem; }
-            .month-list { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-            .month-link { display: block; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
-            .month-link:hover { background: #3a3a3a; }
-            .day-list { display: flex; flex-direction: column; gap: 0.5rem; }
-            .day-link { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
-            .day-link:hover { background: #3a3a3a; }
-            .day-link .count { color: #888; font-size: 0.85rem; }
+            .item-list { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem; }
+            .item-link { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: #2a2a2a; border-radius: 8px; text-decoration: none; color: #4a9eff; font-size: 1rem; transition: background 0.3s; }
+            .item-link:hover { background: #3a3a3a; }
+            .item-link .count { color: #888; font-size: 0.85rem; }
             .video-card-daily { grid-column: 1 / -1; max-width: 400px; border: 1px solid #4a9eff; }
             .video-card-daily .video-meta h3 { font-size: 1rem; }
             .cast-link { font-size: 0.85rem; font-weight: normal; color: #4a9eff; text-decoration: none; margin-left: 1rem; }
@@ -498,4 +623,255 @@ def render_skycam_player(video_url, title, hours=None):
                     function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
                 );
             }}
+        </script>'''
+
+
+# ---------------------------------------------------------------------------
+# Starcam renderers
+# ---------------------------------------------------------------------------
+
+def render_starcam_index(nights):
+    """Render starcam landing: list of nights with stacked image counts.
+    nights: list of (evening_date_str, count) e.g. [('2026-04-19', 3), ...]
+    """
+    items = ''
+    for evening_date, count in nights:
+        from datetime import datetime, timedelta
+        ev = datetime.strptime(evening_date, '%Y-%m-%d')
+        morning = ev + timedelta(days=1)
+        label = f"{ev.strftime('%A')} / {morning.strftime('%A')} {ev.day}/{morning.day} {ev.strftime('%B %Y')}"
+        items += f'''
+            <a href="starcam/night?date={evening_date}" class="item-link">
+                <span>{label}</span>
+                <span class="count">{count} stacked</span>
+            </a>'''
+
+    return f'''{_GALLERY_STYLE}
+        <title>Starcam</title>
+        <div class="nav">
+            <a href="../contents">Home</a> |
+            <a href=".">Sky Camera</a>
+        </div>
+        <h1>Starcam</h1>
+        <p class="subtitle">Stacked long-exposure night images</p>
+        <div class="item-list">
+        {items}
+        </div>'''
+
+
+def render_starcam_night(evening_date, images, brightness_data=None):
+    """Render a single night's stacked images with darkest-100 chart.
+    evening_date: str like '2026-04-19'
+    images: list of dicts with 'url', 'key', 'timestamp', 'stack_count', 'darkest_100_avg'
+    brightness_data: list of dicts with 'time', 'value' (hourly avg brightness from DynamoDB)
+    """
+    import json as _json
+    from datetime import datetime, timedelta
+    ev = datetime.strptime(evening_date, '%Y-%m-%d')
+    morning = ev + timedelta(days=1)
+    label = f"{ev.strftime('%A')} / {morning.strftime('%A')} {ev.day}/{morning.day} {ev.strftime('%B %Y')}"
+
+    # Build chart data with delta from midnight for x positioning
+    chart_data = []
+    for img in images:
+        d100 = img.get('darkest_100_avg', '')
+        if d100:
+            chart_data.append({'time': img['timestamp'], 'value': int(d100), 'delta': img.get('delta', 0)})
+    chart_json = _json.dumps(chart_data)
+    brightness_json = _json.dumps(brightness_data or [])
+
+    cards = ''
+    for img in images:
+        stack_info = f" ({img.get('stack_count', '?')} frames)" if img.get('stack_count') else ''
+        cards += f'''
+            <div style="margin-bottom: 1.5rem;">
+                <a href="../fullres?key={img['key']}">
+                    <img src="{img['url']}" alt="Stacked {img['timestamp']}"
+                         style="width: 100%; max-width: 800px; border-radius: 8px;">
+                </a>
+                <div class="ts">{img['timestamp']}{stack_info}</div>
+            </div>'''
+
+    return f'''{_GALLERY_STYLE}
+        <title>Starcam — {label}</title>
+        <div class="nav">
+            <a href="../../contents">Home</a> |
+            <a href="..">Sky Camera</a> |
+            <a href=".">Starcam</a>
+        </div>
+        <h1>Starcam</h1>
+        <p class="subtitle">{label}</p>
+        <div style="text-align: center; max-width: 800px; margin: 0 auto 1.5rem;">
+            <canvas id="d100chart" style="width: 100%; border-radius: 8px; background: #2a2a2a;"></canvas>
+        </div>
+        <div style="text-align: center;">
+        {cards}
+        </div>
+        <script>
+        (function() {{
+            var d100 = {chart_json};
+            var bright = {brightness_json};
+            if (d100.length < 1 && bright.length < 1) return;
+            var canvas = document.getElementById('d100chart');
+            var w = canvas.parentElement.offsetWidth;
+            var h = Math.round(w / 3);
+            canvas.width = w * (window.devicePixelRatio || 1);
+            canvas.height = h * (window.devicePixelRatio || 1);
+            canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+            var pad = {{top: 20, right: 55, bottom: 30, left: 55}};
+            var cw = w - pad.left - pad.right;
+            var ch = h - pad.top - pad.bottom;
+
+            // Find x range from all deltas
+            var allDeltas = [];
+            d100.forEach(function(d) {{ allDeltas.push(d.delta); }});
+            bright.forEach(function(d) {{ allDeltas.push(d.delta); }});
+            if (allDeltas.length < 1) return;
+            var xMin = Math.min.apply(null, allDeltas);
+            var xMax = Math.max.apply(null, allDeltas);
+            if (xMin === xMax) {{ xMin -= 1; xMax += 1; }}
+
+            function xPos(delta) {{
+                return pad.left + cw * (delta - xMin) / (xMax - xMin);
+            }}
+
+            // Convert delta back to time label
+            function deltaLabel(d) {{
+                var h = d < 0 ? d + 24 : d;
+                var hh = Math.floor(h);
+                var mm = Math.round((h - hh) * 60);
+                return (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+            }}
+
+            // Left Y axis: darkest 100 (uint16)
+            var d100Max = d100.length > 0 ? Math.max.apply(null, d100.map(function(d) {{ return d.value; }})) : 100;
+            d100Max = Math.max(d100Max, 100);
+
+            // Right Y axis: brightness (0-255)
+            var brightMax = 255;
+
+            // Axes
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top);
+            ctx.lineTo(pad.left, pad.top + ch);
+            ctx.lineTo(pad.left + cw, pad.top + ch);
+            ctx.lineTo(pad.left + cw, pad.top);
+            ctx.stroke();
+
+            // Left Y gridlines + labels (darkest 100)
+            ctx.fillStyle = '#4a9eff';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            var yTicks = 4;
+            for (var i = 0; i <= yTicks; i++) {{
+                var val = Math.round(d100Max * i / yTicks);
+                var y = pad.top + ch - (ch * i / yTicks);
+                ctx.fillText(val.toLocaleString(), pad.left - 5, y + 4);
+                if (i > 0) {{
+                    ctx.strokeStyle = '#333';
+                    ctx.beginPath();
+                    ctx.moveTo(pad.left, y);
+                    ctx.lineTo(pad.left + cw, y);
+                    ctx.stroke();
+                }}
+            }}
+
+            // Right Y labels (brightness)
+            ctx.fillStyle = '#FF9500';
+            ctx.textAlign = 'left';
+            for (var i = 0; i <= yTicks; i++) {{
+                var val = Math.round(brightMax * i / yTicks);
+                var y = pad.top + ch - (ch * i / yTicks);
+                ctx.fillText(val, pad.left + cw + 5, y + 4);
+            }}
+
+            // 32768 reference line
+            if (d100Max >= 32768 && d100.length > 0) {{
+                var refY = pad.top + ch - (ch * 32768 / d100Max);
+                ctx.strokeStyle = '#4a9eff';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(pad.left, refY);
+                ctx.lineTo(pad.left + cw, refY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#4a9eff';
+                ctx.textAlign = 'left';
+                ctx.fillText('target', pad.left + 3, refY - 4);
+            }}
+
+            // X labels — hourly ticks
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'center';
+            var firstHour = Math.ceil(xMin);
+            var lastHour = Math.floor(xMax);
+            for (var d = firstHour; d <= lastHour; d++) {{
+                ctx.fillText(deltaLabel(d), xPos(d), pad.top + ch + 18);
+                // Midnight marker
+                if (d === 0) {{
+                    ctx.strokeStyle = '#555';
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    ctx.moveTo(xPos(0), pad.top);
+                    ctx.lineTo(xPos(0), pad.top + ch);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }}
+            }}
+
+            // Plot brightness line (orange, right axis)
+            if (bright.length >= 2) {{
+                ctx.strokeStyle = '#FF9500';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (var i = 0; i < bright.length; i++) {{
+                    var x = xPos(bright[i].delta);
+                    var y = pad.top + ch - (ch * bright[i].value / brightMax);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }}
+                ctx.stroke();
+                ctx.fillStyle = '#FF9500';
+                for (var i = 0; i < bright.length; i++) {{
+                    var x = xPos(bright[i].delta);
+                    var y = pad.top + ch - (ch * bright[i].value / brightMax);
+                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+                }}
+            }}
+
+            // Plot darkest 100 line (blue, left axis)
+            if (d100.length >= 2) {{
+                ctx.strokeStyle = '#4a9eff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (var i = 0; i < d100.length; i++) {{
+                    var x = xPos(d100[i].delta);
+                    var y = pad.top + ch - (ch * d100[i].value / d100Max);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }}
+                ctx.stroke();
+                ctx.fillStyle = '#4a9eff';
+                for (var i = 0; i < d100.length; i++) {{
+                    var x = xPos(d100[i].delta);
+                    var y = pad.top + ch - (ch * d100[i].value / d100Max);
+                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+                }}
+            }}
+
+            // Legend
+            ctx.font = '11px sans-serif';
+            var lx = pad.left + 5;
+            var ly = pad.top + 12;
+            ctx.fillStyle = '#4a9eff';
+            ctx.fillRect(lx, ly - 4, 12, 3);
+            ctx.textAlign = 'left';
+            ctx.fillText('Darkest 100 avg', lx + 16, ly);
+            ctx.fillStyle = '#FF9500';
+            ctx.fillRect(lx + 140, ly - 4, 12, 3);
+            ctx.fillText('Avg brightness', lx + 156, ly);
+        }})();
         </script>'''
