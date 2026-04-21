@@ -3620,13 +3620,13 @@ def lambda_handler(event, context):
         nights = defaultdict(int)  # evening_date -> count
 
         paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/'):
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/stacked/'):
             for obj in page.get('Contents', []):
                 key = obj['Key']
-                if '_stacked.jpg' not in key:
-                    continue
                 # Extract timestamp from filename: sky_YYYYMMDD_HHMMSS_stacked.jpg
                 fname = key.rsplit('/', 1)[-1]
+                if not fname.endswith('_stacked.jpg'):
+                    continue
                 ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
                 try:
                     ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
