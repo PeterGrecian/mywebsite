@@ -526,12 +526,10 @@ def render_skycam_player(video_url, title, hours=None):
             .player-wrap {{ position: relative; max-width: 1280px; margin: 0 auto; }}
             video {{ width: 100%; display: block; background: #000; }}
             .clock {{
-                position: absolute; top: 1rem; right: 1rem;
+                text-align: center; padding: 0.4rem 0;
                 font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-                font-size: 2rem; font-weight: 600;
-                color: #fff; text-shadow: 0 0 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6);
-                pointer-events: none; z-index: 10;
-                opacity: 0.9;
+                font-size: 2rem; font-weight: 600; letter-spacing: 0.05em;
+                color: #fff;
             }}
             .controls {{ text-align: center; padding: 0.75rem; }}
             .cast-btn {{
@@ -557,8 +555,8 @@ def render_skycam_player(video_url, title, hours=None):
             <video id="player" controls autoplay loop playsinline>
                 <source src="{video_url}" type="video/mp4">
             </video>
-            <div class="clock" id="clock"></div>
         </div>
+        <div class="clock" id="clock"></div>
         <div class="controls">
             <button class="cast-btn" id="castBtn" onclick="castVideo()" disabled>Cast to TV</button>
             <div class="cast-status" id="castStatus"></div>
