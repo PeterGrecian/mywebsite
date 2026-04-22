@@ -535,23 +535,15 @@ def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path
     cast_link = f' <a href="play" class="cast-link">Cast timelapse</a>' if has_daily else ''
     chart_html = _render_exposure_chart(exposure_data)
 
-    # Embed daily video player above chart
-    daily_html = ''
-    if daily:
-        daily_html = f'''
-        <div style="max-width: 900px; margin: 0 auto 1.5rem;">
-            <video controls autoplay loop muted playsinline style="width: 100%; border-radius: 8px;">
-                <source src="{daily[0]['url']}" type="video/mp4">
-            </video>
-        </div>'''
-
     return f'''
         <title>{camera_name} Videos - {day_label}</title>
         {_VIDEO_PAGE_STYLE}
         {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
         <div class="zoom-out"><a href="{videos_path}?week={week_iso}">This week &rarr;</a></div>
         <h1>{day_label}{cast_link}</h1>
-        {daily_html}
+        <div class="content">
+            {_video_cards(daily)}
+        </div>
         {chart_html}
         <p style="color:#888; text-align:center; margin-bottom:1.5rem;">{len(hourly)} hourly video{"s" if len(hourly) != 1 else ""}</p>
         <div class="content">
