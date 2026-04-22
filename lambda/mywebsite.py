@@ -1076,9 +1076,10 @@ def group_images_by_4hour_periods(images):
     return sorted_periods
 
 
-def get_skycam_stats_for_date(day_str):
-    """Get skycam hourly stats from DynamoDB for a given date (YYYY-MM-DD).
-    Returns list of dicts with 'timestamp' and 'exposure_s' (if present), sorted by time.
+def get_skycam_stats_for_date(day_str, thin_minutes=0):
+    """Get skycam stats from DynamoDB for a given date (YYYY-MM-DD).
+    If thin_minutes > 0, keep at most one point per thin_minutes interval.
+    Returns list of dicts with 'timestamp', 'exposure_s', 'avg_brightness'.
     """
     if not BOTO3_AVAILABLE:
         return []
@@ -1086,12 +1087,19 @@ def get_skycam_stats_for_date(day_str):
         from boto3.dynamodb.conditions import Attr
         dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
         table = dynamodb.Table('gardencam-stats')
-        response = table.scan(
-            FilterExpression=Attr('camera_name').eq('sky') & Attr('date').eq(day_str)
-        )
-        items = response.get('Items', [])
+        items = []
+        scan_kwargs = {
+            'FilterExpression': Attr('camera_name').eq('sky') & Attr('date').eq(day_str),
+        }
+        while True:
+            response = table.scan(**scan_kwargs)
+            items.extend(response.get('Items', []))
+            if 'LastEvaluatedKey' not in response:
+                break
+            scan_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
         items.sort(key=lambda x: x.get('timestamp', ''))
-        return [
+        result = [
             {
                 'timestamp': item.get('timestamp', ''),
                 'exposure_s': float(item['exposure_s']) if 'exposure_s' in item else None,
@@ -1099,6 +1107,21 @@ def get_skycam_stats_for_date(day_str):
             }
             for item in items
         ]
+        if thin_minutes > 0 and result:
+            from datetime import datetime as _dt, timedelta
+            gap = timedelta(minutes=thin_minutes)
+            thinned = [result[0]]
+            last = _dt.fromisoformat(result[0]['timestamp'])
+            for r in result[1:]:
+                try:
+                    t = _dt.fromisoformat(r['timestamp'])
+                except Exception:
+                    continue
+                if t - last >= gap:
+                    thinned.append(r)
+                    last = t
+            result = thinned
+        return result
     except Exception as e:
         print(f"Error fetching skycam stats for {day_str}: {e}")
         return []
@@ -3425,7 +3448,7 @@ def lambda_handler(event, context):
             page_param = max(1, min(page_param, total_pages))
             page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
             week_iso = _iso_week_for_date(day_param)
-            skycam_stats = get_skycam_stats_for_date(day_param)
+            skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
             from routes.camera import render_gallery_day
             html += render_gallery_day(
                 'Sky Camera', day_param, page_images,
@@ -3638,10 +3661,12 @@ def lambda_handler(event, context):
                 prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
                 videos = _list_videos_for_prefix(prefix)
             week_iso = _iso_week_for_date(day_param)
+            skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
             from routes.camera import render_videos_day
             html += render_videos_day('Sky Camera', day_param, videos,
                                        latest_path='../skycam', gallery_path='gallery',
-                                       videos_path='videos', week_iso=week_iso)
+                                       videos_path='videos', week_iso=week_iso,
+                                       exposure_data=skycam_stats)
 
     elif path == f'/{stage}/skycam/starcam' or path == '/skycam/starcam':
         # Starcam index: list all nights with stacked images

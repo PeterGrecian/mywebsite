@@ -129,40 +129,13 @@ def _render_thumb_grid(images, thumb_urls, fullres_path):
     return thumbs
 
 
-def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total_images,
-                       thumb_key_fn, gallery_path, latest_path, fullres_path, week_iso,
-                       videos_path=None, exposure_data=None):
-    """Day view: today's thumbnails with 'This week' zoom-out link at top.
-    exposure_data: optional list of dicts with 'timestamp', 'exposure_s', 'avg_brightness'.
-    """
+def _render_exposure_chart(exposure_data):
+    """Render a canvas chart of exposure time (log scale) and brightness over a day."""
+    if not exposure_data:
+        return ''
     import json as _json
-    from datetime import datetime
-
-    thumb_urls = _presign_thumbs(images, thumb_key_fn)
-    thumbs = _render_thumb_grid(images, thumb_urls, fullres_path)
-
-    try:
-        dt = datetime.strptime(day_str, '%Y-%m-%d')
-        day_label = dt.strftime('%A %d %B %Y')
-    except ValueError:
-        day_label = day_str
-
-    # Pagination
-    pagination = ''
-    if total_pages > 1:
-        pagination = '<div class="pagination">'
-        if page > 1:
-            pagination += f'<a href="{gallery_path}?day={day_str}&page={page - 1}">&larr; Prev</a> '
-        pagination += f'<span class="page-info">Page {page} of {total_pages} ({total_images} images)</span>'
-        if page < total_pages:
-            pagination += f' <a href="{gallery_path}?day={day_str}&page={page + 1}">Next &rarr;</a>'
-        pagination += '</div>'
-
-    # Exposure chart (skycam only)
-    chart_html = ''
-    if exposure_data:
-        chart_json = _json.dumps(exposure_data)
-        chart_html = f'''
+    chart_json = _json.dumps(exposure_data)
+    return f'''
         <div style="max-width: 900px; margin: 0 auto 1.5rem;">
             <canvas id="expchart" style="width: 100%; border-radius: 8px; background: #2a2a2a;"></canvas>
         </div>
@@ -200,7 +173,7 @@ def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total
 
             // Log10 exposure range
             var expMin = Math.log10(0.001);  // 1ms floor
-            var expMax = Math.log10(Math.max.apply(null, pts.map(function(d) {{ return d.exp; }})));
+            var expMax = pts.length > 0 ? Math.log10(Math.max.apply(null, pts.map(function(d) {{ return d.exp; }}))) : 1;
             expMax = Math.max(expMax, Math.log10(10));  // at least up to 10s
 
             function xPos(hh) {{ return pad.left + cw * (hh - xMin) / (xMax - xMin); }}
@@ -303,6 +276,38 @@ def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total
         }})();
         }});
         </script>'''
+
+
+def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total_images,
+                       thumb_key_fn, gallery_path, latest_path, fullres_path, week_iso,
+                       videos_path=None, exposure_data=None):
+    """Day view: today's thumbnails with 'This week' zoom-out link at top.
+    exposure_data: optional list of dicts with 'timestamp', 'exposure_s', 'avg_brightness'.
+    """
+    import json as _json
+    from datetime import datetime
+
+    thumb_urls = _presign_thumbs(images, thumb_key_fn)
+    thumbs = _render_thumb_grid(images, thumb_urls, fullres_path)
+
+    try:
+        dt = datetime.strptime(day_str, '%Y-%m-%d')
+        day_label = dt.strftime('%A %d %B %Y')
+    except ValueError:
+        day_label = day_str
+
+    # Pagination
+    pagination = ''
+    if total_pages > 1:
+        pagination = '<div class="pagination">'
+        if page > 1:
+            pagination += f'<a href="{gallery_path}?day={day_str}&page={page - 1}">&larr; Prev</a> '
+        pagination += f'<span class="page-info">Page {page} of {total_pages} ({total_images} images)</span>'
+        if page < total_pages:
+            pagination += f' <a href="{gallery_path}?day={day_str}&page={page + 1}">Next &rarr;</a>'
+        pagination += '</div>'
+
+    chart_html = _render_exposure_chart(exposure_data)
 
     return f'''
         <title>{camera_name} - {day_label}</title>
@@ -513,7 +518,7 @@ def _video_nav(camera_name, latest_path, gallery_path, videos_path):
         </div>'''
 
 
-def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path, videos_path, week_iso):
+def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path, videos_path, week_iso, exposure_data=None):
     """Day view: today's videos with 'This week' zoom-out link."""
     from datetime import datetime
 
@@ -525,6 +530,7 @@ def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path
 
     has_daily = any(v.get('is_daily') for v in videos)
     cast_link = f' <a href="play" class="cast-link">Cast timelapse</a>' if has_daily else ''
+    chart_html = _render_exposure_chart(exposure_data)
 
     return f'''
         <title>{camera_name} Videos - {day_label}</title>
@@ -532,6 +538,7 @@ def render_videos_day(camera_name, day_str, videos, *, latest_path, gallery_path
         {_video_nav(camera_name, latest_path, gallery_path, videos_path)}
         <div class="zoom-out"><a href="{videos_path}?week={week_iso}">This week &rarr;</a></div>
         <h1>{day_label}{cast_link}</h1>
+        {chart_html}
         <p style="color:#888; text-align:center; margin-bottom:1.5rem;">{len(videos)} video{"s" if len(videos) != 1 else ""}</p>
         <div class="content">
             {_video_cards(videos)}
