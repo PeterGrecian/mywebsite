@@ -157,16 +157,17 @@ def _render_exposure_chart(exposure_data):
             var cw = w - pad.left - pad.right;
             var ch = h - pad.top - pad.bottom;
 
-            // Parse timestamps to hours-since-midnight (UTC)
+            // Parse timestamps to hours-since-midnight (local time)
+            function toLocalHour(ts) {{
+                var t = new Date(ts);
+                return t.getHours() + t.getMinutes() / 60;
+            }}
             var pts = data.map(function(d) {{
-                var t = new Date(d.timestamp);
-                var x = t.getUTCHours() + t.getUTCMinutes() / 60;
-                return {{x: x, exp: d.exposure_s, bright: d.avg_brightness}};
+                return {{x: toLocalHour(d.timestamp), exp: d.exposure_s, bright: d.avg_brightness}};
             }}).filter(function(d) {{ return d.exp !== null && d.exp > 0; }});
 
             var brightPts = data.map(function(d) {{
-                var t = new Date(d.timestamp);
-                return {{x: t.getUTCHours() + t.getUTCMinutes() / 60, bright: d.avg_brightness}};
+                return {{x: toLocalHour(d.timestamp), bright: d.avg_brightness}};
             }});
 
             var xMin = 0, xMax = 24;
