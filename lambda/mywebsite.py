@@ -3502,7 +3502,7 @@ def lambda_handler(event, context):
                                 dt = datetime.strptime(date_part, '%Y%m%d')
                             except ValueError:
                                 dt = obj['LastModified'].replace(tzinfo=None)
-                            label = 'Full Day (sky only)'
+                            label = 'Full Day'
                         elif is_combined:
                             date_part = ts_part.replace('_combined', '')
                             try:
