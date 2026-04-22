@@ -1076,6 +1076,34 @@ def group_images_by_4hour_periods(images):
     return sorted_periods
 
 
+def get_skycam_stats_for_date(day_str):
+    """Get skycam hourly stats from DynamoDB for a given date (YYYY-MM-DD).
+    Returns list of dicts with 'timestamp' and 'exposure_s' (if present), sorted by time.
+    """
+    if not BOTO3_AVAILABLE:
+        return []
+    try:
+        from boto3.dynamodb.conditions import Attr
+        dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+        table = dynamodb.Table('gardencam-stats')
+        response = table.scan(
+            FilterExpression=Attr('camera_name').eq('sky') & Attr('date').eq(day_str)
+        )
+        items = response.get('Items', [])
+        items.sort(key=lambda x: x.get('timestamp', ''))
+        return [
+            {
+                'timestamp': item.get('timestamp', ''),
+                'exposure_s': float(item['exposure_s']) if 'exposure_s' in item else None,
+                'avg_brightness': float(item.get('avg_brightness', 0)),
+            }
+            for item in items
+        ]
+    except Exception as e:
+        print(f"Error fetching skycam stats for {day_str}: {e}")
+        return []
+
+
 def get_gardencam_stats(limit=500):
     """Get image statistics from DynamoDB."""
     if not BOTO3_AVAILABLE:
@@ -3397,6 +3425,7 @@ def lambda_handler(event, context):
             page_param = max(1, min(page_param, total_pages))
             page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
             week_iso = _iso_week_for_date(day_param)
+            skycam_stats = get_skycam_stats_for_date(day_param)
             from routes.camera import render_gallery_day
             html += render_gallery_day(
                 'Sky Camera', day_param, page_images,
@@ -3404,6 +3433,7 @@ def lambda_handler(event, context):
                 thumb_key_fn=skycam_thumb_key,
                 gallery_path='gallery', latest_path='../skycam', fullres_path='../skycam/fullres',
                 week_iso=week_iso, videos_path='videos',
+                exposure_data=skycam_stats,
             )
 
     elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):

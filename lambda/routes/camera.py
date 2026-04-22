@@ -130,8 +130,12 @@ def _render_thumb_grid(images, thumb_urls, fullres_path):
 
 
 def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total_images,
-                       thumb_key_fn, gallery_path, latest_path, fullres_path, week_iso, videos_path=None):
-    """Day view: today's thumbnails with 'This week' zoom-out link at top."""
+                       thumb_key_fn, gallery_path, latest_path, fullres_path, week_iso,
+                       videos_path=None, exposure_data=None):
+    """Day view: today's thumbnails with 'This week' zoom-out link at top.
+    exposure_data: optional list of dicts with 'timestamp', 'exposure_s', 'avg_brightness'.
+    """
+    import json as _json
     from datetime import datetime
 
     thumb_urls = _presign_thumbs(images, thumb_key_fn)
@@ -154,6 +158,152 @@ def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total
             pagination += f' <a href="{gallery_path}?day={day_str}&page={page + 1}">Next &rarr;</a>'
         pagination += '</div>'
 
+    # Exposure chart (skycam only)
+    chart_html = ''
+    if exposure_data:
+        chart_json = _json.dumps(exposure_data)
+        chart_html = f'''
+        <div style="max-width: 900px; margin: 0 auto 1.5rem;">
+            <canvas id="expchart" style="width: 100%; border-radius: 8px; background: #2a2a2a;"></canvas>
+        </div>
+        <script>
+        window.addEventListener('DOMContentLoaded', function() {{
+        (function() {{
+            var data = {chart_json};
+            if (data.length < 2) return;
+            var canvas = document.getElementById('expchart');
+            var w = canvas.parentElement.offsetWidth;
+            var h = Math.round(w / 4);
+            canvas.width = w * (window.devicePixelRatio || 1);
+            canvas.height = h * (window.devicePixelRatio || 1);
+            canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+            var pad = {{top: 20, right: 55, bottom: 30, left: 65}};
+            var cw = w - pad.left - pad.right;
+            var ch = h - pad.top - pad.bottom;
+
+            // Parse timestamps to hours-since-midnight (UTC)
+            var pts = data.map(function(d) {{
+                var t = new Date(d.timestamp);
+                var x = t.getUTCHours() + t.getUTCMinutes() / 60;
+                return {{x: x, exp: d.exposure_s, bright: d.avg_brightness}};
+            }}).filter(function(d) {{ return d.exp !== null && d.exp > 0; }});
+
+            var brightPts = data.map(function(d) {{
+                var t = new Date(d.timestamp);
+                return {{x: t.getUTCHours() + t.getUTCMinutes() / 60, bright: d.avg_brightness}};
+            }});
+
+            var xMin = 0, xMax = 24;
+
+            // Log10 exposure range
+            var expMin = Math.log10(0.001);  // 1ms floor
+            var expMax = Math.log10(Math.max.apply(null, pts.map(function(d) {{ return d.exp; }})));
+            expMax = Math.max(expMax, Math.log10(10));  // at least up to 10s
+
+            function xPos(hh) {{ return pad.left + cw * (hh - xMin) / (xMax - xMin); }}
+            function yPosExp(e) {{
+                var le = Math.log10(Math.max(e, 0.0001));
+                return pad.top + ch - ch * (le - expMin) / (expMax - expMin);
+            }}
+            function yPosBright(b) {{ return pad.top + ch - ch * b / 255; }}
+
+            // Axes box
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top);
+            ctx.lineTo(pad.left, pad.top + ch);
+            ctx.lineTo(pad.left + cw, pad.top + ch);
+            ctx.lineTo(pad.left + cw, pad.top);
+            ctx.stroke();
+
+            // Left Y axis: log exposure ticks
+            var expTicks = [0.001, 0.01, 0.1, 1, 5, 10, 30, 60];
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#4a9eff';
+            ctx.textAlign = 'right';
+            expTicks.forEach(function(v) {{
+                var lv = Math.log10(v);
+                if (lv < expMin || lv > expMax) return;
+                var y = yPosExp(v);
+                var label = v < 1 ? v.toString() + 's' : v + 's';
+                ctx.fillText(label, pad.left - 5, y + 4);
+                ctx.strokeStyle = '#333';
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(pad.left + cw, y);
+                ctx.stroke();
+            }});
+
+            // Right Y axis: brightness (0-255)
+            ctx.fillStyle = '#FF9500';
+            ctx.textAlign = 'left';
+            [0, 64, 128, 192, 255].forEach(function(v) {{
+                var y = yPosBright(v);
+                ctx.fillText(v, pad.left + cw + 5, y + 4);
+            }});
+
+            // X axis: hourly labels
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'center';
+            for (var h = 0; h <= 24; h += 2) {{
+                var x = xPos(h);
+                ctx.fillText(String(h).padStart(2,'0') + ':00', x, pad.top + ch + 18);
+                if (h > 0 && h < 24) {{
+                    ctx.strokeStyle = '#2a2a2a';
+                    ctx.beginPath();
+                    ctx.moveTo(x, pad.top);
+                    ctx.lineTo(x, pad.top + ch);
+                    ctx.stroke();
+                }}
+            }}
+
+            // Plot brightness (orange, right axis)
+            if (brightPts.length >= 2) {{
+                ctx.strokeStyle = '#FF9500';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                brightPts.forEach(function(d, i) {{
+                    var x = xPos(d.x), y = yPosBright(d.bright);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }});
+                ctx.stroke();
+                ctx.fillStyle = '#FF9500';
+                brightPts.forEach(function(d) {{
+                    ctx.beginPath(); ctx.arc(xPos(d.x), yPosBright(d.bright), 3, 0, Math.PI*2); ctx.fill();
+                }});
+            }}
+
+            // Plot exposure (blue, left log axis)
+            if (pts.length >= 2) {{
+                ctx.strokeStyle = '#4a9eff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                pts.forEach(function(d, i) {{
+                    var x = xPos(d.x), y = yPosExp(d.exp);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }});
+                ctx.stroke();
+                ctx.fillStyle = '#4a9eff';
+                pts.forEach(function(d) {{
+                    ctx.beginPath(); ctx.arc(xPos(d.x), yPosExp(d.exp), 3, 0, Math.PI*2); ctx.fill();
+                }});
+            }}
+
+            // Legend
+            ctx.font = '11px sans-serif';
+            var lx = pad.left + 8, ly = pad.top + 13;
+            ctx.fillStyle = '#4a9eff'; ctx.fillRect(lx, ly - 4, 12, 3);
+            ctx.textAlign = 'left'; ctx.fillText('Exposure (log)', lx + 16, ly);
+            ctx.fillStyle = '#FF9500'; ctx.fillRect(lx + 130, ly - 4, 12, 3);
+            ctx.fillText('Avg brightness', lx + 146, ly);
+        }})();
+        }});
+        </script>'''
+
     return f'''
         <title>{camera_name} - {day_label}</title>
         {_GALLERY_STYLE}
@@ -161,6 +311,7 @@ def render_gallery_day(camera_name, day_str, images, *, page, total_pages, total
         <div class="zoom-out"><a href="{gallery_path}?week={week_iso}">This week &rarr;</a></div>
         <h1>{day_label}</h1>
         <div class="subtitle">{total_images} image{"s" if total_images != 1 else ""}</div>
+        {chart_html}
         {pagination}
         <div class="gallery">{thumbs}</div>
         {pagination}'''
