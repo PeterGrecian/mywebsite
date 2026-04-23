@@ -51,15 +51,16 @@ echo "aws logs tail /aws/lambda/$fn --follow"
 # Purge cached static routes from Cloudflare edge
 echo "Purging Cloudflare cache for static routes..."
 CF_KEY=$(aws ssm get-parameter --name /cloudflare/global-api-key --with-decryption --query Parameter.Value --output text --region eu-west-1 2>/dev/null)
+CF_EMAIL="peter.grecian@gmail.com"
 if [ -n "$CF_KEY" ]; then
   CF_ZONE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=petergrecian.co.uk" \
-    -H "Authorization: Bearer $CF_KEY" -H "Content-Type: application/json" \
+    -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])" 2>/dev/null)
   if [ -n "$CF_ZONE" ]; then
     curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/purge_cache" \
-      -H "Authorization: Bearer $CF_KEY" -H "Content-Type: application/json" \
-      --data '{"files":["https://www.petergrecian.co.uk/cv","https://www.petergrecian.co.uk/gitinfo","https://www.petergrecian.co.uk/robots.txt","https://www.petergrecian.co.uk/contents"]}' \
-      | python3 -c "import sys,json; r=json.load(sys.stdin); print('Cache purged' if r.get('success') else f'Purge failed: {r}')"
+      -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json" \
+      --data '{"purge_everything":true}' \
+      | python3 -c "import sys,json; r=json.load(sys.stdin); print('Cache purged (everything)' if r.get('success') else f'Purge failed: {r}')"
   else
     echo "WARNING: Could not resolve Cloudflare zone ID — skipping cache purge"
   fi
