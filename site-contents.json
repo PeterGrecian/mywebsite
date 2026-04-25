@@ -1,6 +1,5 @@
 [
   {"path": "cv", "title": "CV / Curriculum Vitae", "description": "professional experience and skills", "color": "pastel-lavender", "sort_order": 1, "visible": false},
-  {"path": "claude-usage", "title": "Claude Usage", "description": "claude pro quota — 5h and 7d consumption rate", "color": "pastel-lavender", "sort_order": 0, "visible": true},
   {"path": "gardencam", "title": "Garden Camera", "description": "latest images from the garden", "color": "pastel-mint", "sort_order": 2, "visible": true, "auth_required": true},
   {"path": "springcam", "title": "Spring Camera", "description": "spring timelapse — every 20 minutes", "color": "pastel-green", "sort_order": 3, "visible": true, "auth_required": true},
   {"path": "pi-fleet", "title": "Pi Fleet Status", "description": "raspberry pi monitoring dashboard", "color": "pastel-peach", "sort_order": 4, "visible": true},

@@ -120,11 +120,6 @@ resource "aws_iam_role_policy" "ssm_parameters" {
       },
       {
         Effect = "Allow"
-        Action = "ssm:PutParameter"
-        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/berrylands/claude-oauth"
-      },
-      {
-        Effect = "Allow"
         Action = [
           "ssm:GetParameter",
           "ssm:PutParameter"

@@ -2241,27 +2241,6 @@ def compute_provider_health(usage):
     return by_provider
 
 
-def _render_usage_bar(label, sublabel, value, limit, color="var(--accent)"):
-    from routes.claude_usage import _render_usage_bar as _f
-    return _f(label, sublabel, value, limit, color)
-
-
-def _render_usage_meter(usage):
-    from routes.claude_usage import _render_usage_meter as _f
-    return _f(usage)
-
-
-def fetch_claude_quota():
-    from routes.claude_usage import fetch_claude_quota as _f
-    return _f()
-
-
-def render_claude_usage_page(quota):
-    from routes.claude_usage import _init_config, render_claude_usage_page as _f
-    _init_config(AI_APPS, AI_PROVIDERS, MODEL_PRICING)
-    return _f(quota, theme_css_js=THEME_CSS_JS)
-
-
 def render_ai_config_page(configs, usage=None, message=None, chain=None, health=None):
     from routes.claude_usage import _init_config, render_ai_config_page as _f
     _init_config(AI_APPS, AI_PROVIDERS, MODEL_PRICING)
@@ -2327,7 +2306,6 @@ def lambda_handler(event, context):
                 'Disallow: /rcr\n'
                 'Disallow: /us-vs-the-machines\n'
                 'Disallow: /ai-config\n'
-                'Disallow: /claude-usage\n'
             )
         }
 
@@ -3202,14 +3180,6 @@ def lambda_handler(event, context):
                 'Content-Type': 'text/html; charset=utf-8',
                 'Cache-Control': 'no-store',
             }
-        }
-
-    elif path == f'/{stage}/claude-usage' or path == '/claude-usage':
-        quota = fetch_claude_quota()
-        return {
-            'statusCode': 200,
-            'body': render_claude_usage_page(quota),
-            'headers': {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'},
         }
 
     elif path == f'/{stage}/pi-fleet' or path == '/pi-fleet':
