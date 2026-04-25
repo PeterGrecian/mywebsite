@@ -2179,6 +2179,68 @@ def set_ai_config(app_key, provider, model):
     )
 
 
+def get_failover_chain():
+    """Read the global failover chain from SSM. Returns a list of {provider, model} dicts."""
+    ssm = boto3.client("ssm", region_name="eu-west-1")
+    try:
+        resp = ssm.get_parameter(Name="/ai-config/failover-chain")
+        return json.loads(resp["Parameter"]["Value"]).get("chain", [])
+    except ssm.exceptions.ParameterNotFound:
+        return []
+    except Exception as e:
+        print(f"SSM get_failover_chain failed: {e}")
+        return []
+
+
+def set_failover_chain(chain):
+    """Write the global failover chain. chain is a list of {provider, model} dicts."""
+    ssm = boto3.client("ssm", region_name="eu-west-1")
+    ssm.put_parameter(
+        Name="/ai-config/failover-chain",
+        Value=json.dumps({"chain": chain}),
+        Type="String",
+        Overwrite=True,
+    )
+
+
+def compute_provider_health(usage):
+    """Per-provider health derived from recent call history.
+
+    Returns {provider_key: {status, last_success, last_error, error_msg, recent_n, recent_failures}}.
+    status is one of: ok, degraded, failing, unknown.
+    """
+    by_provider = {}
+    recent = (usage or {}).get("recent", [])
+    for prov in AI_PROVIDERS:
+        pk = prov["key"]
+        prov_calls = [c for c in recent if c["provider"] == pk]
+        if not prov_calls:
+            by_provider[pk] = {"status": "unknown", "last_success": None,
+                               "last_error": None, "error_msg": None,
+                               "recent_n": 0, "recent_failures": 0}
+            continue
+        # recent already sorted newest-first by get_ai_usage
+        last_success = next((c for c in prov_calls if not c.get("error")), None)
+        last_error = next((c for c in prov_calls if c.get("error")), None)
+        sample = prov_calls[:10]
+        failures = sum(1 for c in sample if c.get("error"))
+        if failures == 0:
+            status = "ok"
+        elif failures >= len(sample):
+            status = "failing"
+        else:
+            status = "degraded"
+        by_provider[pk] = {
+            "status": status,
+            "last_success": last_success["ts"] if last_success else None,
+            "last_error": last_error["ts"] if last_error else None,
+            "error_msg": last_error["error"] if last_error else None,
+            "recent_n": len(sample),
+            "recent_failures": failures,
+        }
+    return by_provider
+
+
 def _render_usage_bar(label, sublabel, value, limit, color="var(--accent)"):
     from routes.claude_usage import _render_usage_bar as _f
     return _f(label, sublabel, value, limit, color)
@@ -2200,11 +2262,12 @@ def render_claude_usage_page(quota):
     return _f(quota, theme_css_js=THEME_CSS_JS)
 
 
-def render_ai_config_page(configs, usage=None, message=None):
+def render_ai_config_page(configs, usage=None, message=None, chain=None, health=None):
     from routes.claude_usage import _init_config, render_ai_config_page as _f
     _init_config(AI_APPS, AI_PROVIDERS, MODEL_PRICING)
     return _f(configs, usage=usage, message=message, theme_css_js=THEME_CSS_JS,
-              ai_apps=AI_APPS, ai_providers=AI_PROVIDERS)
+              ai_apps=AI_APPS, ai_providers=AI_PROVIDERS,
+              chain=chain or [], health=health or {})
 
 def lambda_handler(event, context):
     import time
@@ -3092,34 +3155,49 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/ai-config' or path == '/ai-config':
         # AI Configuration Matrix
         method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
+        message = None
         if method == 'POST':
             body = event.get('body', '')
             if event.get('isBase64Encoded'):
                 body = base64.b64decode(body).decode()
             params = dict(p.split('=', 1) for p in body.split('&') if '=' in p)
-            app_key = urllib.parse.unquote_plus(params.get('app', ''))
-            provider = urllib.parse.unquote_plus(params.get('provider', ''))
-            model = urllib.parse.unquote_plus(params.get('model', ''))
-            valid_apps = [a['key'] for a in AI_APPS]
+            action = urllib.parse.unquote_plus(params.get('action', 'set'))
             valid_providers = [p['key'] for p in AI_PROVIDERS]
-            print(f"ai-config POST body={body!r} app={app_key!r} provider={provider!r} model={model!r} valid={app_key in valid_apps and provider in valid_providers}")
-            if app_key in valid_apps and provider in valid_providers:
-                set_ai_config(app_key, provider, model)
-                print(f"ai-config SSM written: {app_key} -> {provider}/{model}")
-                configs = get_ai_configs()
-                app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
-                prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
-                usage = get_ai_usage()
-                return {
-                    'statusCode': 200,
-                    'body': render_ai_config_page(configs, usage, f"{app_name} switched to {prov_name}"),
-                    'headers': {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'}
-                }
+
+            if action == 'reorder':
+                # Comma-separated provider keys, in the new order
+                order = urllib.parse.unquote_plus(params.get('order', ''))
+                keys = [k for k in order.split(',') if k in valid_providers]
+                if keys:
+                    # Preserve the existing model for each provider; default to first model
+                    existing = {e['provider']: e for e in get_failover_chain()}
+                    new_chain = []
+                    for k in keys:
+                        if k in existing:
+                            new_chain.append(existing[k])
+                        else:
+                            prov = next(p for p in AI_PROVIDERS if p['key'] == k)
+                            new_chain.append({"provider": k, "model": prov["models"][0]})
+                    set_failover_chain(new_chain)
+                    message = "Failover chain updated"
+            else:
+                app_key = urllib.parse.unquote_plus(params.get('app', ''))
+                provider = urllib.parse.unquote_plus(params.get('provider', ''))
+                model = urllib.parse.unquote_plus(params.get('model', ''))
+                valid_apps = [a['key'] for a in AI_APPS]
+                if app_key in valid_apps and provider in valid_providers:
+                    set_ai_config(app_key, provider, model)
+                    app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
+                    prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
+                    message = f"{app_name} switched to {prov_name}"
+
         configs = get_ai_configs()
         usage = get_ai_usage()
+        chain = get_failover_chain()
+        health = compute_provider_health(usage)
         return {
             'statusCode': 200,
-            'body': render_ai_config_page(configs, usage),
+            'body': render_ai_config_page(configs, usage, message, chain, health),
             'headers': {
                 'Content-Type': 'text/html; charset=utf-8',
                 'Cache-Control': 'no-store',

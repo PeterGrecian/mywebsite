@@ -389,11 +389,84 @@ document.addEventListener('DOMContentLoaded',function(){{
 </html>'''
 
 
-def render_ai_config_page(configs, usage=None, message=None, *, theme_css_js, ai_apps=None, ai_providers=None):
+_STATUS_COLOR = {
+    "ok":       ("#34C759", "OK"),
+    "degraded": ("#FF9500", "DEGRADED"),
+    "failing":  ("#FF3B30", "FAILING"),
+    "unknown":  ("#8E8E93", "—"),
+}
+
+
+def _render_failover_chain(chain, providers, health):
+    """Render the global failover chain editor with per-provider status pills."""
+    provider_by_key = {p["key"]: p for p in providers}
+
+    # Order: chain entries first, then any providers not yet in the chain
+    chain_keys = [e["provider"] for e in chain if e.get("provider") in provider_by_key]
+    extras = [p["key"] for p in providers if p["key"] not in chain_keys]
+    ordered = chain_keys + extras
+
+    rows = ""
+    for i, key in enumerate(ordered):
+        prov = provider_by_key[key]
+        h = health.get(key, {"status": "unknown", "error_msg": None,
+                             "recent_n": 0, "recent_failures": 0, "last_error": None})
+        color, label = _STATUS_COLOR.get(h["status"], _STATUS_COLOR["unknown"])
+        in_chain = key in chain_keys
+        position_label = f"#{chain_keys.index(key)+1}" if in_chain else "off"
+
+        recent_summary = ""
+        if h["recent_n"]:
+            recent_summary = f"{h['recent_n'] - h['recent_failures']}/{h['recent_n']} ok"
+        error_excerpt = ""
+        if h["error_msg"]:
+            err = h["error_msg"][:60]
+            error_excerpt = f'<div style="color:var(--error);font-size:0.5rem;margin-top:0.15rem;">{err}</div>'
+
+        # Up/down/toggle buttons
+        up_disabled = "disabled" if (not in_chain or chain_keys.index(key) == 0) else ""
+        down_disabled = "disabled" if (not in_chain or chain_keys.index(key) == len(chain_keys) - 1) else ""
+        toggle_label = "Remove" if in_chain else "Add"
+
+        rows += f'''<tr data-key="{key}" data-in-chain="{'1' if in_chain else '0'}" style="border-top:1px solid var(--divider);">
+            <td style="padding:0.4rem;font-size:0.6rem;color:var(--text-secondary);width:2rem;">{position_label}</td>
+            <td style="padding:0.4rem;font-size:0.7rem;color:var(--text);font-weight:600;">{prov['name']}</td>
+            <td style="padding:0.4rem;">
+                <span style="background:{color};color:#fff;padding:0.1rem 0.4rem;border-radius:8px;font-size:0.5rem;font-weight:600;">{label}</span>
+                <span style="color:var(--text-secondary);font-size:0.55rem;margin-left:0.4rem;">{recent_summary}</span>
+                {error_excerpt}
+            </td>
+            <td style="padding:0.4rem;text-align:right;white-space:nowrap;">
+                <button type="button" onclick="moveChain('{key}',-1)" {up_disabled}
+                    style="background:var(--card-bg);color:var(--text);border:1px solid var(--divider);border-radius:4px;padding:0.15rem 0.4rem;font-size:0.6rem;cursor:pointer;margin-right:0.2rem;">▲</button>
+                <button type="button" onclick="moveChain('{key}',1)" {down_disabled}
+                    style="background:var(--card-bg);color:var(--text);border:1px solid var(--divider);border-radius:4px;padding:0.15rem 0.4rem;font-size:0.6rem;cursor:pointer;margin-right:0.4rem;">▼</button>
+                <button type="button" onclick="toggleChain('{key}')"
+                    style="background:var(--card-bg);color:var(--text-secondary);border:1px solid var(--divider);border-radius:4px;padding:0.15rem 0.4rem;font-size:0.55rem;cursor:pointer;">{toggle_label}</button>
+            </td>
+        </tr>'''
+
+    return f'''<hr style="border:none;border-top:1px solid var(--divider);margin:1.2rem 0;">
+    <h2 style="font-size:0.8rem;font-weight:600;margin:0 0 0.4rem 0;">Failover chain</h2>
+    <div style="font-size:0.55rem;color:var(--text-secondary);margin-bottom:0.6rem;">
+        Each app tries its preferred provider first, then walks this chain on failure.
+    </div>
+    <table id="chain-table" style="width:100%;border-collapse:collapse;">
+        <tbody>{rows}</tbody>
+    </table>'''
+
+
+def render_ai_config_page(configs, usage=None, message=None, *, theme_css_js,
+                          ai_apps=None, ai_providers=None,
+                          chain=None, health=None):
     """Render the AI configuration matrix page with usage meter."""
     apps = ai_apps or _AI_APPS
     providers = ai_providers or _AI_PROVIDERS
+    chain = chain or []
+    health = health or {}
     msg_html = ""
+    if message:
+        msg_html = f'<div style="background:var(--card-bg);border:1px solid var(--accent);color:var(--accent);padding:0.5rem;border-radius:6px;margin-bottom:0.8rem;font-size:0.7rem;text-align:center;">{message}</div>'
 
     # Build the matrix rows
     rows = ""
@@ -442,6 +515,15 @@ def render_ai_config_page(configs, usage=None, message=None, *, theme_css_js, ai
             {cells}
         </tr>'''
 
+    # Provider column headers (auto-generated from providers list)
+    provider_headers = "".join(
+        f'<th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">{p["name"]}</th>'
+        for p in providers
+    )
+
+    # Failover chain section
+    chain_html = _render_failover_chain(chain, providers, health)
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -467,15 +549,14 @@ def render_ai_config_page(configs, usage=None, message=None, *, theme_css_js, ai
             <thead>
                 <tr>
                     <th style="text-align:left;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">App</th>
-                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Gemini</th>
-                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">OpenAI</th>
-                    <th style="text-align:center;padding:0.3rem;color:var(--text-secondary);font-size:0.55rem;font-weight:500;">Bedrock</th>
+                    {provider_headers}
                 </tr>
             </thead>
             <tbody>
                 {rows}
             </tbody>
         </table>
+        {chain_html}
         <hr style="border:none;border-top:1px solid var(--divider);margin:1.2rem 0;">
         {_render_usage_meter(usage)}
     </div>
@@ -503,6 +584,46 @@ function submitAiConfig(form, select) {{
     fetch('/ai-config', {{method: 'POST', body: new URLSearchParams(data)}})
         .then(function(r) {{ if (r.ok) window.location.reload(); }})
         .catch(function(err) {{ console.error('ai-config POST failed:', err); }});
+}}
+
+function _currentChainKeys() {{
+    var rows = document.querySelectorAll('#chain-table tr[data-in-chain="1"]');
+    return Array.from(rows).map(function(r) {{ return r.dataset.key; }});
+}}
+
+function _allKeysInDomOrder() {{
+    var rows = document.querySelectorAll('#chain-table tr[data-key]');
+    return Array.from(rows).map(function(r) {{ return r.dataset.key; }});
+}}
+
+function _postChain(orderArr) {{
+    var data = new URLSearchParams();
+    data.set('action', 'reorder');
+    data.set('order', orderArr.join(','));
+    fetch('/ai-config', {{method: 'POST', body: data}})
+        .then(function(r) {{ if (r.ok) window.location.reload(); }})
+        .catch(function(err) {{ console.error('chain POST failed:', err); }});
+}}
+
+function moveChain(key, delta) {{
+    var keys = _currentChainKeys();
+    var i = keys.indexOf(key);
+    if (i < 0) return;
+    var j = i + delta;
+    if (j < 0 || j >= keys.length) return;
+    var tmp = keys[i]; keys[i] = keys[j]; keys[j] = tmp;
+    _postChain(keys);
+}}
+
+function toggleChain(key) {{
+    var keys = _currentChainKeys();
+    var i = keys.indexOf(key);
+    if (i >= 0) {{
+        keys.splice(i, 1);
+    }} else {{
+        keys.push(key);
+    }}
+    _postChain(keys);
 }}
 </script>
 </body>
