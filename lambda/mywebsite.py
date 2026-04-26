@@ -2025,6 +2025,12 @@ def render_gotg_page():
     return _render(theme_css_js=THEME_CSS_JS)
 
 
+def render_manim_page():
+    """Render Manim animations page — delegated to routes/manim.py."""
+    from routes.manim import render_manim_page as _render
+    return _render(theme_css_js=THEME_CSS_JS)
+
+
 def render_site_test_page():
     """Render the site test page — delegated to template."""
     _dir = os.path.join(os.path.dirname(__file__), "templates")
@@ -3127,6 +3133,13 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'body': render_gotg_page(),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif path == f'/{stage}/manim' or path == '/manim':
+        return {
+            'statusCode': 200,
+            'body': render_manim_page(),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 

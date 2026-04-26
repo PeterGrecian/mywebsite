@@ -49,6 +49,8 @@ aws lambda update-function-configuration --function-name $fn \
 echo "aws logs tail /aws/lambda/$fn --follow"
 
 # Purge cached static routes from Cloudflare edge
+# Disable command tracing here so the API key never appears in logs.
+set +x
 echo "Purging Cloudflare cache for static routes..."
 CF_KEY=$(aws ssm get-parameter --name /cloudflare/global-api-key --with-decryption --query Parameter.Value --output text --region eu-west-1 2>/dev/null)
 CF_EMAIL="peter.grecian@gmail.com"
@@ -67,6 +69,7 @@ if [ -n "$CF_KEY" ]; then
 else
   echo "WARNING: No Cloudflare API key in SSM — skipping cache purge"
 fi
+set -x
 
 # Cleanup
 rm mywebsite.zip

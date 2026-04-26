@@ -12,5 +12,6 @@
   {"path": "us-vs-the-machines", "title": "Us vs the Machines", "description": "predict F1 results — humans vs AI", "color": "pastel-peach", "sort_order": 11, "visible": true},
   {"path": "betterverse", "external_url": "https://192.168.7.253:8443/?v=13", "title": "Betterverse v13", "description": "VR particle demo — Quest 2 + nanoKONTROL2 (LAN only)", "color": "pastel-lavender", "sort_order": 12, "visible": true},
   {"path": "ai-config", "title": "AI Configuration", "description": "choose which AI model to use for each application", "color": "pastel-lavender", "sort_order": 13, "visible": true},
-  {"path": "srfcplus", "title": "SRFC Plus", "description": "surbiton racket & fitness club — bookings", "color": "pastel-blue", "sort_order": 14, "visible": true, "auth_required": true}
+  {"path": "srfcplus", "title": "SRFC Plus", "description": "surbiton racket & fitness club — bookings", "color": "pastel-blue", "sort_order": 14, "visible": true, "auth_required": true},
+  {"path": "manim", "title": "Manim Animations", "description": "short animated guide to identifying planets and stars", "color": "pastel-mint", "sort_order": 15, "visible": true}
 ]
