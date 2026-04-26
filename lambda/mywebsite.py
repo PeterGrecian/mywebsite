@@ -2739,8 +2739,11 @@ def lambda_handler(event, context):
 
         images = get_latest_gardencam_images(3)
         if images:
-            from routes.gardencam import _init_theme, render_gardencam_main, render_gardencam_main_card
+            from routes.gardencam import (_init_theme, render_gardencam_main,
+                                           render_gardencam_main_card,
+                                           build_cloudcam_poc_banner)
             _init_theme(THEME_CSS_JS)
+            poc_banner = build_cloudcam_poc_banner()
 
             labels = ['Latest', 'Previous', 'Earlier']
             image_cards = ''
@@ -2760,7 +2763,7 @@ def lambda_handler(event, context):
                     label, img['key'], img['url'], img['timestamp'],
                     time_delta, resolution_display, stats_display)
 
-            html += render_gardencam_main(images, image_cards)
+            html += render_gardencam_main(images, image_cards, poc_banner)
         else:
             return {
                 'statusCode': 502,

@@ -544,7 +544,66 @@ def render_gallery_images_header(day_param, week_param, prev_link, next_link):
                 '''
 
 
-def render_gardencam_main(images, image_cards):
+def build_cloudcam_poc_banner():
+    """Presign and return HTML for the cloudcam timelapse POC banner.
+    Lists today's hourly + day-concat rerender MP4s from skycam/rerender/."""
+    import boto3
+    from datetime import datetime, timezone
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = "gardencam-berrylands-eu-west-1"
+    d = datetime.now(timezone.utc)
+    prefix = f"skycam/rerender/{d.strftime('%Y/%m/%d')}/"
+    try:
+        resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+    except Exception:
+        return ""
+    contents = resp.get("Contents", [])
+    if not contents:
+        return ""
+    day_key = None
+    hourly = []
+    for obj in contents:
+        k = obj["Key"]
+        if not k.endswith("_rerender.mp4"):
+            continue
+        name = k.rsplit("/", 1)[-1]
+        # day concat: sky_YYYYMMDD_rerender.mp4 (no hour segment)
+        stem = name[:-len("_rerender.mp4")]
+        parts = stem.split("_")
+        if len(parts) == 2:
+            day_key = k
+        elif len(parts) == 3:
+            hourly.append((parts[2], k))
+    hourly.sort()
+
+    def presign(k):
+        return s3.generate_presigned_url(
+            "get_object", Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
+
+    parts_html = []
+    if day_key:
+        parts_html.append(
+            f'<a href="{presign(day_key)}" class="gallery-link" '
+            f'style="background: var(--accent); color: white;">▶ Whole day</a>')
+    for hh, k in hourly:
+        parts_html.append(
+            f'<a href="{presign(k)}" class="gallery-link" '
+            f'style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">{hh}:00</a>')
+    if not parts_html:
+        return ""
+    return (
+        '<div style="background: var(--card-bg); border: 1px solid var(--divider); '
+        'border-radius: 12px; padding: 1rem; margin-bottom: 1rem; max-width: 900px; '
+        'margin-left: auto; margin-right: auto;">'
+        '<div style="color: var(--text-secondary); font-size: 0.9rem; '
+        'margin-bottom: 0.5rem;">Cloudcam timelapse POC '
+        f'({d.strftime("%Y-%m-%d")} UTC, links expire 1h)</div>'
+        '<div style="display: flex; flex-wrap: wrap; gap: 0.4rem; '
+        'justify-content: center;">' + "".join(parts_html) + '</div></div>'
+    )
+
+
+def render_gardencam_main(images, image_cards, poc_banner_html=""):
     """Render the main gardencam page with latest images."""
     return f'''\
 {_THEME_CSS_JS}
@@ -575,6 +634,7 @@ def render_gardencam_main(images, image_cards):
             <div style="text-align: center; margin-bottom: 1rem;">
                 <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
             </div>
+            {poc_banner_html}
             <h1>Garden Camera</h1>
             <a href="gardencam/gallery" class="gallery-link">View Full Gallery</a>
             <a href="gardencam/stats" class="gallery-link" style="margin-left: 0.5rem;">Capture Stats</a>
