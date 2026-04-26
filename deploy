@@ -48,26 +48,20 @@ aws lambda update-function-configuration --function-name $fn \
   --handler mywebsite.lambda_handler | grep Handler
 echo "aws logs tail /aws/lambda/$fn --follow"
 
-# Purge cached static routes from Cloudflare edge
-# Disable command tracing here so the API key never appears in logs.
+# Purge cached static routes from Cloudflare edge.
+# Uses a scoped API token (Zone.Cache Purge only, scoped to petergrecian.co.uk).
+# Disable command tracing here so the token never appears in logs.
 set +x
-echo "Purging Cloudflare cache for static routes..."
-CF_KEY=$(aws ssm get-parameter --name /cloudflare/global-api-key --with-decryption --query Parameter.Value --output text --region eu-west-1 2>/dev/null)
-CF_EMAIL="peter.grecian@gmail.com"
-if [ -n "$CF_KEY" ]; then
-  CF_ZONE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=petergrecian.co.uk" \
-    -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json" \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['result'][0]['id'])" 2>/dev/null)
-  if [ -n "$CF_ZONE" ]; then
-    curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/purge_cache" \
-      -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json" \
-      --data '{"purge_everything":true}' \
-      | python3 -c "import sys,json; r=json.load(sys.stdin); print('Cache purged (everything)' if r.get('success') else f'Purge failed: {r}')"
-  else
-    echo "WARNING: Could not resolve Cloudflare zone ID — skipping cache purge"
-  fi
+echo "Purging Cloudflare cache..."
+CF_TOKEN=$(~/super/bin/secrets get /cloudflare/purge-token 2>/dev/null)
+CF_ZONE_ID="322ca2637607726fee0c4975d1aed591"  # petergrecian.co.uk
+if [ -n "$CF_TOKEN" ]; then
+  curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
+    -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+    --data '{"purge_everything":true}' \
+    | python3 -c "import sys,json; r=json.load(sys.stdin); print('Cache purged (everything)' if r.get('success') else f'Purge failed: {r}')"
 else
-  echo "WARNING: No Cloudflare API key in SSM — skipping cache purge"
+  echo "WARNING: No Cloudflare purge token — skipping cache purge"
 fi
 set -x
 
