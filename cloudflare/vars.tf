@@ -1,13 +1,7 @@
-variable "cloudflare_api_key" {
-  description = "Cloudflare Global API Key (not token)"
+variable "cloudflare_api_token" {
+  description = "Cloudflare scoped API token (zone-level: DNS, Cache Purge, Zone Settings, WAF)"
   type        = string
   sensitive   = true
-}
-
-variable "cloudflare_email" {
-  description = "Email associated with Cloudflare account"
-  type        = string
-  default     = "peter.grecian@gmail.com"
 }
 
 variable "cloudflare_account_id" {

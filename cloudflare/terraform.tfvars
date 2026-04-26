@@ -1,5 +1,4 @@
 # Non-secret Cloudflare variables
-cloudflare_email = "peter.grecian@gmail.com"
 domain           = "petergrecian.co.uk"
 api_gw_cname     = "qtm01ybq9k.execute-api.eu-west-1.amazonaws.com"
 
