@@ -671,8 +671,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None):
   </div>
   <div class="controls">
     <button id="rev">◀ Reverse</button>
-    <button id="play">▶ Play</button>
-    <button id="fwd">▶ Forward</button>
+    <button id="pause">❚❚ Pause</button>
+    <button id="fwd" class="active">▶ Forward</button>
     <span class="time" id="time">0.000 / 0.000</span>
     <button data-speed="0.25">¼×</button>
     <button data-speed="0.5">½×</button>
@@ -685,7 +685,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None):
     <button id="loop" class="active">loop: ping-pong</button>
     <button id="share">share</button>
   </div>
-  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse</div>
+  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction</div>
 <script>
 (function() {{
   const v = document.getElementById("v");
@@ -721,45 +721,70 @@ def render_skycam_player(key, in_sec=None, out_sec=None):
     timeEl.textContent = fmt(v.currentTime) + " / " + fmt(D);
   }}
 
-  function step(ts) {{
+  // Forward play uses the native <video> element. Reverse uses a JS
+  // frame-stepper since browsers don't support negative playbackRate for
+  // compressed video. There's exactly one playing-state at a time.
+  let playing = false;
+
+  function setActive(id) {{
+    ["rev", "fwd", "pause"].forEach(x =>
+      document.getElementById(x).classList.toggle("active", x === id));
+  }}
+
+  function reverseStep(ts) {{
     if (lastTs == null) lastTs = ts;
     const dt = (ts - lastTs) / 1000;
     lastTs = ts;
-    let t = v.currentTime + dir * speed * dt;
-    if (t >= hi()) {{
-      if (loopMode === "pingpong") {{ t = hi(); dir = -1; }}
-      else if (loopMode === "loop") {{ t = lo(); }}
-      else {{ t = hi(); cancelAnimationFrame(rafId); rafId = null; lastTs = null; v.pause(); repaint(); return; }}
-    }} else if (t <= lo()) {{
-      if (loopMode === "pingpong") {{ t = lo(); dir = 1; }}
+    let t = v.currentTime - speed * dt;
+    if (t <= lo()) {{
+      if (loopMode === "pingpong") {{ v.currentTime = lo(); pause(); playForward(); return; }}
       else if (loopMode === "loop") {{ t = hi(); }}
-      else {{ t = lo(); cancelAnimationFrame(rafId); rafId = null; lastTs = null; v.pause(); repaint(); return; }}
+      else {{ v.currentTime = lo(); pause(); return; }}
     }}
     v.currentTime = t;
-    repaint();
-    rafId = requestAnimationFrame(step);
+    rafId = requestAnimationFrame(reverseStep);
   }}
 
-  function play() {{
-    if (rafId != null) return;
-    if (dir > 0 && v.currentTime >= hi() - 0.001) v.currentTime = lo();
-    if (dir < 0 && v.currentTime <= lo() + 0.001) v.currentTime = hi();
+  function playForward() {{
+    pause();
+    dir = 1;
+    if (v.currentTime >= hi() - 0.001) v.currentTime = lo();
+    v.playbackRate = speed;
+    v.play().catch(() => {{}});
+    playing = true;
+    setActive("fwd");
+  }}
+  function playReverse() {{
+    pause();
+    dir = -1;
+    if (v.currentTime <= lo() + 0.001) v.currentTime = hi();
     lastTs = null;
-    rafId = requestAnimationFrame(step);
+    rafId = requestAnimationFrame(reverseStep);
+    playing = true;
+    setActive("rev");
   }}
   function pause() {{
-    if (rafId != null) {{ cancelAnimationFrame(rafId); rafId = null; lastTs = null; }}
+    v.pause();
+    if (rafId != null) {{ cancelAnimationFrame(rafId); rafId = null; }}
+    lastTs = null;
+    playing = false;
+    setActive("pause");
   }}
-  function toggle() {{ rafId == null ? play() : pause(); }}
+  function toggle() {{
+    if (playing) pause();
+    else if (dir < 0) playReverse();
+    else playForward();
+  }}
 
-  document.getElementById("play").onclick = toggle;
-  document.getElementById("rev").onclick  = () => {{ dir = -1; play(); }};
-  document.getElementById("fwd").onclick  = () => {{ dir =  1; play(); }};
+  document.getElementById("pause").onclick = pause;
+  document.getElementById("rev").onclick   = playReverse;
+  document.getElementById("fwd").onclick   = playForward;
   document.querySelectorAll("[data-speed]").forEach(b => {{
     b.onclick = () => {{
       speed = parseFloat(b.dataset.speed);
       document.querySelectorAll("[data-speed]").forEach(x => x.classList.remove("active"));
       b.classList.add("active");
+      if (playing && dir > 0) v.playbackRate = speed;
     }};
   }});
   document.getElementById("setIn").onclick  = () => {{ inPt  = v.currentTime; if (outPt != null && inPt > outPt) outPt = null; repaint(); }};
@@ -795,7 +820,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None):
     else if (e.key === "[") document.getElementById("setIn").click();
     else if (e.key === "]") document.getElementById("setOut").click();
     else if (e.key === "l" || e.key === "L") document.getElementById("loop").click();
-    else if (e.key === "r" || e.key === "R") {{ dir = -dir; play(); }}
+    else if (e.key === "r" || e.key === "R") {{ if (dir > 0) playReverse(); else playForward(); }}
   }});
 
   v.addEventListener("loadedmetadata", () => {{
@@ -804,7 +829,16 @@ def render_skycam_player(key, in_sec=None, out_sec=None):
     if (inPt != null) v.currentTime = inPt;
     repaint();
   }});
-  v.addEventListener("timeupdate", repaint);
+
+  // Enforce the out-marker / loop mode during native forward play.
+  v.addEventListener("timeupdate", () => {{
+    repaint();
+    if (playing && dir > 0 && v.currentTime >= hi() - 0.01) {{
+      if (loopMode === "pingpong") {{ v.currentTime = hi(); pause(); playReverse(); }}
+      else if (loopMode === "loop") {{ v.currentTime = lo(); }}
+      else {{ pause(); v.currentTime = hi(); }}
+    }}
+  }});
 }})();
 </script>
 </body></html>'''

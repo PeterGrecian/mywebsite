@@ -537,6 +537,52 @@ def get_image_dimensions(s3_client, key):
         return None
 
 
+def get_latest_skycam_images(count=3):
+    """Get presigned URLs for the latest N skycam hourly stills.
+
+    Skycam-only — points at the sky, no privacy concern. Keys are of the form
+    skycam/YYYY/MM/DD/sky_YYYYMMDD_HHMMSS.jpg. Returns newest first.
+    """
+    if not BOTO3_AVAILABLE:
+        return []
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    objs = []
+    for back in range(7):
+        d = (datetime.utcnow() - timedelta(days=back))
+        prefix = f"skycam/{d.strftime('%Y/%m/%d')}/"
+        try:
+            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
+        except Exception:
+            continue
+        for o in resp.get("Contents", []):
+            k = o["Key"]
+            name = k.rsplit("/", 1)[-1]
+            if name.startswith("sky_") and name.endswith(".jpg") and "_stacked" not in name:
+                objs.append(o)
+        if len(objs) >= count:
+            break
+    objs.sort(key=lambda x: x["Key"], reverse=True)
+    images = []
+    for o in objs[:count]:
+        k = o["Key"]
+        name = k.rsplit("/", 1)[-1]
+        ts_part = name[len("sky_"):-len(".jpg")]
+        try:
+            ts = datetime.strptime(ts_part, "%Y%m%d_%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            ts = o["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        url = get_presigned_url(k)
+        images.append({
+            'url': url,
+            'full_url': url,
+            'timestamp': ts,
+            'key': k,
+            'resolution': '',
+            'stats_display': '',
+        })
+    return images
+
+
 def get_latest_gardencam_images(count=3):
     """Get presigned URLs for the latest N images from S3.
 
@@ -2755,7 +2801,7 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path == f'/{stage}/skycam' or path == '/skycam':
-        images = get_latest_gardencam_images(3)
+        images = get_latest_skycam_images(3)
         if images:
             from routes.gardencam import (_init_theme, render_gardencam_main,
                                            render_gardencam_main_card,
