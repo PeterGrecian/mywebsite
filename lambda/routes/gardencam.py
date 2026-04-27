@@ -546,18 +546,26 @@ def render_gallery_images_header(day_param, week_param, prev_link, next_link):
 
 def build_cloudcam_poc_banner():
     """Presign and return HTML for the cloudcam timelapse POC banner.
-    Lists today's hourly + day-concat rerender MP4s from skycam/rerender/."""
+    Lists the most recent day's hourly + day-concat rerender MP4s under
+    skycam/rerender/ (looking back up to 7 days to survive day rollover
+    before that day's rerender has run)."""
     import boto3
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
     s3 = boto3.client("s3", region_name="eu-west-1")
     bucket = "gardencam-berrylands-eu-west-1"
+    contents = []
     d = datetime.now(timezone.utc)
-    prefix = f"skycam/rerender/{d.strftime('%Y/%m/%d')}/"
-    try:
-        resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
-    except Exception:
-        return ""
-    contents = resp.get("Contents", [])
+    for back in range(7):
+        try_d = d - timedelta(days=back)
+        prefix = f"skycam/rerender/{try_d.strftime('%Y/%m/%d')}/"
+        try:
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+        except Exception:
+            return ""
+        contents = resp.get("Contents", [])
+        if contents:
+            d = try_d
+            break
     if not contents:
         return ""
     day_key = None
