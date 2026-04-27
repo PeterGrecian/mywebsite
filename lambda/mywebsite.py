@@ -774,70 +774,6 @@ def skycam_thumb_key(key):
     return f"{folder}/thumb_800px_{basename}"
 
 
-def get_latest_skycam_images(count=3):
-    """Get presigned URLs for the latest N skycam images from S3."""
-    if not BOTO3_AVAILABLE:
-        return []
-
-    import time
-    t0 = time.time()
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
-    all_objects = []
-
-    # Fast path: try last 60 days by date prefix (both old flat and new date-based paths)
-    for days_ago in range(60):
-        date = datetime.utcnow() - timedelta(days=days_ago)
-        for prefix in [f"skycam/{date.strftime('%Y/%m/%d')}/sky_",
-                       f"skycam/sky_{date.strftime('%Y%m%d')}"]:
-            try:
-                response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
-                if "Contents" in response:
-                    all_objects.extend(response["Contents"])
-            except Exception:
-                pass
-        if len(all_objects) >= count * 2:
-            break
-
-    # Fall back to full scan if fast path found nothing
-    if not all_objects:
-        for pfx in [SKYCAM_KEY_PREFIX, "skycam/20"]:
-            paginator = s3.get_paginator('list_objects_v2')
-            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=pfx):
-                if "Contents" in page:
-                    all_objects.extend(page["Contents"])
-
-    if not all_objects:
-        return []
-
-    objects = sorted(
-        [o for o in all_objects if o["Key"].endswith('.jpg')],
-        key=lambda x: x["LastModified"], reverse=True
-    )
-
-    images = []
-    for obj in objects[:count * 4]:
-        key = obj["Key"]
-        thumb_key = skycam_thumb_key(key)
-        # Use thumbnail if it exists, otherwise fall back to full image
-        try:
-            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=thumb_key)
-            thumb_url = get_presigned_url(thumb_key)
-        except Exception:
-            thumb_url = get_presigned_url(key)
-        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
-        images.append({
-            'url': thumb_url,
-            'full_url': get_presigned_url(key),
-            'timestamp': timestamp,
-            'key': key,
-        })
-        if len(images) >= count:
-            break
-
-    print(f"[TIMING] get_latest_skycam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
-    return images
-
-
 _skycam_images_cache = None
 _skycam_images_cache_time = 0
 _SKYCAM_CACHE_TTL = 600  # 10 minutes
@@ -2783,22 +2719,30 @@ def lambda_handler(event, context):
         }
 
     elif path == f'/{stage}/skycam/player' or path == '/skycam/player':
-        from routes.gardencam import _init_theme, render_skycam_player
-        _init_theme(THEME_CSS_JS)
+        # Mint a fresh presigned URL and 302 to the standalone vplay app.
+        # vplay lives in its own repo (~/vplay) and is hosted statically.
+        from urllib.parse import quote, urlencode
+        VPLAY_URL = 'https://www.petergrecian.co.uk/vplay/v0.1.0/'
         qs = event.get('queryStringParameters') or {}
         key = qs.get('key', '')
-        def _f(name):
-            v = qs.get(name)
-            if v in (None, ''): return None
-            try: return float(v)
-            except (TypeError, ValueError): return None
-        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'))
-        if page is None:
+        if not key.startswith('skycam/') or '..' in key:
             return {'statusCode': 400,
                     'body': '<h1>400</h1><p>Invalid key.</p>',
                     'headers': {'Content-Type': 'text/html'}}
-        return {'statusCode': 200, 'body': page,
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+        if not BOTO3_AVAILABLE:
+            return {'statusCode': 500, 'body': 'boto3 unavailable'}
+        s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+        try:
+            src = s3.generate_presigned_url(
+                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
+        except Exception:
+            return {'statusCode': 500, 'body': 'presign failed'}
+        params = {'src': src, 'back': '/skycam', 'title': key.rsplit('/', 1)[-1]}
+        if qs.get('in'):  params['in']  = qs['in']
+        if qs.get('out'): params['out'] = qs['out']
+        target = VPLAY_URL + '?' + urlencode(params, quote_via=quote)
+        return {'statusCode': 302, 'body': '',
+                'headers': {'Location': target, 'Cache-Control': 'no-store'}}
 
     elif path == f'/{stage}/skycam' or path == '/skycam':
         images = get_latest_skycam_images(3)
