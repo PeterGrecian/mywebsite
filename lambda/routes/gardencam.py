@@ -584,18 +584,18 @@ def build_cloudcam_poc_banner():
             hourly.append((parts[2], k))
     hourly.sort()
 
-    def presign(k):
-        return s3.generate_presigned_url(
-            "get_object", Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
+    from urllib.parse import quote
+    def player_url(k):
+        return f"/skycam/player?key={quote(k, safe='')}"
 
     parts_html = []
     if day_key:
         parts_html.append(
-            f'<a href="{presign(day_key)}" class="gallery-link" '
+            f'<a href="{player_url(day_key)}" class="gallery-link" '
             f'style="background: var(--accent); color: white;">▶ Whole day</a>')
     for hh, k in hourly:
         parts_html.append(
-            f'<a href="{presign(k)}" class="gallery-link" '
+            f'<a href="{player_url(k)}" class="gallery-link" '
             f'style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">{hh}:00</a>')
     if not parts_html:
         return ""
@@ -605,10 +605,209 @@ def build_cloudcam_poc_banner():
         'margin-left: auto; margin-right: auto;">'
         '<div style="color: var(--text-secondary); font-size: 0.9rem; '
         'margin-bottom: 0.5rem;">Cloudcam timelapse POC '
-        f'({d.strftime("%Y-%m-%d")} UTC, links expire 1h)</div>'
+        f'({d.strftime("%Y-%m-%d")} UTC)</div>'
         '<div style="display: flex; flex-wrap: wrap; gap: 0.4rem; '
         'justify-content: center;">' + "".join(parts_html) + '</div></div>'
     )
+
+
+def render_skycam_player(key, in_sec=None, out_sec=None):
+    """Render a self-contained custom video player for a skycam/* S3 key.
+    Validates and presigns the key (1h URL); the page itself is permanent
+    and shareable via /skycam/player?key=...&in=...&out=...
+    """
+    import boto3
+    from urllib.parse import quote
+    if not key.startswith("skycam/") or ".." in key:
+        return None
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = "gardencam-berrylands-eu-west-1"
+    try:
+        video_url = s3.generate_presigned_url(
+            "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)
+    except Exception:
+        return None
+
+    title = key.rsplit("/", 1)[-1]
+    in_attr  = f"{in_sec:.3f}"  if in_sec  is not None else "null"
+    out_attr = f"{out_sec:.3f}" if out_sec is not None else "null"
+    share_key = quote(key, safe="")
+
+    return f'''<!doctype html>
+<html lang="en"><head>
+{_THEME_CSS_JS}
+<title>Sky Camera — {title}</title>
+<style>
+  body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+  .top {{ display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }}
+  .top a {{ color: var(--accent); text-decoration: none; }}
+  .filename {{ color: var(--text-secondary); font-size: 0.9rem; }}
+  video {{ width: 100%; max-width: 1200px; display: block; margin: 0 auto; background: #000; border-radius: 8px; }}
+  .controls {{ max-width: 1200px; margin: 0.75rem auto; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: center; }}
+  button, .btn {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
+  button:hover {{ opacity: 0.8; }}
+  button.active {{ background: var(--accent); color: white; }}
+  .scrub {{ max-width: 1200px; margin: 0.5rem auto; position: relative; height: 40px; }}
+  .bar {{ position: absolute; top: 16px; left: 0; right: 0; height: 8px; background: var(--divider); border-radius: 4px; cursor: pointer; }}
+  .play-region {{ position: absolute; top: 16px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; }}
+  .head {{ position: absolute; top: 12px; width: 4px; height: 16px; background: var(--text); border-radius: 2px; transform: translateX(-2px); pointer-events: none; }}
+  .marker {{ position: absolute; top: 8px; width: 2px; height: 24px; background: var(--accent); pointer-events: none; }}
+  .marker::after {{ content: attr(data-label); position: absolute; top: -16px; left: -8px; font-size: 0.7rem; color: var(--accent); }}
+  .time {{ font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 0.9rem; min-width: 9rem; text-align: center; }}
+  .help {{ max-width: 1200px; margin: 0.5rem auto; color: var(--text-secondary); font-size: 0.8rem; text-align: center; }}
+</style>
+</head><body>
+  <div class="top">
+    <a href="/skycam">← Sky Camera</a>
+    <span class="filename">{title}</span>
+  </div>
+  <video id="v" src="{video_url}" preload="auto" playsinline></video>
+  <div class="scrub">
+    <div class="bar" id="bar"></div>
+    <div class="play-region" id="region"></div>
+    <div class="marker" id="markIn"  data-label="in"></div>
+    <div class="marker" id="markOut" data-label="out"></div>
+    <div class="head" id="head"></div>
+  </div>
+  <div class="controls">
+    <button id="rev">◀ Reverse</button>
+    <button id="play">▶ Play</button>
+    <button id="fwd">▶ Forward</button>
+    <span class="time" id="time">0.000 / 0.000</span>
+    <button data-speed="0.25">¼×</button>
+    <button data-speed="0.5">½×</button>
+    <button data-speed="1" class="active">1×</button>
+    <button data-speed="2">2×</button>
+    <button data-speed="4">4×</button>
+    <button id="setIn">[ in</button>
+    <button id="setOut">out ]</button>
+    <button id="clearMarks">clear</button>
+    <button id="loop" class="active">loop: ping-pong</button>
+    <button id="share">share</button>
+  </div>
+  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse</div>
+<script>
+(function() {{
+  const v = document.getElementById("v");
+  const head = document.getElementById("head");
+  const bar  = document.getElementById("bar");
+  const region = document.getElementById("region");
+  const mIn = document.getElementById("markIn");
+  const mOut = document.getElementById("markOut");
+  const timeEl = document.getElementById("time");
+  const FPS = 24;
+  let dir = 1;       // +1 fwd, -1 reverse
+  let speed = 1.0;
+  let inPt  = {in_attr};
+  let outPt = {out_attr};
+  let loopMode = "pingpong";  // "pingpong" | "loop" | "once"
+  let rafId = null;
+  let lastTs = null;
+
+  function dur() {{ return v.duration || 0; }}
+  function lo() {{ return inPt  != null ? inPt  : 0; }}
+  function hi() {{ return outPt != null ? outPt : dur(); }}
+
+  function fmt(t) {{ if (!isFinite(t)) return "—"; return t.toFixed(3) + "s"; }}
+  function repaint() {{
+    const D = dur(); if (!D) return;
+    head.style.left = (v.currentTime / D * 100) + "%";
+    region.style.left  = (lo() / D * 100) + "%";
+    region.style.width = ((hi() - lo()) / D * 100) + "%";
+    mIn.style.display  = inPt  != null ? "block" : "none";
+    mOut.style.display = outPt != null ? "block" : "none";
+    if (inPt  != null) mIn.style.left  = (inPt  / D * 100) + "%";
+    if (outPt != null) mOut.style.left = (outPt / D * 100) + "%";
+    timeEl.textContent = fmt(v.currentTime) + " / " + fmt(D);
+  }}
+
+  function step(ts) {{
+    if (lastTs == null) lastTs = ts;
+    const dt = (ts - lastTs) / 1000;
+    lastTs = ts;
+    let t = v.currentTime + dir * speed * dt;
+    if (t >= hi()) {{
+      if (loopMode === "pingpong") {{ t = hi(); dir = -1; }}
+      else if (loopMode === "loop") {{ t = lo(); }}
+      else {{ t = hi(); cancelAnimationFrame(rafId); rafId = null; lastTs = null; v.pause(); repaint(); return; }}
+    }} else if (t <= lo()) {{
+      if (loopMode === "pingpong") {{ t = lo(); dir = 1; }}
+      else if (loopMode === "loop") {{ t = hi(); }}
+      else {{ t = lo(); cancelAnimationFrame(rafId); rafId = null; lastTs = null; v.pause(); repaint(); return; }}
+    }}
+    v.currentTime = t;
+    repaint();
+    rafId = requestAnimationFrame(step);
+  }}
+
+  function play() {{
+    if (rafId != null) return;
+    if (dir > 0 && v.currentTime >= hi() - 0.001) v.currentTime = lo();
+    if (dir < 0 && v.currentTime <= lo() + 0.001) v.currentTime = hi();
+    lastTs = null;
+    rafId = requestAnimationFrame(step);
+  }}
+  function pause() {{
+    if (rafId != null) {{ cancelAnimationFrame(rafId); rafId = null; lastTs = null; }}
+  }}
+  function toggle() {{ rafId == null ? play() : pause(); }}
+
+  document.getElementById("play").onclick = toggle;
+  document.getElementById("rev").onclick  = () => {{ dir = -1; play(); }};
+  document.getElementById("fwd").onclick  = () => {{ dir =  1; play(); }};
+  document.querySelectorAll("[data-speed]").forEach(b => {{
+    b.onclick = () => {{
+      speed = parseFloat(b.dataset.speed);
+      document.querySelectorAll("[data-speed]").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+    }};
+  }});
+  document.getElementById("setIn").onclick  = () => {{ inPt  = v.currentTime; if (outPt != null && inPt > outPt) outPt = null; repaint(); }};
+  document.getElementById("setOut").onclick = () => {{ outPt = v.currentTime; if (inPt  != null && outPt < inPt) inPt = null;  repaint(); }};
+  document.getElementById("clearMarks").onclick = () => {{ inPt = outPt = null; repaint(); }};
+  document.getElementById("loop").onclick = () => {{
+    loopMode = loopMode === "pingpong" ? "loop" : loopMode === "loop" ? "once" : "pingpong";
+    document.getElementById("loop").textContent = "loop: " + loopMode;
+  }};
+  document.getElementById("share").onclick = () => {{
+    const u = new URL(location.href);
+    if (inPt  != null) u.searchParams.set("in",  inPt.toFixed(3));  else u.searchParams.delete("in");
+    if (outPt != null) u.searchParams.set("out", outPt.toFixed(3)); else u.searchParams.delete("out");
+    history.replaceState(null, "", u);
+    navigator.clipboard?.writeText(u.toString());
+    document.getElementById("share").textContent = "copied";
+    setTimeout(() => document.getElementById("share").textContent = "share", 1200);
+  }};
+
+  bar.onclick = e => {{
+    const r = bar.getBoundingClientRect();
+    v.currentTime = (e.clientX - r.left) / r.width * dur();
+    repaint();
+  }};
+
+  document.addEventListener("keydown", e => {{
+    if (e.target.tagName === "INPUT") return;
+    if (e.code === "Space") {{ e.preventDefault(); toggle(); }}
+    else if (e.code === "ArrowLeft")  {{ pause(); v.currentTime = Math.max(lo(), v.currentTime - 1/FPS); repaint(); }}
+    else if (e.code === "ArrowRight") {{ pause(); v.currentTime = Math.min(hi(), v.currentTime + 1/FPS); repaint(); }}
+    else if (e.key === ",") {{ const speeds=[0.25,0.5,1,2,4]; const i=speeds.indexOf(speed); if (i>0) {{ speed = speeds[i-1]; document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active", parseFloat(b.dataset.speed)===speed)); }} }}
+    else if (e.key === ".") {{ const speeds=[0.25,0.5,1,2,4]; const i=speeds.indexOf(speed); if (i>=0 && i<speeds.length-1) {{ speed = speeds[i+1]; document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active", parseFloat(b.dataset.speed)===speed)); }} }}
+    else if (e.key === "[") document.getElementById("setIn").click();
+    else if (e.key === "]") document.getElementById("setOut").click();
+    else if (e.key === "l" || e.key === "L") document.getElementById("loop").click();
+    else if (e.key === "r" || e.key === "R") {{ dir = -dir; play(); }}
+  }});
+
+  v.addEventListener("loadedmetadata", () => {{
+    if (inPt  != null) inPt  = Math.max(0, Math.min(dur(), inPt));
+    if (outPt != null) outPt = Math.max(0, Math.min(dur(), outPt));
+    if (inPt != null) v.currentTime = inPt;
+    repaint();
+  }});
+  v.addEventListener("timeupdate", repaint);
+}})();
+</script>
+</body></html>'''
 
 
 def render_gardencam_main(images, image_cards, poc_banner_html=""):

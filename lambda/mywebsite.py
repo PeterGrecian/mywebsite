@@ -2736,6 +2736,24 @@ def lambda_handler(event, context):
             'headers': {'Location': target},
         }
 
+    elif path == f'/{stage}/skycam/player' or path == '/skycam/player':
+        from routes.gardencam import _init_theme, render_skycam_player
+        _init_theme(THEME_CSS_JS)
+        qs = event.get('queryStringParameters') or {}
+        key = qs.get('key', '')
+        def _f(name):
+            v = qs.get(name)
+            if v in (None, ''): return None
+            try: return float(v)
+            except (TypeError, ValueError): return None
+        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'))
+        if page is None:
+            return {'statusCode': 400,
+                    'body': '<h1>400</h1><p>Invalid key.</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        return {'statusCode': 200, 'body': page,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
     elif path == f'/{stage}/skycam' or path == '/skycam':
         images = get_latest_gardencam_images(3)
         if images:
