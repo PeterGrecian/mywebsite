@@ -607,7 +607,7 @@ def render_gardencam_main(images, image_cards, poc_banner_html=""):
     """Render the main gardencam page with latest images."""
     return f'''\
 {_THEME_CSS_JS}
-            <title>Garden Camera</title>
+            <title>Sky Camera</title>
             <style>
                 body {{ font-family: var(--font); text-align: center; margin: 1rem; background: var(--bg); color: var(--text); }}
                 h1 {{ margin-bottom: 1rem; font-size: 2rem; }}
@@ -635,7 +635,7 @@ def render_gardencam_main(images, image_cards, poc_banner_html=""):
                 <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
             </div>
             {poc_banner_html}
-            <h1>Garden Camera</h1>
+            <h1>Sky Camera</h1>
             <a href="gardencam/gallery" class="gallery-link">View Full Gallery</a>
             <a href="gardencam/stats" class="gallery-link" style="margin-left: 0.5rem;">Capture Stats</a>
             <a href="gardencam/s3-stats" class="gallery-link" style="margin-left: 0.5rem;">Storage Stats</a>

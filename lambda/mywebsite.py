@@ -2726,17 +2726,17 @@ def lambda_handler(event, context):
             html += render_s3_stats_error(cache_error)
 
     elif path == f'/{stage}/gardencam' or path == '/gardencam':
-        # Check authentication
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
+        # /gardencam is the legacy URL — 301 redirect to the public /skycam.
+        # The page now shows only sky-pointing images, so it no longer needs
+        # to be private.
+        target = '/skycam' if path == '/gardencam' else f'/{stage}/skycam'
+        return {
+            'statusCode': 301,
+            'body': '',
+            'headers': {'Location': target},
+        }
 
+    elif path == f'/{stage}/skycam' or path == '/skycam':
         images = get_latest_gardencam_images(3)
         if images:
             from routes.gardencam import (_init_theme, render_gardencam_main,
@@ -2767,7 +2767,7 @@ def lambda_handler(event, context):
         else:
             return {
                 'statusCode': 502,
-                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Garden Camera</h1><p>No images available yet.</p></body></html>',
+                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Sky Camera</h1><p>No images available yet.</p></body></html>',
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}
             }
 

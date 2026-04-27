@@ -30,7 +30,8 @@ def render_contents_page(*, theme_css_js):
     links_html = ""
     for item in items:
         path = item.get('path', '/')
-        href = item.get('external_url', path)
+        external = item.get('external_url')
+        href = external if external else ('/' + path.lstrip('/'))
         title = item.get('title', '')
         description = item.get('description', '')
         private_badge = '<sup style="font-size:0.55em; vertical-align:super; color:var(--text-secondary); font-weight:400; letter-spacing:0.05em;">PRIVATE</sup>' if item.get('auth_required') else ''
