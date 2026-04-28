@@ -2782,6 +2782,18 @@ def lambda_handler(event, context):
             'headers': {'Location': target},
         }
 
+    elif path == f'/{stage}/skycam/timelapse' or path == '/skycam/timelapse':
+        from routes.gardencam import _init_theme, render_timelapse_index
+        _init_theme(THEME_CSS_JS)
+        return {'statusCode': 200, 'body': render_timelapse_index(),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif path == f'/{stage}/skycam/player-poc' or path == '/skycam/player-poc':
+        from routes.gardencam import _init_theme, render_player_poc_landing
+        _init_theme(THEME_CSS_JS)
+        return {'statusCode': 200, 'body': render_player_poc_landing(),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
     elif path == f'/{stage}/skycam/player' or path == '/skycam/player':
         from routes.gardencam import _init_theme, render_skycam_player
         _init_theme(THEME_CSS_JS)

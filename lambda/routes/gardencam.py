@@ -2,6 +2,45 @@
 
 import json
 
+try:
+    from petname import pet_name
+except Exception:
+    def pet_name(h):
+        return h or "unknown-build"
+
+try:
+    import build_info as _bi
+    _MW_VERSION = getattr(_bi, "VERSION", "unknown")
+    _MW_COMMIT = getattr(_bi, "COMMIT", "unknown")
+    _MW_COMMIT_TIME = getattr(_bi, "COMMIT_TIME", "unknown")
+    _MW_DEPLOY = getattr(_bi, "DEPLOY_COUNT", 0)
+    _GC_VERSION = getattr(_bi, "GARDENCAM_VERSION", "unknown")
+    _GC_COMMIT = getattr(_bi, "GARDENCAM_COMMIT", "unknown")
+    _GC_COMMIT_TIME = getattr(_bi, "GARDENCAM_COMMIT_TIME", "unknown")
+except Exception:
+    _MW_VERSION = _MW_COMMIT = _MW_COMMIT_TIME = "unknown"
+    _MW_DEPLOY = 0
+    _GC_VERSION = _GC_COMMIT = _GC_COMMIT_TIME = "unknown"
+
+
+def _fmt_commit_time(iso):
+    if not iso or iso == "unknown":
+        return ""
+    return iso.replace("T", " ")[:16]
+
+
+def _build_tag(version, commit, commit_time, deploy=None):
+    # Pet name seeded from commit+deploy, so it changes when either the
+    # source moves OR a redeploy happens (commit and deploy are independent).
+    seed = f"{commit}#{deploy}" if deploy else commit
+    pn = pet_name(seed)
+    when = _fmt_commit_time(commit_time)
+    label = f"{commit}#{deploy}" if deploy else commit
+    bits = [f"v{version}", pn, label]
+    if when:
+        bits.append(when)
+    return " · ".join(bits)
+
 
 def render_gardencam_stats(windows, summary):
     """Render the gardencam statistics page with brightness charts.
@@ -544,71 +583,333 @@ def render_gallery_images_header(day_param, week_param, prev_link, next_link):
                 '''
 
 
-def build_cloudcam_poc_banner():
-    """Presign and return HTML for the cloudcam timelapse POC banner.
-    Lists the most recent day's hourly + day-concat rerender MP4s under
-    skycam/rerender/ (looking back up to 7 days to survive day rollover
-    before that day's rerender has run)."""
+def _list_rerender_days(max_days=30):
+    """List days with hourly + day-concat MP4s, newest-first.
+    Prefers skycam/rerender/YYYY/MM/DD/ (faststart re-encoded) when present;
+    otherwise falls back to skycam/videos/YYYY/MM/DD/ (the live-encoded set)."""
     import boto3
     from datetime import datetime, timezone, timedelta
     s3 = boto3.client("s3", region_name="eu-west-1")
     bucket = "gardencam-berrylands-eu-west-1"
-    contents = []
+    out = []
     d = datetime.now(timezone.utc)
-    for back in range(7):
+    for back in range(max_days):
         try_d = d - timedelta(days=back)
-        prefix = f"skycam/rerender/{try_d.strftime('%Y/%m/%d')}/"
+        ymd = try_d.strftime("%Y/%m/%d")
+        ymd_compact = try_d.strftime("%Y%m%d")
+        date_str = try_d.strftime("%Y-%m-%d")
+
+        # Try rerender first.
+        rerender_prefix = f"skycam/rerender/{ymd}/"
         try:
-            resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=rerender_prefix)
         except Exception:
-            return ""
+            resp = {}
         contents = resp.get("Contents", [])
-        if contents:
-            d = try_d
-            break
-    if not contents:
-        return ""
-    day_key = None
-    hourly = []
-    for obj in contents:
-        k = obj["Key"]
-        if not k.endswith("_rerender.mp4"):
-            continue
-        name = k.rsplit("/", 1)[-1]
-        # day concat: sky_YYYYMMDD_rerender.mp4 (no hour segment)
-        stem = name[:-len("_rerender.mp4")]
-        parts = stem.split("_")
-        if len(parts) == 2:
-            day_key = k
-        elif len(parts) == 3:
-            hourly.append((parts[2], k))
-    hourly.sort()
+        day_key = None
+        hourly = []
+        for obj in contents:
+            k = obj["Key"]
+            if not k.endswith("_rerender.mp4"):
+                continue
+            stem = k.rsplit("/", 1)[-1][:-len("_rerender.mp4")]
+            parts = stem.split("_")
+            if len(parts) == 2:
+                day_key = k
+            elif len(parts) == 3:
+                hourly.append((parts[2], k))
 
-    from urllib.parse import quote
-    def player_url(k):
-        return f"/skycam/player?key={quote(k, safe='')}"
+        # Fall back to videos/.
+        if not (day_key or hourly):
+            videos_prefix = f"skycam/videos/{ymd}/"
+            try:
+                resp = s3.list_objects_v2(Bucket=bucket, Prefix=videos_prefix)
+            except Exception:
+                resp = {}
+            for obj in resp.get("Contents", []):
+                k = obj["Key"]
+                if not k.endswith(".mp4"):
+                    continue
+                name = k.rsplit("/", 1)[-1]
+                stem = name[:-len(".mp4")]
+                parts = stem.split("_")
+                # sky_YYYYMMDD_daily.mp4 / sky_YYYYMMDD_night.mp4 / sky_YYYYMMDD_HH.mp4
+                if len(parts) == 3 and parts[1] == ymd_compact:
+                    tag = parts[2]
+                    if tag == "daily":
+                        day_key = k
+                    elif tag == "night":
+                        hourly.append(("night", k))
+                    elif tag.isdigit() and len(tag) == 2:
+                        hourly.append((tag, k))
 
-    parts_html = []
-    if day_key:
-        parts_html.append(
-            f'<a href="{player_url(day_key)}" class="gallery-link" '
-            f'style="background: var(--accent); color: white;">▶ Whole day</a>')
-    for hh, k in hourly:
-        parts_html.append(
-            f'<a href="{player_url(k)}" class="gallery-link" '
-            f'style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">{hh}:00</a>')
-    if not parts_html:
-        return ""
+        hourly.sort()
+        if day_key or hourly:
+            out.append({"date": date_str,
+                        "day_key": day_key, "hourly": hourly})
+    return out
+
+
+def build_cloudcam_links_block():
+    """Two links from /skycam: Timelapse videos (LKG fallback) and Player POC,
+    each annotated with build version / pet name / commit / time."""
+    tl_tag = _build_tag(_GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME)
+    pp_tag = _build_tag(_MW_VERSION, _MW_COMMIT, _MW_COMMIT_TIME, _MW_DEPLOY)
     return (
         '<div style="background: var(--card-bg); border: 1px solid var(--divider); '
         'border-radius: 12px; padding: 1rem; margin-bottom: 1rem; max-width: 900px; '
-        'margin-left: auto; margin-right: auto;">'
-        '<div style="color: var(--text-secondary); font-size: 0.9rem; '
-        'margin-bottom: 0.5rem;">Cloudcam timelapse POC '
-        f'({d.strftime("%Y-%m-%d")} UTC)</div>'
-        '<div style="display: flex; flex-wrap: wrap; gap: 0.4rem; '
-        'justify-content: center;">' + "".join(parts_html) + '</div></div>'
+        'margin-left: auto; margin-right: auto; display: flex; flex-direction: column; '
+        'gap: 0.75rem;">'
+        '<div style="display: flex; justify-content: space-between; align-items: center; '
+        'flex-wrap: wrap; gap: 0.5rem;">'
+        '<a href="/skycam/videos" class="gallery-link" '
+        'style="background: var(--accent); color: white;">▶ Timelapse videos</a>'
+        f'<span style="color: var(--text-secondary); font-size: 0.8rem;">{tl_tag}</span>'
+        '</div>'
+        '<div style="display: flex; justify-content: space-between; align-items: center; '
+        'flex-wrap: wrap; gap: 0.5rem;">'
+        '<a href="/skycam/player-poc" class="gallery-link">⚙ Player POC</a>'
+        f'<span style="color: var(--text-secondary); font-size: 0.8rem;">{pp_tag}</span>'
+        '</div>'
+        '</div>'
     )
+
+
+# Backward-compat alias for the existing /skycam handler.
+build_cloudcam_poc_banner = build_cloudcam_links_block
+
+
+def _list_video_tree():
+    """Scan skycam/videos/ and skycam/rerender/ and return a nested tree:
+        { 'YYYY': { 'MM': { 'DD': {'day_key': k|None, 'hourly': [(hh,k)...]} } } }
+    Prefers rerender/ entries when both exist for the same day."""
+    import boto3
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = "gardencam-berrylands-eu-west-1"
+    paginator = s3.get_paginator("list_objects_v2")
+
+    def collect(prefix, suffix):
+        days = {}
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                k = obj["Key"]
+                if not k.endswith(suffix):
+                    continue
+                rel = k[len(prefix):]
+                parts = rel.split("/")
+                if len(parts) != 4:
+                    continue
+                yyyy, mm, dd, fname = parts
+                stem = fname[:-len(suffix)]
+                seg = stem.split("_")
+                day = days.setdefault((yyyy, mm, dd),
+                                      {"day_key": None, "hourly": []})
+                # rerender names: sky_YYYYMMDD[_HH]_rerender
+                # videos names:   sky_YYYYMMDD_HH | sky_YYYYMMDD_daily | _night
+                if suffix == "_rerender.mp4":
+                    if len(seg) == 2:
+                        day["day_key"] = k
+                    elif len(seg) == 3:
+                        day["hourly"].append((seg[2], k))
+                else:
+                    if len(seg) == 3:
+                        tag = seg[2]
+                        if tag == "daily":
+                            day["day_key"] = k
+                        elif tag == "night":
+                            day["hourly"].append(("night", k))
+                        elif tag.isdigit() and len(tag) == 2:
+                            day["hourly"].append((tag, k))
+        return days
+
+    rerender = collect("skycam/rerender/", "_rerender.mp4")
+    videos = collect("skycam/videos/", ".mp4")
+
+    merged = {}
+    for ymd, d in videos.items():
+        merged[ymd] = d
+    for ymd, d in rerender.items():
+        merged[ymd] = d  # rerender wins outright
+
+    tree = {}
+    for (y, m, dd), d in merged.items():
+        d["hourly"].sort()
+        tree.setdefault(y, {}).setdefault(m, {})[dd] = d
+    return tree
+
+
+_MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"]
+
+
+def render_timelapse_index():
+    """Year → month → day drilldown of skycam timelapse videos.
+    Sticky native-video player at top; presigned 1h URLs."""
+    import boto3
+    from datetime import datetime, timezone
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = "gardencam-berrylands-eu-west-1"
+    tree = _list_video_tree()
+
+    def presign(k):
+        return s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
+
+    today = datetime.now(timezone.utc)
+    today_ymd = (today.strftime("%Y"), today.strftime("%m"), today.strftime("%d"))
+
+    def render_day(y, m, dd, day):
+        btns = []
+        date_str = f"{y}-{m}-{dd}"
+        if day["day_key"]:
+            url = presign(day["day_key"])
+            btns.append(
+                f'<button class="vbtn primary" data-src="{url}" '
+                f'data-label="{date_str} whole day">▶ Whole day</button>')
+        for hh, k in day["hourly"]:
+            url = presign(k)
+            btns.append(
+                f'<button class="vbtn" data-src="{url}" '
+                f'data-label="{date_str} {hh}">{hh}</button>')
+        return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
+                f'<div class="btn-row">{"".join(btns)}</div></div>')
+
+    sections = []
+    years_sorted = sorted(tree.keys(), reverse=True)
+    for y in years_sorted:
+        months = tree[y]
+        is_current_year = (y == today_ymd[0])
+        year_total = sum(len(months[m]) for m in months)
+        year_open = " open" if is_current_year else ""
+        month_blocks = []
+        for m in sorted(months.keys(), reverse=True):
+            days = months[m]
+            is_current_month = (y, m) == today_ymd[:2]
+            month_open = " open" if is_current_month else ""
+            day_blocks = [render_day(y, m, dd, days[dd])
+                          for dd in sorted(days.keys(), reverse=True)]
+            month_blocks.append(
+                f'<details class="lvl-month"{month_open}>'
+                f'<summary>{_MONTH_NAMES[int(m)]} {y} '
+                f'<span class="count">({len(days)} days)</span></summary>'
+                f'{"".join(day_blocks)}</details>')
+        sections.append(
+            f'<details class="lvl-year"{year_open}>'
+            f'<summary>{y} <span class="count">({year_total} days)</span></summary>'
+            f'{"".join(month_blocks)}</details>')
+
+    tl_tag = _build_tag(_GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME)
+
+    return f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Skycam Timelapse</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body {{ font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif;
+    background:#000; color:#E0E0E0; margin:0; padding:1rem; }}
+  a {{ color:#007AFF; text-decoration:none; }}
+  .nav {{ text-align:center; margin-bottom:1rem; }}
+  .tag {{ color:#8E8E93; font-size:0.8rem; text-align:center; margin-bottom:1rem; }}
+  .player {{ position:sticky; top:0; z-index:10; background:#000;
+    padding:0.5rem 0; border-bottom:1px solid #2C2C2E; }}
+  video {{ width:100%; max-width:1200px; display:block; margin:0 auto;
+    background:#000; }}
+  .now-playing {{ text-align:center; color:#8E8E93; font-size:0.85rem;
+    margin-top:0.4rem; }}
+  .lvl-year, .lvl-month {{ max-width:1200px; margin:0.5rem auto; }}
+  .lvl-year > summary {{ font-size:1.2rem; font-weight:600; padding:0.6rem 1rem;
+    background:#161616; border-radius:12px; cursor:pointer; list-style:none;
+    color:#E0E0E0; }}
+  .lvl-month > summary {{ font-size:1rem; padding:0.4rem 1rem;
+    margin:0.4rem 0 0.2rem 1rem; cursor:pointer; list-style:none;
+    color:#8E8E93; }}
+  details > summary::before {{ content:"▸ "; display:inline-block;
+    transition:transform 0.15s; }}
+  details[open] > summary::before {{ transform:rotate(90deg); }}
+  .count {{ color:#8E8E93; font-weight:400; font-size:0.85em; }}
+  .day-card {{ background:#161616; border-radius:12px; padding:1rem;
+    margin:0.5rem 1rem; }}
+  .day-label {{ color:#8E8E93; font-size:0.9rem; margin-bottom:0.5rem; }}
+  .btn-row {{ display:flex; flex-wrap:wrap; gap:0.4rem; }}
+  .vbtn {{ background:#2C2C2E; color:#E0E0E0; border:none;
+    border-radius:8px; padding:0.5rem 0.8rem; font:inherit; font-size:0.9rem;
+    cursor:pointer; }}
+  .vbtn.primary {{ background:#007AFF; color:#fff; }}
+  .vbtn:hover {{ background:#3a3a3c; }}
+  .vbtn.primary:hover {{ background:#0a84ff; }}
+  .vbtn.active {{ outline:2px solid #007AFF; }}
+</style></head><body>
+<div class="nav"><a href="/skycam">← Skycam</a> · <a href="/contents">Home</a></div>
+<div class="tag">{tl_tag}</div>
+<div class="player">
+  <video id="v" controls playsinline preload="metadata"></video>
+  <div class="now-playing" id="np">Pick a video below</div>
+</div>
+{"".join(sections) if sections else "<p style='text-align:center;color:#8E8E93'>No videos yet.</p>"}
+<script>
+  const v = document.getElementById('v');
+  const np = document.getElementById('np');
+  let active = null;
+  document.querySelectorAll('.vbtn').forEach(b => {{
+    b.addEventListener('click', () => {{
+      if (active) active.classList.remove('active');
+      active = b; b.classList.add('active');
+      v.src = b.dataset.src; np.textContent = b.dataset.label;
+      v.play().catch(() => {{}});
+      v.scrollIntoView({{behavior:'smooth', block:'start'}});
+    }});
+  }});
+</script>
+</body></html>'''
+
+
+def render_player_poc_landing():
+    """Landing page at /skycam/player-poc — lists the most recent day's MP4s,
+    each link goes to /skycam/player?key=... (the custom POC player)."""
+    from urllib.parse import quote
+    days = _list_rerender_days(max_days=7)
+    pp_tag = _build_tag(_MW_VERSION, _MW_COMMIT, _MW_COMMIT_TIME, _MW_DEPLOY)
+    if not days:
+        body = '<p style="text-align:center;color:#8E8E93">No videos yet.</p>'
+    else:
+        d = days[0]
+        links = []
+        if d["day_key"]:
+            links.append(
+                f'<a class="vbtn primary" '
+                f'href="/skycam/player?key={quote(d["day_key"], safe="")}">'
+                f'▶ Whole day</a>')
+        for hh, k in d["hourly"]:
+            links.append(
+                f'<a class="vbtn" '
+                f'href="/skycam/player?key={quote(k, safe="")}">{hh}:00</a>')
+        body = (
+            f'<div class="day-card"><div class="day-label">{d["date"]}</div>'
+            f'<div class="btn-row">{"".join(links)}</div></div>')
+    return f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Skycam Player POC</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body {{ font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif;
+    background:#000; color:#E0E0E0; margin:0; padding:1rem; }}
+  a {{ color:#007AFF; text-decoration:none; }}
+  .nav {{ text-align:center; margin-bottom:1rem; }}
+  .tag {{ color:#8E8E93; font-size:0.8rem; text-align:center; margin-bottom:1rem; }}
+  .day-card {{ background:#161616; border-radius:12px; padding:1rem;
+    margin:0.75rem auto; max-width:1200px; }}
+  .day-label {{ color:#8E8E93; font-size:0.9rem; margin-bottom:0.5rem; }}
+  .btn-row {{ display:flex; flex-wrap:wrap; gap:0.4rem; }}
+  .vbtn {{ background:#2C2C2E; color:#E0E0E0; border-radius:8px;
+    padding:0.5rem 0.8rem; font-size:0.9rem; display:inline-block; }}
+  .vbtn.primary {{ background:#007AFF; color:#fff; }}
+</style></head><body>
+<div class="nav"><a href="/skycam">← Skycam</a> · <a href="/contents">Home</a></div>
+<div class="tag">{pp_tag}</div>
+<h2 style="text-align:center;color:#E0E0E0">Player POC</h2>
+<p style="text-align:center;color:#8E8E93;font-size:0.9rem">
+  Experimental custom player. If broken, use <a href="/skycam/timelapse">Timelapse videos</a>.</p>
+{body}
+</body></html>'''
 
 
 def render_skycam_player(key, in_sec=None, out_sec=None):

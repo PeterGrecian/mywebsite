@@ -7,3 +7,4 @@ __pycache__/
 .terraform.lock.hcl
 favicon.png64
 lambda/gitinfo.html
+lambda/build_info.py
