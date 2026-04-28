@@ -14,12 +14,14 @@ try:
     _MW_COMMIT = getattr(_bi, "COMMIT", "unknown")
     _MW_COMMIT_TIME = getattr(_bi, "COMMIT_TIME", "unknown")
     _MW_DEPLOY = getattr(_bi, "DEPLOY_COUNT", 0)
+    _MW_DEPLOY_TIME = getattr(_bi, "DEPLOY_TIME", 0)
     _GC_VERSION = getattr(_bi, "GARDENCAM_VERSION", "unknown")
     _GC_COMMIT = getattr(_bi, "GARDENCAM_COMMIT", "unknown")
     _GC_COMMIT_TIME = getattr(_bi, "GARDENCAM_COMMIT_TIME", "unknown")
 except Exception:
     _MW_VERSION = _MW_COMMIT = _MW_COMMIT_TIME = "unknown"
     _MW_DEPLOY = 0
+    _MW_DEPLOY_TIME = 0
     _GC_VERSION = _GC_COMMIT = _GC_COMMIT_TIME = "unknown"
 
 
@@ -651,28 +653,106 @@ def _list_rerender_days(max_days=30):
 
 
 def build_cloudcam_links_block():
-    """Two links from /skycam: Timelapse videos (LKG fallback) and Player POC,
-    each annotated with build version / pet name / commit / time."""
-    tl_tag = _build_tag(_GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME)
-    pp_tag = _build_tag(_MW_VERSION, _MW_COMMIT, _MW_COMMIT_TIME, _MW_DEPLOY)
+    """Two links from /skycam: Timelapse videos (the working hierarchical
+    page) and vplayer (stub for the future custom player). No per-repo tags
+    here — the top bar carries the single deploy pet name."""
     return (
         '<div style="background: var(--card-bg); border: 1px solid var(--divider); '
         'border-radius: 12px; padding: 1rem; margin-bottom: 1rem; max-width: 900px; '
-        'margin-left: auto; margin-right: auto; display: flex; flex-direction: column; '
-        'gap: 0.75rem;">'
-        '<div style="display: flex; justify-content: space-between; align-items: center; '
-        'flex-wrap: wrap; gap: 0.5rem;">'
+        'margin-left: auto; margin-right: auto; display: flex; flex-wrap: wrap; '
+        'gap: 0.5rem; justify-content: center;">'
         '<a href="/skycam/videos" class="gallery-link" '
         'style="background: var(--accent); color: white;">▶ Timelapse videos</a>'
-        f'<span style="color: var(--text-secondary); font-size: 0.8rem;">{tl_tag}</span>'
-        '</div>'
-        '<div style="display: flex; justify-content: space-between; align-items: center; '
-        'flex-wrap: wrap; gap: 0.5rem;">'
-        '<a href="/skycam/player-poc" class="gallery-link">⚙ Player POC</a>'
-        f'<span style="color: var(--text-secondary); font-size: 0.8rem;">{pp_tag}</span>'
-        '</div>'
+        '<a href="/skycam/player-poc" class="gallery-link">⚙ vplayer (stub)</a>'
         '</div>'
     )
+
+
+def build_skycam_top_bar():
+    """The cache-fingerprint bar at the top of /skycam.
+
+    The pet name is the human-friendly identifier for THIS Lambda deploy —
+    its only job is letting the eye spot a stale CDN copy. The 'deployed Xm Ys
+    ago' counter ticks live in the browser; if it freezes the page is frozen.
+    Versions for individual components (gardencam, vplay, etc) live on the
+    build-info page, not here."""
+    pn = pet_name(f"{_MW_COMMIT}#{_MW_DEPLOY}")
+    return (
+        '<div style="display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; '
+        'align-items: center; padding: 0.4rem 0.8rem; '
+        'border-bottom: 1px solid var(--divider); '
+        'font-size: 0.85rem; color: var(--text-secondary);">'
+        '<a href="/contents" style="color: var(--accent);">Home</a>'
+        f'<span>☁ <strong style="color: var(--text);">{pn}</strong></span>'
+        f'<span id="deployed-ago" data-deployed="{_MW_DEPLOY_TIME}">'
+        'deployed —</span>'
+        '<a href="/skycam/build-info" style="color: var(--accent);">build info</a>'
+        '</div>'
+        '<script>(function(){'
+        'var el=document.getElementById("deployed-ago");'
+        'if(!el)return;'
+        'var t=parseInt(el.dataset.deployed,10);'
+        'if(!t){el.textContent="deployed (unknown)";return;}'
+        'function fmt(s){'
+        'var d=Math.floor(s/86400);s%=86400;'
+        'var h=Math.floor(s/3600);s%=3600;'
+        'var m=Math.floor(s/60);s%=60;'
+        'if(d)return d+"d "+h+"h "+m+"m";'
+        'if(h)return h+"h "+m+"m "+s+"s";'
+        'if(m)return m+"m "+s+"s";'
+        'return s+"s";'
+        '}'
+        'function tick(){'
+        'var now=Math.floor(Date.now()/1000);'
+        'el.textContent="deployed "+fmt(now-t)+" ago";'
+        '}'
+        'tick();setInterval(tick,1000);'
+        '})();</script>'
+    )
+
+
+def render_build_info_page():
+    """Stub build-info page — lists the components that make up the skycam
+    homepage. Currently just shows what mywebsite's deploy can see; will grow
+    when vplay is hosted and gardencam emits its own build manifest."""
+    rows = [
+        ("mywebsite", _MW_VERSION, _MW_COMMIT, _MW_COMMIT_TIME,
+         f"#{_MW_DEPLOY}"),
+        ("gardencam", _GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME, ""),
+        ("vplay", "(stub)", "", "", ""),
+    ]
+    body = ""
+    for name, ver, commit, ctime, deploy in rows:
+        when = _fmt_commit_time(ctime)
+        body += (
+            f'<tr><td>{name}</td><td>{ver}</td><td>{commit}</td>'
+            f'<td>{when}</td><td>{deploy}</td></tr>')
+    return f'''<!doctype html><html><head><meta charset="utf-8">
+<title>Skycam Build Info</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body {{ font-family: -apple-system,'SF Pro Display','Inter',sans-serif;
+    background:#000; color:#E0E0E0; margin:0; padding:1rem; }}
+  a {{ color:#007AFF; text-decoration:none; }}
+  table {{ border-collapse:collapse; margin:1rem auto; max-width:900px;
+    width:100%; }}
+  th, td {{ padding:0.5rem 0.75rem; text-align:left;
+    border-bottom:1px solid #2C2C2E; }}
+  th {{ color:#8E8E93; font-weight:500; font-size:0.85rem; }}
+  td {{ font-family: ui-monospace, 'SF Mono', monospace; font-size:0.9rem; }}
+  h1 {{ text-align:center; font-weight:500; }}
+  .nav {{ text-align:center; }}
+  .stub {{ color:#8E8E93; font-style:italic; text-align:center; }}
+</style></head><body>
+<div class="nav"><a href="/skycam">← Skycam</a></div>
+<h1>Build info</h1>
+<p class="stub">Stub — components of the skycam homepage. Will fill out as
+gardencam / vplay grow their own build manifests.</p>
+<table>
+<tr><th>Component</th><th>Version</th><th>Commit</th><th>Commit time</th><th>Deploy</th></tr>
+{body}
+</table>
+</body></html>'''
 
 
 # Backward-compat alias for the existing /skycam handler.
@@ -1173,15 +1253,20 @@ def render_gardencam_main(images, image_cards, poc_banner_html=""):
                     .timestamp {{ font-size: 0.85rem; }}
                 }}
             </style>
-            <div style="text-align: center; margin-bottom: 1rem;">
-                <a href="contents" style="color: var(--accent); text-decoration: none;">Home</a>
+            {build_skycam_top_bar()}
+            <h1>Sky Camera</h1>
+            <div style="margin-bottom: 1rem;">
+                <a href="gardencam/gallery" class="gallery-link">Stills</a>
+                <a href="/skycam/videos" class="gallery-link" style="margin-left: 0.5rem;">Videos</a>
+                <a href="/skycam/starcam" class="gallery-link" style="margin-left: 0.5rem;">Starcam</a>
+                <span style="color: var(--text-secondary); margin-left: 0.5rem; font-size: 0.85rem;">see also springcam (offline)</span>
             </div>
             {poc_banner_html}
-            <h1>Sky Camera</h1>
-            <a href="gardencam/gallery" class="gallery-link">View Full Gallery</a>
-            <a href="gardencam/stats" class="gallery-link" style="margin-left: 0.5rem;">Capture Stats</a>
-            <a href="gardencam/s3-stats" class="gallery-link" style="margin-left: 0.5rem;">Storage Stats</a>
-            <button id="captureBtn" class="gallery-link" style="margin-left: 0.5rem; cursor: pointer;">📷 Capture Now</button>
+            <div style="margin-bottom: 1rem;">
+                <a href="gardencam/stats" class="gallery-link">Capture Stats</a>
+                <a href="gardencam/s3-stats" class="gallery-link" style="margin-left: 0.5rem;">Storage Stats</a>
+                <button id="captureBtn" class="gallery-link" style="margin-left: 0.5rem; cursor: pointer;">📷 Capture Now</button>
+            </div>
             <div id="captureStatus" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
             <script>
             document.getElementById('captureBtn').addEventListener('click', function() {{

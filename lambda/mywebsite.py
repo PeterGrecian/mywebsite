@@ -2782,6 +2782,12 @@ def lambda_handler(event, context):
             'headers': {'Location': target},
         }
 
+    elif path == f'/{stage}/skycam/build-info' or path == '/skycam/build-info':
+        from routes.gardencam import _init_theme, render_build_info_page
+        _init_theme(THEME_CSS_JS)
+        return {'statusCode': 200, 'body': render_build_info_page(),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
     elif path == f'/{stage}/skycam/timelapse' or path == '/skycam/timelapse':
         from routes.gardencam import _init_theme, render_timelapse_index
         _init_theme(THEME_CSS_JS)
