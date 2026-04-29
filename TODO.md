@@ -9,6 +9,12 @@
 
 - Better repo name and docs — this is the website publishing core; document how it works
 - T3 logging: capture `stop` query param (parklands/surbiton) for usage breakdowns
+- Retire `newhome.petergrecian.co.uk` — was the PWA test subdomain, test is over.
+  Remove the custom domain from the `petergrecian-homepage` Pages project
+  (API: DELETE /accounts/:id/pages/projects/petergrecian-homepage/domains/newhome.petergrecian.co.uk).
+  Note: this kills the only currently-installable PWA entry point. If we want a
+  PWA at `www.petergrecian.co.uk`, the `/` route would need to be moved from
+  Lambda to Pages — bigger change, decide separately.
 
 ## Future
 
