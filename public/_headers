@@ -1,0 +1,20 @@
+# Always revalidate the HTML shell so contents changes appear immediately.
+# no-cache = browser may store it but must revalidate with the server before use.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/newhome
+  Cache-Control: no-cache
+
+# Service worker must never be cached — it controls everything else.
+/sw.js
+  Cache-Control: no-cache
+
+# Manifest changes rarely; revalidate daily.
+/manifest.json
+  Cache-Control: public, max-age=86400
+
+# Icons are large and stable; cache for a week.
+/icon-*.png
+  Cache-Control: public, max-age=604800
