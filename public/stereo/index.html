@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stereo Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; color: #E0E0E0; font-family: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif; }
+
+    #ui {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    h1 { font-size: 1.2rem; color: #E0E0E0; }
+
+    #drop-zone {
+      width: 100%;
+      max-width: 600px;
+      border: 2px dashed #2C2C2E;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      color: #8E8E93;
+      cursor: pointer;
+    }
+    #drop-zone.hover { border-color: #007AFF; color: #007AFF; }
+
+    #controls {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #161616;
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+    .control-row label { color: #8E8E93; font-size: 0.9rem; }
+    .control-row input[type=range] { width: 60%; accent-color: #007AFF; }
+    .control-row span { color: #E0E0E0; font-size: 0.9rem; min-width: 40px; text-align: right; }
+
+    button {
+      background: #007AFF;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      max-width: 600px;
+    }
+    button:disabled { background: #2C2C2E; color: #8E8E93; cursor: default; }
+
+    #preview {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 12px;
+      display: none;
+    }
+
+    #status { color: #8E8E93; font-size: 0.85rem; }
+
+    /* WebXR canvas — hidden until session starts */
+    #xr-canvas { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>Stereo Viewer</h1>
+
+    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+      Drop a side-by-side .jps or .jpg here, or tap to choose
+      <input type="file" id="file-input" accept="image/*,.jps" style="display:none">
+    </div>
+
+    <img id="preview" alt="Preview">
+
+    <div id="controls">
+      <div class="control-row">
+        <label>Convergence (shift)</label>
+        <input type="range" id="convergence" min="-200" max="200" value="0" step="1">
+        <span id="convergence-val">0px</span>
+      </div>
+      <div class="control-row">
+        <label>Eye separation</label>
+        <input type="range" id="separation" min="0.3" max="1.0" value="0.5" step="0.01">
+        <span id="separation-val">0.50</span>
+      </div>
+    </div>
+
+    <button id="vr-btn" disabled>Enter VR</button>
+    <div id="status">Load an image to begin</div>
+  </div>
+
+  <canvas id="xr-canvas"></canvas>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const preview = document.getElementById('preview');
+    const controls = document.getElementById('controls');
+    const vrBtn = document.getElementById('vr-btn');
+    const status = document.getElementById('status');
+    const canvas = document.getElementById('xr-canvas');
+
+    const convergenceSlider = document.getElementById('convergence');
+    const separationSlider = document.getElementById('separation');
+    const convergenceVal = document.getElementById('convergence-val');
+    const separationVal = document.getElementById('separation-val');
+
+    const S3_BASE = 'https://petergrecian.co.uk.s3.amazonaws.com/stereo/';
+
+    let imageUrl = null;
+    let xrSession = null;
+    let gl = null;
+    let texLeft = null, texRight = null;
+    let prog = null;
+
+    // --- File loading ---
+
+    fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('hover'); loadFile(e.dataTransfer.files[0]); });
+
+    function loadFile(file) {
+      if (!file) return;
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      imageUrl = URL.createObjectURL(file);
+      showImage(imageUrl, file.name);
+    }
+
+    function loadUrl(url, label) {
+      imageUrl = url;
+      showImage(url, label);
+    }
+
+    function showImage(url, label) {
+      preview.src = url;
+      preview.style.display = 'block';
+      controls.style.display = 'flex';
+      vrBtn.disabled = false;
+      status.textContent = `Loaded: ${label}`;
+    }
+
+    // Auto-load from ?img=waterloo-bridge → S3 key stereo/waterloo-bridge/waterloo-bridge.jps
+    const params = new URLSearchParams(location.search);
+    const imgParam = params.get('img');
+    if (imgParam) {
+      const url = `${S3_BASE}${imgParam}/${imgParam}.jps`;
+      loadUrl(url, imgParam);
+    }
+
+    // --- Controls ---
+
+    convergenceSlider.addEventListener('input', () => {
+      convergenceVal.textContent = convergenceSlider.value + 'px';
+    });
+    separationSlider.addEventListener('input', () => {
+      separationVal.textContent = parseFloat(separationSlider.value).toFixed(2);
+    });
+
+    // --- WebXR ---
+
+    vrBtn.addEventListener('click', async () => {
+      if (xrSession) {
+        await xrSession.end();
+        return;
+      }
+      if (!navigator.xr) { status.textContent = 'WebXR not available in this browser'; return; }
+
+      const supported = await navigator.xr.isSessionSupported('immersive-vr');
+      if (!supported) { status.textContent = 'Immersive VR not supported on this device'; return; }
+
+      try {
+        xrSession = await navigator.xr.requestSession('immersive-vr', {
+          requiredFeatures: ['local']
+        });
+        await startXR(xrSession);
+      } catch (e) {
+        status.textContent = 'VR session failed: ' + e.message;
+      }
+    });
+
+    async function startXR(session) {
+      vrBtn.textContent = 'Exit VR';
+      canvas.style.display = 'block';
+
+      gl = canvas.getContext('webgl2', { xrCompatible: true });
+      await gl.makeXRCompatible();
+
+      const refSpace = await session.requestReferenceSpace('local');
+      const layer = new XRWebGLLayer(session, gl);
+      session.updateRenderState({ baseLayer: layer });
+
+      // Load the SBS image into a texture
+      const img = new Image();
+      img.src = imageUrl;
+      await new Promise(r => img.onload = r);
+
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      prog = buildShader(gl);
+
+      session.addEventListener('end', () => {
+        canvas.style.display = 'none';
+        vrBtn.textContent = 'Enter VR';
+        xrSession = null;
+      });
+
+      session.requestAnimationFrame(function frame(t, xrFrame) {
+        session.requestAnimationFrame(frame);
+
+        const pose = xrFrame.getViewerPose(refSpace);
+        if (!pose) return;
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        const convergence = parseFloat(convergenceSlider.value);
+        const separation = parseFloat(separationSlider.value);
+
+        for (const view of pose.views) {
+          const vp = layer.getViewport(view);
+          gl.viewport(vp.x, vp.y, vp.width, vp.height);
+
+          const isLeft = view.eye === 'left';
+          // UV x range: left eye = [0, 0.5], right eye = [0.5, 1.0]
+          const uOffset = isLeft ? 0.0 : 0.5;
+          // Convergence shifts both eyes inward/outward in pixels → normalised UV
+          const imgWidth = img.naturalWidth / 2; // half of SBS
+          const shiftNorm = (convergence / imgWidth) * 0.5 * (isLeft ? 1 : -1);
+
+          renderEye(gl, prog, tex, uOffset, shiftNorm, separation);
+        }
+      });
+    }
+
+    function renderEye(gl, prog, tex, uOffset, shiftNorm, separation) {
+      gl.useProgram(prog);
+
+      // Full-screen quad
+      const verts = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+
+      const posLoc = gl.getAttribLocation(prog, 'aPos');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform1i(gl.getUniformLocation(prog, 'uTex'), 0);
+      gl.uniform1f(gl.getUniformLocation(prog, 'uOffsetX'), uOffset + shiftNorm);
+      gl.uniform1f(gl.getUniformLocation(prog, 'uSeparation'), separation);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.deleteBuffer(buf);
+    }
+
+    function buildShader(gl) {
+      const vs = `#version 300 es
+        in vec2 aPos;
+        out vec2 vUv;
+        void main() {
+          vUv = aPos * 0.5 + 0.5;
+          gl_Position = vec4(aPos, 0.0, 1.0);
+        }`;
+
+      // Each eye sees half the SBS image (uOffsetX=0 for left, 0.5 for right)
+      // uSeparation scales the UV within that half (crop to centre)
+      const fs = `#version 300 es
+        precision highp float;
+        in vec2 vUv;
+        uniform sampler2D uTex;
+        uniform float uOffsetX;   // 0.0 (left) or 0.5 (right), plus convergence shift
+        uniform float uSeparation; // 0.0–1.0, crops to centre of each half
+        out vec4 fragColor;
+        void main() {
+          // Map vUv.x [0,1] into the half-image with optional crop
+          float margin = (1.0 - uSeparation) * 0.25; // symmetric crop within the half
+          float u = uOffsetX + (margin + vUv.x * uSeparation) * 0.5;
+          fragColor = texture(uTex, vec2(u, 1.0 - vUv.y));
+        }`;
+
+      const compile = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      };
+
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      return p;
+    }
+  </script>
+</body>
+</html>
