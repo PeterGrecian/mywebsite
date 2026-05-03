@@ -10,8 +10,12 @@ S3_VIDEO_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/vi
 
 # Manually curated video list — add entries here after uploading to S3
 STEREO_VIDEOS = [
-    {"file": "may1-railway-sbs-1k.mp4", "label": "Railway — May 2026", "note": "5s · 1024×288 · 50% window in VR · 1-frame baseline"},
-    {"file": "may1-train-sbs.mp4", "label": "Lift — May 2026", "note": "5s · needs rotation fix"},
+    {"file": "may1-105049-mb4.mp4", "label": "Railway 25s — motion blur 4×", "note": "2K · dormouse · optical-flow blur"},
+    {"file": "may1-105132-mb4.mp4", "label": "Railway 64s — motion blur 4×", "note": "2K · ferret · optical-flow blur"},
+    {"file": "may1-lift-mb4.mp4", "label": "LIFT TEST — motion blur 4×", "note": "Barbican view, rotated 90°, optical-flow blur"},
+    {"file": "may1-105249-2k.mp4", "label": "Arrival at Waterloo (4 min)", "note": "2K · 3840×1080 · 1-frame baseline · NO blur"},
+    {"file": "may1-105132-2k.mp4", "label": "Railway 64s — May 2026", "note": "2K · 3840×1080 · squirrel · NO blur"},
+    {"file": "may1-105049-2k.mp4", "label": "Railway 25s — May 2026", "note": "2K · 3840×1080 · magpie · NO blur"},
 ]
 
 
@@ -62,13 +66,17 @@ def render_gallery_page(*, theme_css_js):
     video_cards = ""
     for v in STEREO_VIDEOS:
         video_cards += f'''
-    <a href="/stereo?video={v["file"]}" class="shot-card">
+    <div class="shot-card">
       <div class="shot-title">{v["label"]}</div>
-      <div class="shot-meta">
+      <div class="shot-meta" style="margin-bottom:0.5rem;">
         <span class="quality">{v["note"]}</span>
-        <span class="timestamp">SBS MP4 · VR</span>
+        <span class="timestamp">SBS MP4</span>
       </div>
-    </a>'''
+      <div style="display:flex;gap:8px;">
+        <a href="/stereo?svideo={v["file"]}" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Sphere VR</a>
+        <a href="/stereo?video={v["file"]}" style="flex:1;text-align:center;background:var(--card-bg);color:var(--accent);border:1px solid var(--divider);border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Flat VR</a>
+      </div>
+    </div>'''
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -110,6 +118,23 @@ def render_gallery_page(*, theme_css_js):
 </html>'''
 
 
+def get_neighbours(img_param):
+    """Return {prev, next, current} for an img_param, in gallery sort order."""
+    try:
+        shots = _list_shots()
+        params = [f"{s.get('slug','')}/{s.get('slug','')}.{s.get('pair_id','')}" for s in shots]
+        if img_param in params:
+            i = params.index(img_param)
+            return {
+                "prev": params[i - 1] if i > 0 else "",
+                "next": params[i + 1] if i < len(params) - 1 else "",
+                "current": img_param,
+            }
+    except Exception:
+        pass
+    return {"prev": "", "next": "", "current": img_param}
+
+
 def render_viewer_page(*, theme_css_js, img_param):
     """img_param is e.g. 'barbican/barbican.12'"""
     jps_url = S3_BASE + img_param + ".jps"
@@ -125,6 +150,20 @@ def render_viewer_page(*, theme_css_js, img_param):
         pass
 
     swapped_js = "true" if eye_order == "B" else "false"
+
+    # Find previous and next shots in gallery order (same sort as gallery_page)
+    prev_param = next_param = ""
+    try:
+        shots = _list_shots()
+        params = [f"{s.get('slug','')}/{s.get('slug','')}.{s.get('pair_id','')}" for s in shots]
+        if img_param in params:
+            i = params.index(img_param)
+            if i > 0:
+                prev_param = params[i - 1]
+            if i < len(params) - 1:
+                next_param = params[i + 1]
+    except Exception:
+        pass
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -184,6 +223,10 @@ def render_viewer_page(*, theme_css_js, img_param):
       <button id="vr-btn" disabled>Enter VR</button>
       <button id="swap-btn" class="secondary" disabled>Order {eye_order}</button>
     </div>
+    <div class="btn-row">
+      <button id="prev-btn" class="secondary" {('disabled' if not prev_param else '')}>&#8592; Prev</button>
+      <button id="next-btn" class="secondary" {('disabled' if not next_param else '')}>Next &#8594;</button>
+    </div>
     <div id="status">Loading...</div>
     <div class="footer"><a href="/stereo">&#8592; Gallery</a></div>
   </div>
@@ -204,9 +247,12 @@ def render_viewer_page(*, theme_css_js, img_param):
 
     let swapped = {swapped_js};
     let zoom = 1.0;  // >1 = zoomed out (image smaller), <1 = zoomed in
+    let eyeShiftX = 0;  // normalized: per-eye X offset within its half (signed)
+    let eyeShiftY = 0;  // normalized: per-eye Y offset (signed, mirrored between eyes)
     let xrSession = null;
     let gl = null;
     let prog = null;
+    let tex = null;
 
     preview.crossOrigin = 'anonymous';
     preview.src = JPS_URL;
@@ -229,6 +275,53 @@ def render_viewer_page(*, theme_css_js, img_param):
     swapBtn.addEventListener('click', () => {{
       swapped = !swapped;
       swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+    }});
+
+    // Prev/next navigation — keeps the WebXR session alive by swapping the texture in-place.
+    // Falls back to URL navigation when not in VR.
+    let neighbours = {{ prev: '{prev_param}', next: '{next_param}', current: {json.dumps(img_param)} }};
+
+    async function loadNeighbours(forParam) {{
+      // Refresh prev/next pointers from a small JSON endpoint after switching image
+      try {{
+        const r = await fetch('/stereo-nav?img=' + encodeURIComponent(forParam));
+        if (r.ok) neighbours = await r.json();
+      }} catch(e) {{}}
+    }}
+
+    async function swapImage(target) {{
+      if (!target) return;
+      const newUrl = 'https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/' + target + '.jps';
+      const newImg = new Image();
+      newImg.crossOrigin = 'anonymous';
+      newImg.src = newUrl;
+      await new Promise((res, rej) => {{ newImg.onload = res; newImg.onerror = rej; }});
+
+      // Update preview <img> for the 2D view
+      preview.src = newUrl;
+
+      // Reset per-image overrides
+      eyeShiftX = 0;
+      eyeShiftY = 0;
+
+      // If in VR, swap the GL texture in-place
+      if (xrSession && gl && tex) {{
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, newImg);
+      }}
+      // Update URL bar without navigating, so reloads restore current image
+      history.replaceState(null, '', '/stereo?img=' + encodeURIComponent(target));
+      neighbours.current = target;
+      loadNeighbours(target);
+    }}
+
+    function go(target) {{ swapImage(target); }}
+
+    document.getElementById('prev-btn').addEventListener('click', () => go(neighbours.prev));
+    document.getElementById('next-btn').addEventListener('click', () => go(neighbours.next));
+    document.addEventListener('keydown', e => {{
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp')   {{ e.preventDefault(); go(neighbours.prev); }}
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {{ e.preventDefault(); go(neighbours.next); }}
     }});
 
     vrBtn.addEventListener('click', async () => {{
@@ -258,7 +351,7 @@ def render_viewer_page(*, theme_css_js, img_param):
       const img = preview;
       if (!img.complete) await new Promise(r => img.onload = r);
 
-      const tex = gl.createTexture();
+      tex = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -293,6 +386,14 @@ def render_viewer_page(*, theme_css_js, img_param):
           }}
           wasPressed[id][4] = aBtn?.pressed;
 
+          // Right trigger (button 0) → next image; Left trigger → prev
+          const trig = gp.buttons[0];
+          if (trig?.pressed && !wasPressed[id][0]) {{
+            if (src.handedness === 'right') go(NEXT);
+            else if (src.handedness === 'left') go(PREV);
+          }}
+          wasPressed[id][0] = trig?.pressed;
+
           // Right thumbstick X (axes[2]) → convergence; Y (axes[3]) → zoom
           if (src.handedness === 'right') {{
             const stickX = gp.axes[2] ?? 0;
@@ -305,6 +406,18 @@ def render_viewer_page(*, theme_css_js, img_param):
             const stickY = gp.axes[3] ?? 0;
             if (Math.abs(stickY) > 0.15) {{
               zoom = Math.max(0.5, Math.min(3.0, zoom + stickY * 0.02));
+            }}
+          }}
+
+          // Left thumbstick X/Y → pan (per-eye texture offset, opposite directions)
+          if (src.handedness === 'left') {{
+            const stickX = gp.axes[2] ?? 0;
+            const stickY = gp.axes[3] ?? 0;
+            if (Math.abs(stickX) > 0.15) {{
+              eyeShiftX = Math.max(-0.25, Math.min(0.25, eyeShiftX + stickX * 0.003));
+            }}
+            if (Math.abs(stickY) > 0.15) {{
+              eyeShiftY = Math.max(-0.25, Math.min(0.25, eyeShiftY + stickY * 0.003));
             }}
           }}
         }}
@@ -323,7 +436,7 @@ def render_viewer_page(*, theme_css_js, img_param):
           const uOffset = eyeIsLeft ? 0.0 : 0.5;
           renderEyeSphere(gl, sphere, tex, uOffset, separation,
             view.projectionMatrix, view.transform.inverse.matrix, yawDeg, eyeIsLeft, zoom,
-            img.naturalWidth, img.naturalHeight);
+            img.naturalWidth, img.naturalHeight, eyeShiftX, eyeShiftY);
         }}
       }});
     }}
@@ -376,24 +489,21 @@ def render_viewer_page(*, theme_css_js, img_param):
         uniform float uHalfFovH;   // horizontal half-FOV of photo in radians
         uniform float uAspect;     // photo aspect ratio (width/height of one eye)
         uniform float uScale;      // zoom: >1 = wider FOV (zoom out)
+        uniform float uShiftU;     // signed UV shift in x for this eye
+        uniform float uShiftV;     // signed UV shift in y for this eye
         out vec4 fragColor;
         void main() {{
-          // Normalise direction; forward = -Z in world space
           vec3 d = normalize(vDir);
-          // Angular offset from forward (-Z)
-          float azimuth   = atan(d.x, -d.z);   // horizontal angle
-          float elevation = atan(d.y, length(d.xz)); // vertical angle
-          // Map angles to UV using effective FOV (zoom scales FOV)
+          float azimuth   = atan(d.x, -d.z);
+          float elevation = atan(d.y, length(d.xz));
           float hFov = uHalfFovH * uScale;
           float vFov = hFov / uAspect;
-          float u01 = azimuth   / (2.0 * hFov) + 0.5;
-          float v01 = elevation / (2.0 * vFov) + 0.5;
-          // Discard pixels outside the photo's angular extent
+          float u01 = azimuth   / (2.0 * hFov) + 0.5 + uShiftU;
+          float v01 = elevation / (2.0 * vFov) + 0.5 + uShiftV;
           if (u01 < 0.0 || u01 > 1.0 || v01 < 0.0 || v01 > 1.0) {{
             fragColor = vec4(0.0, 0.0, 0.0, 1.0);
             return;
           }}
-          // Map into SBS half: u → [uOffsetX, uOffsetX+0.5]
           float u = uOffsetX + u01 * 0.5;
           fragColor = texture(uTex, vec2(u, 1.0 - v01));
         }}`;
@@ -429,10 +539,12 @@ def render_viewer_page(*, theme_css_js, img_param):
         uHalfFovH: gl.getUniformLocation(prog, 'uHalfFovH'),
         uAspect:   gl.getUniformLocation(prog, 'uAspect'),
         uScale:    gl.getUniformLocation(prog, 'uScale'),
+        uShiftU:   gl.getUniformLocation(prog, 'uShiftU'),
+        uShiftV:   gl.getUniformLocation(prog, 'uShiftV'),
       }};
     }}
 
-    function renderEyeSphere(gl, sphere, tex, uOffset, separation, projMat, viewMat, yawDeg, eyeIsLeft, zoom, imgW, imgH) {{
+    function renderEyeSphere(gl, sphere, tex, uOffset, separation, projMat, viewMat, yawDeg, eyeIsLeft, zoom, imgW, imgH, shiftU, shiftV) {{
       gl.useProgram(sphere.prog);
       gl.bindVertexArray(sphere.vao);
       gl.activeTexture(gl.TEXTURE0);
@@ -463,6 +575,9 @@ def render_viewer_page(*, theme_css_js, img_param):
       gl.uniform1f(sphere.uHalfFovH, halfFovH);
       gl.uniform1f(sphere.uAspect, aspect);
       gl.uniform1f(sphere.uScale, zoom);
+      // Per-eye opposite shifts so eyes converge on the panned region
+      gl.uniform1f(sphere.uShiftU, shiftU * (eyeIsLeft ? 1.0 : -1.0));
+      gl.uniform1f(sphere.uShiftV, shiftV);
 
       // Disable depth test — sphere is the only object; back-face culling must be off
       // so the inside of the sphere is visible.
@@ -476,8 +591,9 @@ def render_viewer_page(*, theme_css_js, img_param):
 </html>'''
 
 
-def render_video_viewer_page(*, theme_css_js, video_file):
-    """WebXR SBS video viewer. video_file is e.g. 'may1-railway-sbs.mp4'"""
+
+def render_video_sphere_page(*, theme_css_js, video_file):
+    """Player 3 — sphere renderer (same as stills player) with per-frame video texture."""
     video_url = S3_VIDEO_BASE + video_file
     label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
 
@@ -486,7 +602,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stereo Video — {label}</title>
+  <title>{label}</title>
   {theme_css_js}
   <style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -508,7 +624,6 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       border-radius: 12px; padding: 14px 0; font-size: 1rem;
       cursor: pointer; flex: 1;
     }}
-    button:disabled {{ background: var(--divider); color: var(--text-secondary); cursor: default; }}
     button.secondary {{ background: var(--card-bg); color: var(--accent); border: 1px solid var(--divider); }}
     #status {{ color: var(--text-secondary); font-size: 0.85rem; }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 1rem 0; }}
@@ -519,17 +634,12 @@ def render_video_viewer_page(*, theme_css_js, video_file):
 <body>
   <div id="ui">
     <h1>{label}</h1>
-    <video id="preview" src="{video_url}" controls playsinline crossorigin="anonymous" loop></video>
+    <video id="preview" src="{video_url}" controls playsinline loop crossorigin="anonymous"></video>
     <div id="controls">
       <div class="control-row">
         <label>Convergence</label>
-        <input type="range" id="convergence" min="-200" max="200" value="0" step="1">
-        <span id="convergence-val">0px</span>
-      </div>
-      <div class="control-row">
-        <label>Eye separation</label>
-        <input type="range" id="separation" min="0.3" max="1.0" value="0.5" step="0.01">
-        <span id="separation-val">0.50</span>
+        <input type="range" id="convergence" min="-30" max="30" value="0" step="0.1">
+        <span id="convergence-val">0.0°</span>
       </div>
     </div>
     <div class="btn-row">
@@ -541,27 +651,20 @@ def render_video_viewer_page(*, theme_css_js, video_file):
   </div>
   <canvas id="xr-canvas"></canvas>
   <script>
-    const video = document.getElementById('preview');
+    const vid = document.getElementById('preview');
     const vrBtn = document.getElementById('vr-btn');
     const swapBtn = document.getElementById('swap-btn');
     const status = document.getElementById('status');
     const canvas = document.getElementById('xr-canvas');
     const convergenceSlider = document.getElementById('convergence');
-    const separationSlider = document.getElementById('separation');
     const convergenceVal = document.getElementById('convergence-val');
-    const separationVal = document.getElementById('separation-val');
 
     let swapped = false;
-    let xrSession = null;
-    let gl = null;
-    let prog = null;
-    let tex = null;
+    let zoom = 1.0;
+    let xrSession = null, gl = null;
 
     convergenceSlider.addEventListener('input', () => {{
-      convergenceVal.textContent = convergenceSlider.value + 'px';
-    }});
-    separationSlider.addEventListener('input', () => {{
-      separationVal.textContent = parseFloat(separationSlider.value).toFixed(2);
+      convergenceVal.textContent = parseFloat(convergenceSlider.value).toFixed(1) + '°';
     }});
     swapBtn.addEventListener('click', () => {{
       swapped = !swapped;
@@ -574,104 +677,31 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       const supported = await navigator.xr.isSessionSupported('immersive-vr');
       if (!supported) {{ status.textContent = 'Immersive VR not supported'; return; }}
       try {{
-        // Request 'layers' feature for native media layer compositing
-        xrSession = await navigator.xr.requestSession('immersive-vr', {{
-          requiredFeatures: ['local'],
-          optionalFeatures: ['layers'],
-        }});
+        xrSession = await navigator.xr.requestSession('immersive-vr', {{ requiredFeatures: ['local'] }});
         await startXR(xrSession);
-      }} catch (e) {{
-        status.textContent = 'VR error: ' + e.message;
-      }}
+      }} catch (e) {{ status.textContent = 'VR error: ' + e.message; }}
     }});
 
     async function startXR(session) {{
       vrBtn.textContent = 'Exit VR';
-      const refSpace = await session.requestReferenceSpace('local');
-
-      // Use XRMediaQuadLayer (native compositing) if available — no CPU upload needed
-      const hasLayers = !!XRMediaBinding;
-      if (hasLayers) {{
-        try {{
-          await startWithMediaLayer(session, refSpace);
-          return;
-        }} catch(e) {{
-          status.textContent = 'MediaLayer failed: ' + e.message + ' — falling back';
-        }}
-      }}
-      // Fallback: WebGL texSubImage2D path
-      await startWithWebGL(session, refSpace);
-    }}
-
-    async function startWithMediaLayer(session, refSpace) {{
-      // XRMediaQuadLayer: compositor handles video natively at full frame rate
-      // layout 'stereo-left-right' tells it the video is SBS — left half = left eye
-      const mediaBinding = new XRMediaBinding(session);
-      const quadLayer = mediaBinding.createQuadLayer(video, {{
-        space: refSpace,
-        layout: swapped ? 'stereo-right-left' : 'stereo-left-right',
-        width: 2.0,   // 2m wide in world space
-        height: 1.125, // 16:9 aspect (2.0 / 16 * 9)
-      }});
-
-      // Position the quad 2m in front of the viewer
-      quadLayer.transform = new XRRigidTransform({{x: 0, y: 0, z: -2}});
-
-      session.updateRenderState({{ layers: [quadLayer] }});
-      video.play();
-
-      status.textContent = 'Playing via Media Layer';
-
-      session.addEventListener('end', () => {{
-        vrBtn.textContent = 'Enter VR';
-        xrSession = null;
-      }});
-
-      const wasPressed = {{}};
-      session.requestAnimationFrame(function frame(t, xrFrame) {{
-        session.requestAnimationFrame(frame);
-        handleControllers(session, wasPressed, quadLayer, refSpace);
-      }});
-    }}
-
-    async function startWithWebGL(session, refSpace) {{
-      // WebGL fallback — video frames uploaded via texSubImage2D each frame
       canvas.style.display = 'block';
       gl = canvas.getContext('webgl2', {{ xrCompatible: true }});
       await gl.makeXRCompatible();
-      const glLayer = new XRWebGLLayer(session, gl);
-      session.updateRenderState({{ baseLayer: glLayer }});
+      const refSpace = await session.requestReferenceSpace('local');
+      const layer = new XRWebGLLayer(session, gl);
+      session.updateRenderState({{ baseLayer: layer }});
 
-      prog = buildShader(gl);
-      tex = gl.createTexture();
+      const sphere = buildSphereRenderer(gl);
+
+      const tex = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, video.videoWidth, video.videoHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, vid.videoWidth || 1024, vid.videoHeight || 288, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
 
-      const vao = gl.createVertexArray();
-      gl.bindVertexArray(vao);
-      const quadBuf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-      const posLoc = gl.getAttribLocation(prog, 'aPos');
-      gl.enableVertexAttribArray(posLoc);
-      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-      gl.bindVertexArray(null);
-
-      gl.useProgram(prog);
-      const uTex = gl.getUniformLocation(prog, 'uTex');
-      const uOffsetX = gl.getUniformLocation(prog, 'uOffsetX');
-      const uShift = gl.getUniformLocation(prog, 'uShift');
-      const uSeparationLoc = gl.getUniformLocation(prog, 'uSeparation');
-      const uAspect = gl.getUniformLocation(prog, 'uAspect');
-      gl.uniform1i(uTex, 0);
-      // Video is 16:9 per eye; pass aspect so shader can correct y margin
-      gl.uniform1f(uAspect, (video.videoWidth / 2) / video.videoHeight);
-
-      video.play();
+      vid.play();
 
       session.addEventListener('end', () => {{
         canvas.style.display = 'none';
@@ -680,108 +710,111 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       }});
 
       const wasPressed = {{}};
+
       session.requestAnimationFrame(function frame(t, xrFrame) {{
         session.requestAnimationFrame(frame);
-        handleControllers(session, wasPressed, null, refSpace);
 
-        if (video.readyState >= video.HAVE_CURRENT_DATA) {{
+        if (vid.readyState >= vid.HAVE_CURRENT_DATA) {{
           gl.bindTexture(gl.TEXTURE_2D, tex);
-          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, video);
+          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, vid);
+        }}
+
+        for (const src of session.inputSources) {{
+          const gp = src.gamepad; if (!gp) continue;
+          const id = src.handedness;
+          if (!wasPressed[id]) wasPressed[id] = {{}};
+
+          const aBtn = gp.buttons[4];
+          if (aBtn?.pressed && !wasPressed[id][4]) {{
+            swapped = !swapped;
+            swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+          }}
+          wasPressed[id][4] = aBtn?.pressed;
+
+          if (src.handedness === 'right') {{
+            const trig = gp.buttons[0];
+            if (trig?.pressed && !wasPressed[id][0]) vid.paused ? vid.play() : vid.pause();
+            wasPressed[id][0] = trig?.pressed;
+
+            const stickX = gp.axes[2] ?? 0;
+            if (Math.abs(stickX) > 0.15) {{
+              const val = Math.max(-30, Math.min(30, parseFloat(convergenceSlider.value) + stickX * 0.3));
+              convergenceSlider.value = val;
+              convergenceVal.textContent = val.toFixed(1) + '°';
+            }}
+            const stickY = gp.axes[3] ?? 0;
+            if (Math.abs(stickY) > 0.15) zoom = Math.max(0.5, Math.min(3.0, zoom + stickY * 0.02));
+          }}
+          if (src.handedness === 'left') {{
+            const trig = gp.buttons[0];
+            if (trig?.pressed && !wasPressed[id][0]) session.end();
+            wasPressed[id][0] = trig?.pressed;
+          }}
         }}
 
         const pose = xrFrame.getViewerPose(refSpace);
         if (!pose) return;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.useProgram(prog);
-        gl.bindVertexArray(vao);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        const convergence = parseFloat(convergenceSlider.value);
-        const separation = parseFloat(separationSlider.value);
-        const shiftU = (video.videoWidth > 0) ? convergence / (video.videoWidth / 2) * 0.5 : 0;
+        const yawDeg = parseFloat(convergenceSlider.value);
+        const vw = vid.videoWidth || 1024, vh = vid.videoHeight || 288;
         for (const view of pose.views) {{
-          const vp = glLayer.getViewport(view);
+          const vp = layer.getViewport(view);
           gl.viewport(vp.x, vp.y, vp.width, vp.height);
           const isLeft = view.eye === 'left';
           const eyeIsLeft = swapped ? !isLeft : isLeft;
-          gl.uniform1f(uOffsetX, eyeIsLeft ? 0.0 : 0.5);
-          gl.uniform1f(uShift, shiftU * (eyeIsLeft ? 1.0 : -1.0));
-          gl.uniform1f(uSeparationLoc, separation);
-          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          renderEyeSphere(gl, sphere, tex, eyeIsLeft ? 0.0 : 0.5, 1.0,
+            view.projectionMatrix, view.transform.inverse.matrix, yawDeg, eyeIsLeft, zoom, vw, vh);
         }}
-        gl.bindVertexArray(null);
       }});
     }}
 
-    function handleControllers(session, wasPressed, quadLayer, refSpace) {{
-      for (const src of session.inputSources) {{
-        const gp = src.gamepad;
-        if (!gp) continue;
-        const id = src.handedness;
-        if (!wasPressed[id]) wasPressed[id] = {{}};
-
-        const aBtn = gp.buttons[4];
-        if (aBtn?.pressed && !wasPressed[id][4]) {{
-          swapped = !swapped;
-          swapBtn.textContent = swapped ? 'Order B' : 'Order A';
-          // Recreate layer with new layout if using media layers
-          if (quadLayer) {{
-            session.end(); // simplest — user re-enters with corrected swap
-          }}
-        }}
-        wasPressed[id][4] = aBtn?.pressed;
-
-        if (src.handedness === 'right') {{
-          const trigger = gp.buttons[0];
-          if (trigger?.pressed && !wasPressed[id][0]) {{
-            video.paused ? video.play() : video.pause();
-          }}
-          wasPressed[id][0] = trigger?.pressed;
-
-          const stick = gp.axes[2] ?? 0;
-          if (Math.abs(stick) > 0.15 && !quadLayer) {{
-            const val = Math.max(-200, Math.min(200,
-              parseFloat(convergenceSlider.value) + stick * 3));
-            convergenceSlider.value = val;
-            convergenceVal.textContent = Math.round(val) + 'px';
-          }}
-        }}
-
-        if (src.handedness === 'left') {{
-          const trigger = gp.buttons[0];
-          if (trigger?.pressed && !wasPressed[id][0]) session.end();
-          wasPressed[id][0] = trigger?.pressed;
+    function buildSphereRenderer(gl) {{
+      const STACKS = 32, SLICES = 64;
+      const verts = [], indices = [];
+      for (let s = 0; s <= STACKS; s++) {{
+        const phi = Math.PI * s / STACKS;
+        for (let sl = 0; sl <= SLICES; sl++) {{
+          const theta = 2 * Math.PI * sl / SLICES;
+          verts.push(Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta));
         }}
       }}
-    }}
+      for (let s = 0; s < STACKS; s++) {{
+        for (let sl = 0; sl < SLICES; sl++) {{
+          const a = s*(SLICES+1)+sl, b = a+SLICES+1;
+          indices.push(a, b, a+1, b, b+1, a+1);
+        }}
+      }}
+      const vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+      const ibo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(indices), gl.STATIC_DRAW);
 
-    function buildShader(gl) {{
       const vs = `#version 300 es
-        in vec2 aPos; out vec2 vUv;
-        void main() {{ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }}`;
+        in vec3 aPos; uniform mat4 uProj, uView, uYawMat; out vec3 vDir;
+        void main() {{
+          vDir = (uYawMat * vec4(aPos, 0.0)).xyz;
+          gl_Position = uProj * uView * uYawMat * vec4(aPos * 100.0, 1.0);
+        }}`;
       const fs = `#version 300 es
         precision highp float;
-        in vec2 vUv; uniform sampler2D uTex;
-        uniform float uOffsetX;
-        uniform float uShift;
-        uniform float uSeparation;
-        uniform float uAspect; // per-eye width/height (e.g. 1.78 for 16:9)
+        in vec3 vDir; uniform sampler2D uTex;
+        uniform float uOffsetX, uHalfFovH, uAspect, uScale;
         out vec4 fragColor;
         void main() {{
-          // Viewport aspect is ~1:1 on Quest; content is 16:9.
-          // Scale margins so content fills width=uSeparation, height=uSeparation/uAspect
-          float mx = (1.0 - uSeparation) * 0.5;
-          float my = (1.0 - uSeparation / uAspect) * 0.5;
-          if (vUv.x < mx || vUv.x > 1.0 - mx ||
-              vUv.y < my || vUv.y > 1.0 - my) {{
-            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
+          vec3 d = normalize(vDir);
+          float az = atan(d.x, -d.z);
+          float el = atan(d.y, length(d.xz));
+          float hFov = uHalfFovH * uScale;
+          float vFov = hFov / uAspect;
+          float u01 = az / (2.0 * hFov) + 0.5;
+          float v01 = el / (2.0 * vFov) + 0.5;
+          if (u01 < 0.0 || u01 > 1.0 || v01 < 0.0 || v01 > 1.0) {{
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
           }}
-          float cx = (vUv.x - mx) / uSeparation;
-          float u = uOffsetX + clamp(cx * 0.5 + uShift, 0.0, 0.5);
-          float v = (vUv.y - my) / (uSeparation / uAspect);
-          fragColor = texture(uTex, vec2(u, 1.0 - v));
+          fragColor = texture(uTex, vec2(uOffsetX + u01 * 0.5, 1.0 - v01));
         }}`;
       const compile = (type, src) => {{
         const s = gl.createShader(type);
@@ -794,7 +827,372 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
       gl.linkProgram(p);
       if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
-      return p;
+
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      const posLoc = gl.getAttribLocation(p, 'aPos');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 12, 0);
+      gl.bindVertexArray(null);
+
+      return {{
+        prog: p, vao, indexCount: indices.length,
+        uProj:     gl.getUniformLocation(p, 'uProj'),
+        uView:     gl.getUniformLocation(p, 'uView'),
+        uYawMat:   gl.getUniformLocation(p, 'uYawMat'),
+        uTex:      gl.getUniformLocation(p, 'uTex'),
+        uOffsetX:  gl.getUniformLocation(p, 'uOffsetX'),
+        uHalfFovH: gl.getUniformLocation(p, 'uHalfFovH'),
+        uAspect:   gl.getUniformLocation(p, 'uAspect'),
+        uScale:    gl.getUniformLocation(p, 'uScale'),
+      }};
+    }}
+
+    function renderEyeSphere(gl, sphere, tex, uOffset, separation, projMat, viewMat, yawDeg, eyeIsLeft, zoom, vidW, vidH) {{
+      gl.useProgram(sphere.prog);
+      gl.bindVertexArray(sphere.vao);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniformMatrix4fv(sphere.uProj, false, projMat);
+      gl.uniformMatrix4fv(sphere.uView, false, viewMat);
+      const dir = eyeIsLeft ? 1.0 : -1.0;
+      const rad = yawDeg * Math.PI / 180.0 * dir;
+      const c = Math.cos(rad), s = Math.sin(rad);
+      gl.uniformMatrix4fv(sphere.uYawMat, false, new Float32Array([
+        c,0,s,0, 0,1,0,0, -s,0,c,0, 0,0,0,1
+      ]));
+      gl.uniform1i(sphere.uTex, 0);
+      gl.uniform1f(sphere.uOffsetX, uOffset);
+      gl.uniform1f(sphere.uHalfFovH, (65.0 / 2.0) * Math.PI / 180.0);
+      gl.uniform1f(sphere.uAspect, (vidW / 2) / vidH);
+      gl.uniform1f(sphere.uScale, zoom);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+      gl.drawElements(gl.TRIANGLES, sphere.indexCount, gl.UNSIGNED_INT, 0);
+      gl.bindVertexArray(null);
+    }}
+  </script>
+</body>
+</html>'''
+
+
+def render_video_viewer_page(*, theme_css_js, video_file):
+    """SBS video viewer — slate visible on load, fullscreen + WebXR options."""
+    import random as _r
+    video_url = S3_VIDEO_BASE + video_file
+    label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
+    # Build pet — random per cold-start of the Lambda. Stable within a Lambda
+    # container (free CloudFront cache hits), changes after deploy/cold-start.
+    if not hasattr(render_video_viewer_page, "_pet"):
+        pets = ["badger","otter","heron","fox","squirrel","wren","hare","stoat",
+                "puffin","mole","newt","kestrel","owl","crow","robin","sparrow",
+                "weasel","ferret","dormouse","raven","magpie","starling","linnet"]
+        render_video_viewer_page._pet = _r.choice(pets)
+    page_pet = render_video_viewer_page._pet
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{label}</title>
+  {theme_css_js}
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ background: #000; color: var(--text); font-family: var(--font); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }}
+    #video-wrap {{ width: 100%; max-width: 900px; padding: 1rem; }}
+    video {{ width: 100%; border-radius: 8px; display: block; }}
+    .hint {{ text-align: center; color: #8E8E93; font-size: 0.85rem; margin: 0.75rem 1rem; line-height: 1.6; max-width: 600px; }}
+    .hint strong {{ color: #E0E0E0; }}
+    .btn-row {{ display: flex; gap: 10px; justify-content: center; margin: 0.75rem; flex-wrap: wrap; }}
+    button {{
+      background: #007AFF; color: #fff; border: none;
+      border-radius: 12px; padding: 12px 24px; font-size: 0.95rem; cursor: pointer;
+    }}
+    button.secondary {{ background: #161616; color: #007AFF; border: 1px solid #2C2C2E; }}
+    button:disabled {{ background: #2C2C2E; color: #8E8E93; cursor: default; }}
+    .footer {{ text-align: center; color: #8E8E93; font-size: 0.75rem; margin: 1rem; }}
+    .footer a {{ color: #007AFF; text-decoration: none; }}
+    #status {{
+      min-height: 1.5em;
+      padding: 8px 16px;
+      margin: 0.5rem auto;
+      max-width: 600px;
+      background: #161616;
+      color: #FF9500;
+      font-family: monospace;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #2C2C2E;
+    }}
+    #xr-canvas {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; }}
+  </style>
+</head>
+<body>
+  <div id="video-wrap">
+    <!-- preload=auto loads enough to show the slate frame; no autoplay so slate stays visible -->
+    <video id="vid" src="{video_url}" controls playsinline loop preload="auto"></video>
+  </div>
+  <div class="hint">
+    <strong>Quest: </strong>tap <strong>Play</strong> then <strong>Fullscreen</strong> — press <strong>O</strong> to push to background for stereo.<br>
+    Or tap <strong>Enter VR</strong> for WebXR mode.
+  </div>
+  <div class="btn-row">
+    <button id="fs-btn">Fullscreen</button>
+    <button id="vr-btn">Enter VR</button>
+    <button class="secondary" onclick="history.back()">&#8592; Back</button>
+  </div>
+  <div id="status"></div>
+  <div style="text-align:center;color:#8E8E93;font-size:0.7rem;margin:0.5rem;">page: {page_pet}</div>
+  <div class="footer"><a href="/stereo">&#8592; Gallery</a></div>
+  <canvas id="xr-canvas"></canvas>
+
+  <script>
+    const vid = document.getElementById('vid');
+    const vrBtn = document.getElementById('vr-btn');
+    const statusEl = document.getElementById('status');
+    const canvas = document.getElementById('xr-canvas');
+    let xrSession = null, gl = null, prog = null, tex = null;
+
+    statusEl.textContent = 'status will appear here';
+
+    // Force seek to frame 0 so the slate is visible before the user presses play
+    vid.addEventListener('loadedmetadata', () => {{ vid.currentTime = 0; }});
+    vid.addEventListener('canplay', () => {{
+      if (vid.paused) vid.currentTime = 0;
+    }});
+
+    // Fullscreen: try every API the Quest browser supports
+    document.getElementById('fs-btn').addEventListener('click', () => {{
+      vid.muted = false;
+      vid.play();
+      // Try fullscreen on the video element itself first (works on Quest)
+      if (vid.webkitEnterFullscreen)       vid.webkitEnterFullscreen();
+      else if (vid.requestFullscreen)      vid.requestFullscreen();
+      else {{
+        const el = document.getElementById('video-wrap');
+        if (el.requestFullscreen)            el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      }}
+    }});
+
+    // WebXR via XRMediaBinding — follows W3C media-layer-sample.html pattern.
+    // Use a separate, NEVER-DOM-attached <video> for the layer source.
+    let xrVideo = null;
+    function makeXrVideo() {{
+      const v = document.createElement('video');
+      v.crossOrigin = 'anonymous';
+      v.preload = 'auto';
+      v.loop = true;
+      v.muted = true;
+      v.playsInline = true;
+      v.setAttribute('playsinline', '');
+      v.setAttribute('webkit-playsinline', '');
+      v.src = vid.src;
+      return v;
+    }}
+
+    // On page load, check decode capability for our video config.
+    // Reports whether the codec/resolution will use hardware decode (powerEfficient).
+    (async () => {{
+      if (!navigator.mediaCapabilities) return;
+      try {{
+        const info = await navigator.mediaCapabilities.decodingInfo({{
+          type: 'file',
+          video: {{
+            contentType: 'video/mp4; codecs="avc1.640028"',
+            width: 1280, height: 360, bitrate: 5000000, framerate: 30,
+          }},
+        }});
+        statusEl.textContent =
+          `decode: smooth=${{info.smooth}} hw=${{info.powerEfficient}} sup=${{info.supported}}`;
+      }} catch(e) {{ statusEl.textContent = 'mediaCapabilities error: ' + e.message; }}
+    }})();
+
+    vrBtn.addEventListener('click', async () => {{
+      if (xrSession) {{ await xrSession.end(); return; }}
+      if (!navigator.xr) {{ statusEl.textContent = 'WebXR not available'; return; }}
+      const ok = await navigator.xr.isSessionSupported('immersive-vr');
+      if (!ok) {{ statusEl.textContent = 'Immersive VR not supported'; return; }}
+
+      // Create a fresh video element NOT attached to the DOM, per W3C reference.
+      // Start playing in the same user gesture so autoplay policies are satisfied.
+      xrVideo = makeXrVideo();
+      try {{ await xrVideo.play(); }} catch(e) {{}}
+
+      try {{
+        statusEl.textContent = 'Requesting session...';
+        xrSession = await navigator.xr.requestSession('immersive-vr', {{
+          requiredFeatures: ['layers'],
+        }});
+        statusEl.textContent = 'Session granted, setting up layer...';
+        onSessionStarted(xrSession);
+      }} catch(e) {{
+        statusEl.textContent = 'Session failed: ' + e.message;
+      }}
+    }});
+
+    function onSessionStarted(session) {{
+      vrBtn.textContent = 'Exit VR';
+      session.addEventListener('end', onSessionEnded);
+
+      const mediaFactory = new XRMediaBinding(session);
+
+      session.requestReferenceSpace('local').then((refSpace) => {{
+        const layer = mediaFactory.createQuadLayer(xrVideo, {{
+          space: refSpace,
+          layout: 'stereo-left-right',
+          transform: new XRRigidTransform(
+            {{x: 0, y: 0, z: -2}},
+            {{x: 0, y: 0, z: 0, w: 1}}
+          ),
+          width: 2.0,
+        }});
+        session.updateRenderState({{ layers: [layer] }});
+        statusEl.textContent = 'Playing';
+
+        // Sample decode quality every second so we can see actual decode rate
+        let lastFrames = 0, lastDropped = 0;
+        const qInterval = setInterval(() => {{
+          if (!xrVideo.getVideoPlaybackQuality) return;
+          const q = xrVideo.getVideoPlaybackQuality();
+          const decoded = q.totalVideoFrames - lastFrames;
+          const dropped = q.droppedVideoFrames - lastDropped;
+          lastFrames = q.totalVideoFrames;
+          lastDropped = q.droppedVideoFrames;
+          statusEl.textContent = `decoded ${{decoded}}/s  dropped ${{dropped}}/s`;
+        }}, 1000);
+        session.addEventListener('end', () => clearInterval(qInterval));
+
+        const wasPressed = {{}};
+        const ctrlInterval = setInterval(() => {{
+          for (const src of session.inputSources) {{
+            const gp = src.gamepad; if (!gp) continue;
+            const id = src.handedness;
+            if (!wasPressed[id]) wasPressed[id] = {{}};
+            if (src.handedness === 'right') {{
+              const trig = gp.buttons[0];
+              if (trig?.pressed && !wasPressed[id][0]) {{
+                xrVideo.paused ? xrVideo.play() : xrVideo.pause();
+              }}
+              wasPressed[id][0] = trig?.pressed;
+            }}
+            if (src.handedness === 'left') {{
+              const trig = gp.buttons[0];
+              if (trig?.pressed && !wasPressed[id][0]) session.end();
+              wasPressed[id][0] = trig?.pressed;
+            }}
+          }}
+        }}, 100);
+        session.addEventListener('end', () => clearInterval(ctrlInterval));
+      }});
+    }}
+
+    function onSessionEnded() {{
+      vrBtn.textContent = 'Enter VR';
+      if (xrVideo) {{ xrVideo.pause(); xrVideo.src = ''; xrVideo = null; }}
+      xrSession = null;
+      statusEl.textContent = '';
+    }}
+
+    function buildSphereRenderer(gl) {{
+      const STACKS = 32, SLICES = 64;
+      const verts = [], indices = [];
+      for (let s = 0; s <= STACKS; s++) {{
+        const phi = Math.PI * s / STACKS;
+        for (let sl = 0; sl <= SLICES; sl++) {{
+          const theta = 2 * Math.PI * sl / SLICES;
+          verts.push(Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta));
+        }}
+      }}
+      for (let s = 0; s < STACKS; s++) {{
+        for (let sl = 0; sl < SLICES; sl++) {{
+          const a = s*(SLICES+1)+sl, b = a+SLICES+1;
+          indices.push(a,b,a+1,b,b+1,a+1);
+        }}
+      }}
+      const vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+      const ibo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(indices), gl.STATIC_DRAW);
+
+      const vs = `#version 300 es
+        in vec3 aPos; uniform mat4 uProj, uView; out vec3 vDir;
+        void main() {{
+          vDir = aPos;
+          gl_Position = uProj * uView * vec4(aPos * 100.0, 1.0);
+        }}`;
+      const fs = `#version 300 es
+        precision highp float;
+        in vec3 vDir; uniform sampler2D uTex;
+        uniform float uOffsetX, uHalfFovH, uAspect, uScale;
+        out vec4 fragColor;
+        void main() {{
+          vec3 d = normalize(vDir);
+          float az = atan(d.x, -d.z);
+          float el = atan(d.y, length(d.xz));
+          float hFov = uHalfFovH * uScale;
+          float u01 = az / (2.0 * hFov) + 0.5;
+          float v01 = el / (2.0 * hFov * uAspect) + 0.5;
+          if (u01 < 0.0 || u01 > 1.0 || v01 < 0.0 || v01 > 1.0) {{
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
+          }}
+          fragColor = texture(uTex, vec2(uOffsetX + u01 * 0.5, 1.0 - v01));
+        }}`;
+      const compile = (type, src) => {{
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      }};
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      const posLoc = gl.getAttribLocation(p, 'aPos');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 12, 0);
+      gl.bindVertexArray(null);
+
+      return {{
+        prog: p, vao, indexCount: indices.length,
+        uProj:     gl.getUniformLocation(p, 'uProj'),
+        uView:     gl.getUniformLocation(p, 'uView'),
+        uTex:      gl.getUniformLocation(p, 'uTex'),
+        uOffsetX:  gl.getUniformLocation(p, 'uOffsetX'),
+        uHalfFovH: gl.getUniformLocation(p, 'uHalfFovH'),
+        uAspect:   gl.getUniformLocation(p, 'uAspect'),
+        uScale:    gl.getUniformLocation(p, 'uScale'),
+      }};
+    }}
+
+    function renderEyeSphere(gl, sphere, tex, uOffset, projMat, viewMat, zoom, vidW, vidH) {{
+      gl.useProgram(sphere.prog);
+      gl.bindVertexArray(sphere.vao);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniformMatrix4fv(sphere.uProj, false, projMat);
+      gl.uniformMatrix4fv(sphere.uView, false, viewMat);
+      gl.uniform1i(sphere.uTex, 0);
+      gl.uniform1f(sphere.uOffsetX, uOffset);
+      gl.uniform1f(sphere.uHalfFovH, (65.0 / 2.0) * Math.PI / 180.0);
+      gl.uniform1f(sphere.uAspect, (vidW / 2) / vidH);
+      gl.uniform1f(sphere.uScale, zoom);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+      gl.drawElements(gl.TRIANGLES, sphere.indexCount, gl.UNSIGNED_INT, 0);
+      gl.bindVertexArray(null);
     }}
   </script>
 </body>

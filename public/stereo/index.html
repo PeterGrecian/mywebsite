@@ -85,6 +85,11 @@
       <input type="file" id="file-input" accept="image/*,.jps" style="display:none">
     </div>
 
+    <div id="video-section" style="width:100%;max-width:600px;">
+      <div style="color:#8E8E93;font-size:0.85rem;margin-bottom:8px;">Stereo Videos (SBS MP4 — download &amp; open in Oculus Video)</div>
+      <div id="video-list"></div>
+    </div>
+
     <img id="preview" alt="Preview">
 
     <div id="controls">
@@ -121,6 +126,27 @@
     const separationVal = document.getElementById('separation-val');
 
     const S3_BASE = 'https://petergrecian.co.uk.s3.amazonaws.com/stereo/';
+    const S3_VIDEO_BASE = 'https://petergrecian.co.uk.s3.amazonaws.com/stereo/video/';
+
+    const STEREO_VIDEOS = [
+      { file: 'may1-train-sbs.mp4', label: 'Train — May 2026', note: '5s · 3840×1080 · 1-frame baseline' },
+    ];
+
+    (function renderVideoList() {
+      const list = document.getElementById('video-list');
+      STEREO_VIDEOS.forEach(v => {
+        const url = S3_VIDEO_BASE + v.file;
+        const row = document.createElement('div');
+        row.style.cssText = 'background:#161616;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;';
+        row.innerHTML = `
+          <div>
+            <div style="color:#E0E0E0;font-size:0.95rem;">${v.label}</div>
+            <div style="color:#8E8E93;font-size:0.8rem;">${v.note}</div>
+          </div>
+          <a href="${url}" download style="background:#007AFF;color:#fff;border-radius:8px;padding:8px 16px;font-size:0.85rem;text-decoration:none;">Download</a>`;
+        list.appendChild(row);
+      });
+    })();
 
     let imageUrl = null;
     let xrSession = null;
