@@ -8,6 +8,19 @@ S3_PREFIX = "stereo"
 S3_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/"
 S3_VIDEO_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/video/"
 
+# Human-readable labels for shot dir slugs. Falls back to slug if missing.
+PLACE_LABELS = {
+    "barbican": "Barbican",
+    "from-waterloo-bridge-bus-20260424-full": "From Waterloo Bridge (bus)",
+    "kingston-1348": "Kingston by Bus (13:48)",
+    "kingston-1356": "Kingston by Bus (13:56)",
+    "may1-1123": "May 1 — 11:23 set",
+    "may1-1223": "May 1 — 12:23 set",
+    "nine-elms-20260424": "Nine Elms",
+    "vauxhall": "Vauxhall",
+}
+
+
 # Manually curated video list — add entries here after uploading to S3
 # visible=False marks videos known to fail in the WebXR viewer (under investigation)
 STEREO_VIDEOS = [
@@ -39,15 +52,79 @@ def _list_shots():
     return shots
 
 
-def render_gallery_page(*, theme_css_js):
-    shots = _list_shots()
+_GALLERY_CSS = '''
+    body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin: 1rem 0 0.3rem; text-align: center; }
+    h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+    .subtitle { text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .shot-card {
+      display: block; text-decoration: none;
+      background: var(--card-bg); border-radius: 12px;
+      padding: 1rem 1.2rem; margin-bottom: 0.75rem;
+      border: 1px solid var(--divider);
+    }
+    .shot-card:hover { opacity: 0.8; }
+    .shot-title { font-size: 1.05rem; font-weight: 600; color: var(--accent); margin-bottom: 0.3rem; }
+    .shot-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); }
+    .empty { text-align: center; color: var(--text-secondary); margin-top: 2rem; }
+    .footer { text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+'''
 
-    # Group shots by slug (= place). Within a place, keep inlier-desc order.
-    groups: dict[str, list] = {}
-    for s in shots:
-        groups.setdefault(s.get("slug", ""), []).append(s)
-    # Order places by their best (highest-inlier) shot
-    place_order = sorted(groups.keys(), key=lambda k: -max((s.get("inliers", 0) for s in groups[k]), default=0))
+
+def _place_label(slug: str) -> str:
+    return PLACE_LABELS.get(slug, slug)
+
+
+def render_index_page(*, theme_css_js):
+    """Top-level index: links to per-place stills pages and per-visibility video pages."""
+    shots = _list_shots()
+    places = sorted({s.get("slug", "") for s in shots})
+
+    place_links = "".join(
+        f'<a class="shot-card" href="/stereo?place={slug}">'
+        f'<div class="shot-title">{_place_label(slug)}</div></a>'
+        for slug in places
+    ) or '<p class="empty">No stereo images yet.</p>'
+
+    has_visible   = any(v.get("visible", True)     for v in STEREO_VIDEOS)
+    has_invisible = any(not v.get("visible", True) for v in STEREO_VIDEOS)
+
+    video_links = ""
+    if has_visible:
+        video_links += '<a class="shot-card" href="/stereo?videos=visible">' \
+                       '<div class="shot-title">Visible</div></a>'
+    if has_invisible:
+        video_links += '<a class="shot-card" href="/stereo?videos=invisible">' \
+                       '<div class="shot-title">Invisible (under investigation)</div></a>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stereo Photography</title>
+  {theme_css_js}
+  <style>{_GALLERY_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Stereo Photography</h1>
+    <div class="subtitle">Quest 2 VR</div>
+    <h2>Stills by location</h2>
+    {place_links}
+    <h2>Videos</h2>
+    {video_links}
+    <div class="footer"><a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_place_page(*, theme_css_js, place):
+    """Stills for one location."""
+    shots = [s for s in _list_shots() if s.get("slug") == place]
 
     def shot_card(s):
         slug = s.get("slug", "")
@@ -58,23 +135,40 @@ def render_gallery_page(*, theme_css_js):
         time_str = ts[11:16] if ts else ""
         date_str = ts[:10] if ts else ""
         img_param = f"{slug}/{slug}.{pair_id}"
-        return f'''
-    <a href="/stereo?img={img_param}" class="shot-card">
-      <div class="shot-title">{title}</div>
-      <div class="shot-meta">
-        <span class="quality">{inliers} inliers</span>
-        <span class="timestamp">{date_str} {time_str}</span>
-      </div>
-    </a>'''
+        return (f'<a href="/stereo?img={img_param}" class="shot-card">'
+                f'<div class="shot-title">{title}</div>'
+                f'<div class="shot-meta">'
+                f'<span class="quality">{inliers} inliers</span>'
+                f'<span class="timestamp">{date_str} {time_str}</span>'
+                f'</div></a>')
 
-    cards = ""
-    for slug in place_order:
-        cards += f'<h3 class="place-heading">{slug}</h3>'
-        for s in groups[slug]:
-            cards += shot_card(s)
+    cards = "".join(shot_card(s) for s in shots) \
+            or '<p class="empty">No shots in this location.</p>'
 
-    if not cards:
-        cards = '<p class="empty">No stereo images yet.</p>'
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{_place_label(place)}</title>
+  {theme_css_js}
+  <style>{_GALLERY_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>{_place_label(place)}</h1>
+    <div class="subtitle">{len(shots)} stereo pair{'s' if len(shots) != 1 else ''}</div>
+    {cards}
+    <div class="footer"><a href="/stereo">&#8592; Stereo Photography</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_videos_page(*, theme_css_js, visibility):
+    """Videos filtered by visibility ('visible' or 'invisible')."""
+    want_visible = (visibility == "visible")
+    videos = [v for v in STEREO_VIDEOS if v.get("visible", True) == want_visible]
 
     def video_card(v):
         return f'''
@@ -90,52 +184,36 @@ def render_gallery_page(*, theme_css_js):
       </div>
     </div>'''
 
-    visible_cards   = "".join(video_card(v) for v in STEREO_VIDEOS if v.get("visible", True))
-    invisible_cards = "".join(video_card(v) for v in STEREO_VIDEOS if not v.get("visible", True))
+    cards = "".join(video_card(v) for v in videos) \
+            or '<p class="empty">No videos in this section.</p>'
+
+    title = "Visible videos" if want_visible else "Invisible videos"
+    sub   = "Tap to open in WebXR VR viewer" if want_visible \
+            else "Known not to display correctly — under investigation"
 
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stereo Photography</title>
+  <title>{title}</title>
   {theme_css_js}
-  <style>
-    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
-    .container {{ max-width: 600px; margin: 0 auto; }}
-    h1 {{ font-size: 1.4rem; margin: 1rem 0 0.3rem; text-align: center; }}
-    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
-    .shot-card {{
-      display: block; text-decoration: none;
-      background: var(--card-bg); border-radius: 12px;
-      padding: 1rem 1.2rem; margin-bottom: 0.75rem;
-      border: 1px solid var(--divider);
-    }}
-    .shot-card:hover {{ opacity: 0.8; }}
-    .shot-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); margin-bottom: 0.3rem; }}
-    .shot-meta {{ display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); }}
-    .place-heading {{ font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin: 1.2rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }}
-    .video-section-heading {{ font-size: 1.0rem; font-weight: 600; color: var(--text-secondary); margin: 1.2rem 0 0.4rem; }}
-    .empty {{ text-align: center; color: var(--text-secondary); margin-top: 2rem; }}
-    .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }}
-    .footer a {{ color: var(--accent); text-decoration: none; }}
-  </style>
+  <style>{_GALLERY_CSS}</style>
 </head>
 <body>
   <div class="container">
-    <h1>Stereo Photography</h1>
-    <div class="subtitle">Quest 2 VR — sorted by rectification quality</div>
+    <h1>{title}</h1>
+    <div class="subtitle">{sub}</div>
     {cards}
-    <h2 style="font-size:1.1rem;margin:1.5rem 0 0.5rem;">Stereo Videos</h2>
-    <div class="subtitle" style="margin-bottom:0.75rem;">Tap to open in WebXR VR viewer</div>
-    <h3 class="video-section-heading">Visible</h3>
-    {visible_cards}
-    <h3 class="video-section-heading">Invisible (under investigation)</h3>
-    {invisible_cards}
-    <div class="footer"><a href="/contents">Home</a></div>
+    <div class="footer"><a href="/stereo">&#8592; Stereo Photography</a></div>
   </div>
 </body>
 </html>'''
+
+
+# Back-compat shim: the existing import in mywebsite.py still references this name.
+def render_gallery_page(*, theme_css_js):
+    return render_index_page(theme_css_js=theme_css_js)
 
 
 def get_neighbours(img_param):

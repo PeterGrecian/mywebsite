@@ -2071,15 +2071,22 @@ def render_gotg_page():
     return _render(theme_css_js=THEME_CSS_JS)
 
 
-def render_stereo_page(img_param=None, video_param=None, svideo_param=None):
-    from routes.stereo import render_gallery_page, render_viewer_page, render_video_viewer_page, render_video_sphere_page
+def render_stereo_page(img_param=None, video_param=None, svideo_param=None,
+                       place_param=None, videos_param=None):
+    from routes.stereo import (render_index_page, render_place_page, render_videos_page,
+                               render_viewer_page, render_video_viewer_page,
+                               render_video_sphere_page)
     if svideo_param:
         return render_video_sphere_page(theme_css_js=THEME_CSS_JS, video_file=svideo_param)
     if video_param:
         return render_video_viewer_page(theme_css_js=THEME_CSS_JS, video_file=video_param)
     if img_param:
         return render_viewer_page(theme_css_js=THEME_CSS_JS, img_param=img_param)
-    return render_gallery_page(theme_css_js=THEME_CSS_JS)
+    if place_param:
+        return render_place_page(theme_css_js=THEME_CSS_JS, place=place_param)
+    if videos_param in ("visible", "invisible"):
+        return render_videos_page(theme_css_js=THEME_CSS_JS, visibility=videos_param)
+    return render_index_page(theme_css_js=THEME_CSS_JS)
 
 
 def render_manim_page():
@@ -3234,12 +3241,15 @@ def lambda_handler(event, context):
 
     elif path == f'/{stage}/stereo' or path == '/stereo':
         qs = event.get('queryStringParameters', {}) or {}
-        img_param = qs.get('img')
-        video_param = qs.get('video')
-        svideo_param = qs.get('svideo')
         return {
             'statusCode': 200,
-            'body': render_stereo_page(img_param=img_param, video_param=video_param, svideo_param=svideo_param),
+            'body': render_stereo_page(
+                img_param=qs.get('img'),
+                video_param=qs.get('video'),
+                svideo_param=qs.get('svideo'),
+                place_param=qs.get('place'),
+                videos_param=qs.get('videos'),
+            ),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
