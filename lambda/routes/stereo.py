@@ -9,13 +9,14 @@ S3_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/"
 S3_VIDEO_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/video/"
 
 # Manually curated video list — add entries here after uploading to S3
+# visible=False marks videos known to fail in the WebXR viewer (under investigation)
 STEREO_VIDEOS = [
-    {"file": "may1-105049-mb4.mp4", "label": "Railway 25s — motion blur 4×", "note": "2K · dormouse · optical-flow blur"},
-    {"file": "may1-105132-mb4.mp4", "label": "Railway 64s — motion blur 4×", "note": "2K · ferret · optical-flow blur"},
-    {"file": "may1-lift-mb4.mp4", "label": "LIFT TEST — motion blur 4×", "note": "Barbican view, rotated 90°, optical-flow blur"},
-    {"file": "may1-105249-2k.mp4", "label": "Arrival at Waterloo (4 min)", "note": "2K · 3840×1080 · 1-frame baseline · NO blur"},
-    {"file": "may1-105132-2k.mp4", "label": "Railway 64s — May 2026", "note": "2K · 3840×1080 · squirrel · NO blur"},
-    {"file": "may1-105049-2k.mp4", "label": "Railway 25s — May 2026", "note": "2K · 3840×1080 · magpie · NO blur"},
+    {"file": "may1-105049-mb4.mp4", "label": "Railway 25s — motion blur 4×", "note": "2K · dormouse · optical-flow blur", "visible": False},
+    {"file": "may1-105132-mb4.mp4", "label": "Railway 64s — motion blur 4×", "note": "2K · ferret · optical-flow blur", "visible": True},
+    {"file": "may1-lift-mb4.mp4", "label": "LIFT TEST — motion blur 4×", "note": "Barbican view, rotated 90°, optical-flow blur", "visible": False},
+    {"file": "may1-105249-2k.mp4", "label": "Arrival at Waterloo (4 min)", "note": "2K · 3840×1080 · 1-frame baseline · NO blur", "visible": True},
+    {"file": "may1-105132-2k.mp4", "label": "Railway 64s — May 2026", "note": "2K · 3840×1080 · squirrel · NO blur", "visible": False},
+    {"file": "may1-105049-2k.mp4", "label": "Railway 25s — May 2026", "note": "2K · 3840×1080 · magpie · NO blur", "visible": True},
 ]
 
 
@@ -41,8 +42,14 @@ def _list_shots():
 def render_gallery_page(*, theme_css_js):
     shots = _list_shots()
 
-    cards = ""
+    # Group shots by slug (= place). Within a place, keep inlier-desc order.
+    groups: dict[str, list] = {}
     for s in shots:
+        groups.setdefault(s.get("slug", ""), []).append(s)
+    # Order places by their best (highest-inlier) shot
+    place_order = sorted(groups.keys(), key=lambda k: -max((s.get("inliers", 0) for s in groups[k]), default=0))
+
+    def shot_card(s):
         slug = s.get("slug", "")
         pair_id = s.get("pair_id", "")
         title = s.get("title", slug)
@@ -51,7 +58,7 @@ def render_gallery_page(*, theme_css_js):
         time_str = ts[11:16] if ts else ""
         date_str = ts[:10] if ts else ""
         img_param = f"{slug}/{slug}.{pair_id}"
-        cards += f'''
+        return f'''
     <a href="/stereo?img={img_param}" class="shot-card">
       <div class="shot-title">{title}</div>
       <div class="shot-meta">
@@ -60,12 +67,17 @@ def render_gallery_page(*, theme_css_js):
       </div>
     </a>'''
 
+    cards = ""
+    for slug in place_order:
+        cards += f'<h3 class="place-heading">{slug}</h3>'
+        for s in groups[slug]:
+            cards += shot_card(s)
+
     if not cards:
         cards = '<p class="empty">No stereo images yet.</p>'
 
-    video_cards = ""
-    for v in STEREO_VIDEOS:
-        video_cards += f'''
+    def video_card(v):
+        return f'''
     <div class="shot-card">
       <div class="shot-title">{v["label"]}</div>
       <div class="shot-meta" style="margin-bottom:0.5rem;">
@@ -77,6 +89,9 @@ def render_gallery_page(*, theme_css_js):
         <a href="/stereo?video={v["file"]}" style="flex:1;text-align:center;background:var(--card-bg);color:var(--accent);border:1px solid var(--divider);border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Flat VR</a>
       </div>
     </div>'''
+
+    visible_cards   = "".join(video_card(v) for v in STEREO_VIDEOS if v.get("visible", True))
+    invisible_cards = "".join(video_card(v) for v in STEREO_VIDEOS if not v.get("visible", True))
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -99,6 +114,8 @@ def render_gallery_page(*, theme_css_js):
     .shot-card:hover {{ opacity: 0.8; }}
     .shot-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); margin-bottom: 0.3rem; }}
     .shot-meta {{ display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); }}
+    .place-heading {{ font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin: 1.2rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }}
+    .video-section-heading {{ font-size: 1.0rem; font-weight: 600; color: var(--text-secondary); margin: 1.2rem 0 0.4rem; }}
     .empty {{ text-align: center; color: var(--text-secondary); margin-top: 2rem; }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
@@ -111,7 +128,10 @@ def render_gallery_page(*, theme_css_js):
     {cards}
     <h2 style="font-size:1.1rem;margin:1.5rem 0 0.5rem;">Stereo Videos</h2>
     <div class="subtitle" style="margin-bottom:0.75rem;">Tap to open in WebXR VR viewer</div>
-    {video_cards}
+    <h3 class="video-section-heading">Visible</h3>
+    {visible_cards}
+    <h3 class="video-section-heading">Invisible (under investigation)</h3>
+    {invisible_cards}
     <div class="footer"><a href="/contents">Home</a></div>
   </div>
 </body>
@@ -946,30 +966,35 @@ def render_video_viewer_page(*, theme_css_js, video_file):
     <button class="secondary" onclick="history.back()">&#8592; Back</button>
   </div>
   <div id="status"></div>
-  <div style="text-align:center;color:#8E8E93;font-size:0.7rem;margin:0.5rem;">page: {page_pet}</div>
   <div class="footer"><a href="/stereo">&#8592; Gallery</a></div>
   <canvas id="xr-canvas"></canvas>
 
+  <!-- WebXR Layers polyfill (W3C reference sample loads this too) -->
+  <script src="https://immersive-web.github.io/webxr-layers-polyfill/build/webxr-layers-polyfill.js"></script>
   <script>
+    try {{ new WebXRLayersPolyfill(); }} catch(e) {{}}
     const vid = document.getElementById('vid');
     const vrBtn = document.getElementById('vr-btn');
     const statusEl = document.getElementById('status');
-    const canvas = document.getElementById('xr-canvas');
-    let xrSession = null, gl = null, prog = null, tex = null;
+    let xrSession = null, xrVideo = null;
 
-    statusEl.textContent = 'status will appear here';
+    // Match W3C reference: gate Enter VR until video has buffered enough.
+    // The 25s clip has moov-at-end and high bitrate; entering VR before
+    // canplaythrough means the compositor renders an empty texture (purple void).
+    vrBtn.disabled = true;
+    const origLabel = vrBtn.textContent;
+    vrBtn.textContent = 'Loading video…';
+    vid.addEventListener('canplaythrough', () => {{
+      vrBtn.disabled = false;
+      vrBtn.textContent = origLabel;
+    }}, {{ once: true }});
 
-    // Force seek to frame 0 so the slate is visible before the user presses play
+    // Show the slate frame on load
     vid.addEventListener('loadedmetadata', () => {{ vid.currentTime = 0; }});
-    vid.addEventListener('canplay', () => {{
-      if (vid.paused) vid.currentTime = 0;
-    }});
+    vid.addEventListener('canplay', () => {{ if (vid.paused) vid.currentTime = 0; }});
 
-    // Fullscreen: try every API the Quest browser supports
     document.getElementById('fs-btn').addEventListener('click', () => {{
-      vid.muted = false;
-      vid.play();
-      // Try fullscreen on the video element itself first (works on Quest)
+      vid.muted = false; vid.play();
       if (vid.webkitEnterFullscreen)       vid.webkitEnterFullscreen();
       else if (vid.requestFullscreen)      vid.requestFullscreen();
       else {{
@@ -979,9 +1004,6 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       }}
     }});
 
-    // WebXR via XRMediaBinding — follows W3C media-layer-sample.html pattern.
-    // Use a separate, NEVER-DOM-attached <video> for the layer source.
-    let xrVideo = null;
     function makeXrVideo() {{
       const v = document.createElement('video');
       v.crossOrigin = 'anonymous';
@@ -995,99 +1017,79 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       return v;
     }}
 
-    // On page load, check decode capability for our video config.
-    // Reports whether the codec/resolution will use hardware decode (powerEfficient).
-    (async () => {{
-      if (!navigator.mediaCapabilities) return;
-      try {{
-        const info = await navigator.mediaCapabilities.decodingInfo({{
-          type: 'file',
-          video: {{
-            contentType: 'video/mp4; codecs="avc1.640028"',
-            width: 1280, height: 360, bitrate: 5000000, framerate: 30,
-          }},
-        }});
-        statusEl.textContent =
-          `decode: smooth=${{info.smooth}} hw=${{info.powerEfficient}} sup=${{info.supported}}`;
-      }} catch(e) {{ statusEl.textContent = 'mediaCapabilities error: ' + e.message; }}
-    }})();
-
-    vrBtn.addEventListener('click', async () => {{
-      if (xrSession) {{ await xrSession.end(); return; }}
+    vrBtn.addEventListener('click', () => {{
+      if (xrSession) {{ xrSession.end(); return; }}
       if (!navigator.xr) {{ statusEl.textContent = 'WebXR not available'; return; }}
-      const ok = await navigator.xr.isSessionSupported('immersive-vr');
-      if (!ok) {{ statusEl.textContent = 'Immersive VR not supported'; return; }}
 
-      // Create a fresh video element NOT attached to the DOM, per W3C reference.
-      // Start playing in the same user gesture so autoplay policies are satisfied.
+      // Match W3C media-layer-sample order: kick session and play() inside
+      // the same gesture, neither awaited.
       xrVideo = makeXrVideo();
-      try {{ await xrVideo.play(); }} catch(e) {{}}
-
-      try {{
-        statusEl.textContent = 'Requesting session...';
-        xrSession = await navigator.xr.requestSession('immersive-vr', {{
-          requiredFeatures: ['layers'],
-        }});
-        statusEl.textContent = 'Session granted, setting up layer...';
-        onSessionStarted(xrSession);
-      }} catch(e) {{
-        statusEl.textContent = 'Session failed: ' + e.message;
-      }}
+      navigator.xr.requestSession('immersive-vr', {{ requiredFeatures: ['layers'] }})
+        .then((session) => {{ xrSession = session; onSessionStarted(session); }})
+        .catch((e) => {{ statusEl.textContent = 'Session failed: ' + e.message; }});
+      xrVideo.play().catch(() => {{}});
     }});
 
     function onSessionStarted(session) {{
       vrBtn.textContent = 'Exit VR';
       session.addEventListener('end', onSessionEnded);
-
       const mediaFactory = new XRMediaBinding(session);
 
-      session.requestReferenceSpace('local').then((refSpace) => {{
-        const layer = mediaFactory.createQuadLayer(xrVideo, {{
+      // Wait for xrVideo to have decoded a frame before creating the layer —
+      // otherwise the compositor renders an empty texture.
+      const ready = xrVideo.readyState >= 2  // HAVE_CURRENT_DATA
+        ? Promise.resolve()
+        : new Promise((res) => xrVideo.addEventListener('loadeddata', res, {{ once: true }}));
+
+      Promise.all([session.requestReferenceSpace('local'), ready]).then(([refSpace]) => {{
+        let fovDeg = 90;
+        const FOV_MIN = 60, FOV_MAX = 120;
+        const eyeW = (xrVideo.videoWidth || 1280) / 2;
+        const eyeH = xrVideo.videoHeight || 720;
+        const aspect = eyeW / eyeH;
+        const vAngleRad = (hDeg) => (hDeg / aspect) * Math.PI / 180 / 2;
+
+        const layer = mediaFactory.createEquirectLayer(xrVideo, {{
           space: refSpace,
+          centralHorizontalAngle: fovDeg * Math.PI / 180,
+          upperVerticalAngle:  vAngleRad(fovDeg),
+          lowerVerticalAngle: -vAngleRad(fovDeg),
           layout: 'stereo-left-right',
-          transform: new XRRigidTransform(
-            {{x: 0, y: 0, z: -2}},
-            {{x: 0, y: 0, z: 0, w: 1}}
-          ),
-          width: 2.0,
         }});
         session.updateRenderState({{ layers: [layer] }});
-        statusEl.textContent = 'Playing';
 
-        // Sample decode quality every second so we can see actual decode rate
-        let lastFrames = 0, lastDropped = 0;
-        const qInterval = setInterval(() => {{
-          if (!xrVideo.getVideoPlaybackQuality) return;
-          const q = xrVideo.getVideoPlaybackQuality();
-          const decoded = q.totalVideoFrames - lastFrames;
-          const dropped = q.droppedVideoFrames - lastDropped;
-          lastFrames = q.totalVideoFrames;
-          lastDropped = q.droppedVideoFrames;
-          statusEl.textContent = `decoded ${{decoded}}/s  dropped ${{dropped}}/s`;
-        }}, 1000);
-        session.addEventListener('end', () => clearInterval(qInterval));
-
+        // Single rAF loop drives the session and handles all controller input.
+        // (Without a rAF loop, media layers don't display at all.)
         const wasPressed = {{}};
-        const ctrlInterval = setInterval(() => {{
+        function onXRFrame() {{
+          session.requestAnimationFrame(onXRFrame);
           for (const src of session.inputSources) {{
             const gp = src.gamepad; if (!gp) continue;
             const id = src.handedness;
             if (!wasPressed[id]) wasPressed[id] = {{}};
-            if (src.handedness === 'right') {{
+
+            if (id === 'right') {{
+              const stickY = gp.axes[3] ?? 0;
+              if (Math.abs(stickY) > 0.15) {{
+                fovDeg = Math.max(FOV_MIN, Math.min(FOV_MAX, fovDeg + stickY * 0.4));
+                layer.centralHorizontalAngle = fovDeg * Math.PI / 180;
+                layer.upperVerticalAngle =  vAngleRad(fovDeg);
+                layer.lowerVerticalAngle = -vAngleRad(fovDeg);
+              }}
               const trig = gp.buttons[0];
               if (trig?.pressed && !wasPressed[id][0]) {{
                 xrVideo.paused ? xrVideo.play() : xrVideo.pause();
               }}
               wasPressed[id][0] = trig?.pressed;
             }}
-            if (src.handedness === 'left') {{
+            if (id === 'left') {{
               const trig = gp.buttons[0];
               if (trig?.pressed && !wasPressed[id][0]) session.end();
               wasPressed[id][0] = trig?.pressed;
             }}
           }}
-        }}, 100);
-        session.addEventListener('end', () => clearInterval(ctrlInterval));
+        }}
+        session.requestAnimationFrame(onXRFrame);
       }});
     }}
 
