@@ -1130,19 +1130,21 @@ def get_skycam_stats_for_date(day_str, thin_minutes=0):
     if not BOTO3_AVAILABLE:
         return []
     try:
-        from boto3.dynamodb.conditions import Attr
+        from boto3.dynamodb.conditions import Key, Attr
         dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
         table = dynamodb.Table('gardencam-stats')
         items = []
-        scan_kwargs = {
-            'FilterExpression': Attr('camera_name').eq('sky') & Attr('date').eq(day_str),
+        query_kwargs = {
+            'IndexName': 'date-index',
+            'KeyConditionExpression': Key('date').eq(day_str),
+            'FilterExpression': Attr('camera_name').eq('sky'),
         }
         while True:
-            response = table.scan(**scan_kwargs)
+            response = table.query(**query_kwargs)
             items.extend(response.get('Items', []))
             if 'LastEvaluatedKey' not in response:
                 break
-            scan_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+            query_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
 
         items.sort(key=lambda x: x.get('timestamp', ''))
         result = [
@@ -2072,10 +2074,10 @@ def render_gotg_page():
 
 
 def render_stereo_page(img_param=None, video_param=None, svideo_param=None,
-                       place_param=None, videos_param=None):
+                       place_param=None, videos_param=None, beauty_param=None):
     from routes.stereo import (render_index_page, render_place_page, render_videos_page,
                                render_viewer_page, render_video_viewer_page,
-                               render_video_sphere_page)
+                               render_video_sphere_page, render_beauty_page)
     if svideo_param:
         return render_video_sphere_page(theme_css_js=THEME_CSS_JS, video_file=svideo_param)
     if video_param:
@@ -2086,6 +2088,8 @@ def render_stereo_page(img_param=None, video_param=None, svideo_param=None,
         return render_place_page(theme_css_js=THEME_CSS_JS, place=place_param)
     if videos_param in ("visible", "invisible"):
         return render_videos_page(theme_css_js=THEME_CSS_JS, visibility=videos_param)
+    if beauty_param:
+        return render_beauty_page(theme_css_js=THEME_CSS_JS)
     return render_index_page(theme_css_js=THEME_CSS_JS)
 
 
@@ -2482,15 +2486,6 @@ def lambda_handler(event, context):
 
     elif path.startswith(f'/{stage}/gardencam/stats') or path.startswith('/gardencam/stats'):
         # Stats visualization page
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
 
         # Fetch more stats to ensure we have enough data for 8 days
         stats = get_gardencam_stats(limit=2000)
@@ -3249,6 +3244,7 @@ def lambda_handler(event, context):
                 svideo_param=qs.get('svideo'),
                 place_param=qs.get('place'),
                 videos_param=qs.get('videos'),
+                beauty_param=qs.get('beauty'),
             ),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
@@ -3835,15 +3831,25 @@ def lambda_handler(event, context):
                     day_param = day_dt.strftime('%Y-%m-%d')
                 prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
                 videos = _list_videos_for_prefix(prefix)
-                # If today is empty, scan backwards to find the most recent day with videos
+                # If today is empty, find the most recent day with videos using
+                # delimiter-based S3 listing (3 requests: year→month→day) rather
+                # than scanning backwards one day at a time (up to 30 requests).
                 if not videos:
-                    for days_ago in range(1, 30):
-                        fallback_dt = day_dt - timedelta(days=days_ago)
-                        fb_prefix = f"skycam/videos/{fallback_dt.strftime('%Y/%m/%d')}/"
-                        videos = _list_videos_for_prefix(fb_prefix)
-                        if videos:
-                            day_param = fallback_dt.strftime('%Y-%m-%d')
-                            break
+                    def _most_recent_prefix(prefix):
+                        """Return the lexicographically last common prefix under prefix/."""
+                        resp = s3.list_objects_v2(
+                            Bucket=GARDENCAM_BUCKET, Prefix=prefix, Delimiter='/')
+                        prefixes = [p['Prefix'] for p in resp.get('CommonPrefixes', [])]
+                        return prefixes[-1] if prefixes else None
+                    year_pfx  = _most_recent_prefix('skycam/videos/')
+                    month_pfx = _most_recent_prefix(year_pfx)  if year_pfx  else None
+                    day_pfx   = _most_recent_prefix(month_pfx) if month_pfx else None
+                    if day_pfx:
+                        videos = _list_videos_for_prefix(day_pfx)
+                        # Parse YYYY/MM/DD from the prefix
+                        parts = day_pfx.rstrip('/').split('/')
+                        if len(parts) >= 3:
+                            day_param = f"{parts[-3]}-{parts[-2]}-{parts[-1]}"
             else:
                 try:
                     day_dt = datetime.strptime(day_param, '%Y-%m-%d')
@@ -3853,7 +3859,11 @@ def lambda_handler(event, context):
                 prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
                 videos = _list_videos_for_prefix(prefix)
             week_iso = _iso_week_for_date(day_param)
-            skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
+            try:
+                skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
+            except Exception as e:
+                print(f"skycam stats unavailable: {e}")
+                skycam_stats = []
             from routes.camera import render_videos_day
             html += render_videos_day('Sky Camera', day_param, videos,
                                        latest_path='../skycam', gallery_path='gallery',

@@ -8,6 +8,9 @@ S3_PREFIX = "stereo"
 S3_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/"
 S3_VIDEO_BASE = "https://s3-eu-west-1.amazonaws.com/petergrecian.co.uk/stereo/video/"
 
+# Beauty renders live on Cloudflare R2 with custom domain (free egress).
+R2_VIDEO_BASE = "https://stereo.petergrecian.co.uk/"
+
 # Human-readable labels for shot dir slugs. Falls back to slug if missing.
 PLACE_LABELS = {
     "barbican": "Barbican",
@@ -19,6 +22,21 @@ PLACE_LABELS = {
     "nine-elms-20260424": "Nine Elms",
     "vauxhall": "Vauxhall",
 }
+
+
+# Beauty renders — finished pieces served from R2.
+# url is full https URL (R2 custom domain). source_fps and output_fps are
+# advisory metadata for the gallery; the encode pipeline embeds them in
+# the burned label of the actual file.
+BEAUTY_RENDERS = [
+    {
+        "slug": "waterloo-60",
+        "url": R2_VIDEO_BASE + "waterloo-60.mp4",
+        "title": "Arrival at Waterloo",
+        "subtitle": "4:18 · 1080p stereo · 30→60 fps mci",
+        "notes": "Bus-train journey from Surbiton ending at Waterloo. Software-encoded HEVC two-pass slow preset, 8 segments rendered in parallel on GCP Batch, served from Cloudflare R2.",
+    },
+]
 
 
 # Manually curated video list — add entries here after uploading to S3
@@ -78,7 +96,7 @@ def _place_label(slug: str) -> str:
 
 
 def render_index_page(*, theme_css_js):
-    """Top-level index: links to per-place stills pages and per-visibility video pages."""
+    """Top-level index: links to beauty renders, per-place stills, per-visibility video pages."""
     shots = _list_shots()
     places = sorted({s.get("slug", "") for s in shots})
 
@@ -99,6 +117,12 @@ def render_index_page(*, theme_css_js):
         video_links += '<a class="shot-card" href="/stereo?videos=invisible">' \
                        '<div class="shot-title">Invisible (under investigation)</div></a>'
 
+    beauty_section = ""
+    if BEAUTY_RENDERS:
+        beauty_section = '<h2>Beauty renders</h2>' + \
+            '<a class="shot-card" href="/stereo?beauty=1">' \
+            '<div class="shot-title">All beauty renders</div></a>'
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,11 +136,55 @@ def render_index_page(*, theme_css_js):
   <div class="container">
     <h1>Stereo Photography</h1>
     <div class="subtitle">Quest 2 VR</div>
+    {beauty_section}
     <h2>Stills by location</h2>
     {place_links}
     <h2>Videos</h2>
     {video_links}
     <div class="footer"><a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_beauty_page(*, theme_css_js):
+    """List of beauty renders — finished pieces served from R2."""
+    def beauty_card(b):
+        # Each card has Sphere VR + Flat VR buttons that pass the full URL
+        # as the video param (the viewer functions detect http:// and route).
+        url_param = b["url"]
+        return f'''
+    <div class="shot-card">
+      <div class="shot-title">{b["title"]}</div>
+      <div class="shot-meta" style="margin-bottom:0.5rem;">
+        <span class="quality">{b.get("subtitle", "")}</span>
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin:0.4rem 0 0.6rem;">{b.get("notes", "")}</div>
+      <div style="display:flex;gap:8px;">
+        <a href="/stereo?svideo={url_param}" style="flex:1;text-align:center;background:var(--accent);color:#fff;border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Sphere VR</a>
+        <a href="/stereo?video={url_param}" style="flex:1;text-align:center;background:var(--card-bg);color:var(--accent);border:1px solid var(--divider);border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Flat VR</a>
+        <a href="{url_param}" style="flex:1;text-align:center;background:var(--card-bg);color:var(--text-secondary);border:1px solid var(--divider);border-radius:8px;padding:6px 0;font-size:0.85rem;text-decoration:none;">Direct link</a>
+      </div>
+    </div>'''
+
+    cards = "".join(beauty_card(b) for b in BEAUTY_RENDERS) \
+            or '<p class="empty">No beauty renders yet.</p>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beauty renders</title>
+  {theme_css_js}
+  <style>{_GALLERY_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Beauty renders</h1>
+    <div class="subtitle">Finished pieces — served from Cloudflare R2</div>
+    {cards}
+    <div class="footer"><a href="/stereo">&#8592; Stereo Photography</a></div>
   </div>
 </body>
 </html>'''
@@ -692,8 +760,14 @@ def render_viewer_page(*, theme_css_js, img_param):
 
 def render_video_sphere_page(*, theme_css_js, video_file):
     """Player 3 — sphere renderer (same as stills player) with per-frame video texture."""
-    video_url = S3_VIDEO_BASE + video_file
-    label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
+    # video_file may be a bare filename (legacy S3 entries) or a full https URL
+    # (beauty renders on R2). Detect and route accordingly.
+    if video_file.startswith(("http://", "https://")):
+        video_url = video_file
+        label = next((b["title"] for b in BEAUTY_RENDERS if b["url"] == video_file), video_file)
+    else:
+        video_url = S3_VIDEO_BASE + video_file
+        label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -979,8 +1053,13 @@ def render_video_sphere_page(*, theme_css_js, video_file):
 def render_video_viewer_page(*, theme_css_js, video_file):
     """SBS video viewer — slate visible on load, fullscreen + WebXR options."""
     import random as _r
-    video_url = S3_VIDEO_BASE + video_file
-    label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
+    # video_file may be a bare filename (legacy S3) or a full https URL (R2 beauty render)
+    if video_file.startswith(("http://", "https://")):
+        video_url = video_file
+        label = next((b["title"] for b in BEAUTY_RENDERS if b["url"] == video_file), video_file)
+    else:
+        video_url = S3_VIDEO_BASE + video_file
+        label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
     # Build pet — random per cold-start of the Lambda. Stable within a Lambda
     # container (free CloudFront cache hits), changes after deploy/cold-start.
     if not hasattr(render_video_viewer_page, "_pet"):
