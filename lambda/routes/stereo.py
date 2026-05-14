@@ -30,6 +30,13 @@ PLACE_LABELS = {
 # the burned label of the actual file.
 BEAUTY_RENDERS = [
     {
+        "slug": "clouds-train-2-1k",
+        "url": R2_VIDEO_BASE + "clouds-train-2-1k.mp4",
+        "title": "Clouds from train — 92s split-and-join test",
+        "subtitle": "1:32 · 1K stereo · 30→60 fps mci · 2.0s baseline",
+        "notes": "1080p Top Shot source rendered as three parallel 30s parts on e2-standard-2 (2 vCPU, 8 GiB) with a fourth concat job polling GCS until all parts present. Total wall 29 min vs ~110 min sequential = 3.8× speedup. First run with STEREO_EYE_ORDER=right-early baked into the encode (no post-swap needed).",
+    },
+    {
         "slug": "clouds-train-1-1k",
         "url": R2_VIDEO_BASE + "clouds-train-1-1k.mp4",
         "title": "Clouds from train — 4K source at 1K",
