@@ -30,6 +30,20 @@ PLACE_LABELS = {
 # the burned label of the actual file.
 BEAUTY_RENDERS = [
     {
+        "slug": "clouds-train-3-1k",
+        "url": R2_VIDEO_BASE + "clouds-train-3-1k.mp4",
+        "title": "Clouds from train — 1K test",
+        "subtitle": "0:18 · 1K stereo · 30→60 fps mci · 2.0s baseline",
+        "notes": "First clouds-from-train experiment. 1080p Top Shot source downscaled to 1K (1280×720) per eye, mci interpolation, CRF 28. Eyes swapped post-encode for right-to-left camera motion.",
+    },
+    {
+        "slug": "clouds-train-1-half",
+        "url": R2_VIDEO_BASE + "clouds-train-1-half.mp4",
+        "title": "Clouds from train — 0.5K × 10s test",
+        "subtitle": "0:10 · 0.5K stereo · 30→60 fps mci · 2.0s baseline",
+        "notes": "Fastest pipeline test: 4K source clipped to 10s and downscaled to 0.5K (960×540) per eye. Demonstrates prep-stage shrink so iteration is fast.",
+    },
+    {
         "slug": "waterloo-60",
         "url": R2_VIDEO_BASE + "waterloo-60.mp4",
         "title": "Arrival at Waterloo",
