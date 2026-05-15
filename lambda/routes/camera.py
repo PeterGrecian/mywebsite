@@ -779,9 +779,16 @@ def render_skycam_player(video_url, title, hours=None):
                 const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
                 mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
                 mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
+                // Queue of one item with REPEAT_ALL so the cast receiver loops.
+                // (LoadRequest's `loop` flag isn't honoured by the Default Media
+                // Receiver; the queue path is the reliable one.)
+                const queueItem = new chrome.cast.media.QueueItem(mediaInfo);
                 const request = new chrome.cast.media.LoadRequest(mediaInfo);
+                request.queueData = new chrome.cast.media.QueueData();
+                request.queueData.items = [queueItem];
+                request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
                 castSession.loadMedia(request).then(
-                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV'; }},
+                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV (looping)'; }},
                     function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
                 );
             }}
