@@ -3993,31 +3993,47 @@ def lambda_handler(event, context):
             html += render_starcam_night(evening_date, stacked, brightness_data)
 
     elif path == f'/{stage}/skycam/clouds' or path == '/skycam/clouds':
-        # "Clouds: The Movie" — playlist of all daily cloudcam videos with
-        # speed control, prev/next, cast queue.
+        # "Clouds - The Movie" — playlist of hourly cloudcam videos with
+        # day×hour selection, speed control, cast queue with auto-extend.
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
         days = []
-        # Walk backwards from today, find every sky_YYYYMMDD_daily.mp4.
-        # Stop after 60 consecutive missing days (covers the data gap).
         today = datetime.utcnow()
         miss_streak = 0
         for back in range(0, 365):
             d = today - timedelta(days=back)
             ymd_path = d.strftime("%Y/%m/%d")
             ymd_flat = d.strftime("%Y%m%d")
-            key = f"skycam/videos/{ymd_path}/sky_{ymd_flat}_daily.mp4"
+            prefix = f"skycam/videos/{ymd_path}/"
             try:
-                meta = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
+                resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
+            except Exception:
+                resp = {}
+            hours = []
+            for obj in resp.get("Contents", []):
+                k = obj["Key"]
+                name = k.rsplit("/", 1)[-1]
+                # sky_YYYYMMDD_HH.mp4 — the per-hour clips
+                if not (name.startswith(f"sky_{ymd_flat}_") and name.endswith(".mp4")):
+                    continue
+                tag = name[len(f"sky_{ymd_flat}_"):-len(".mp4")]
+                if not (len(tag) == 2 and tag.isdigit()):
+                    continue   # skip _daily, _combined, _night, etc.
+                hours.append({
+                    "hh":      tag,
+                    "url":     s3.generate_presigned_url(
+                                  'get_object',
+                                  Params={'Bucket': GARDENCAM_BUCKET, 'Key': k},
+                                  ExpiresIn=14400),
+                    "size_mb": round(obj["Size"] / 1024 / 1024, 1),
+                })
+            if hours:
+                hours.sort(key=lambda h: h["hh"])
                 days.append({
-                    "date": d.strftime("%Y-%m-%d"),
-                    "url":  s3.generate_presigned_url(
-                                'get_object',
-                                Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-                                ExpiresIn=14400),  # 4 hours
-                    "size_mb": round(meta["ContentLength"] / 1024 / 1024, 1),
+                    "date":  d.strftime("%Y-%m-%d"),
+                    "hours": hours,
                 })
                 miss_streak = 0
-            except Exception:
+            else:
                 miss_streak += 1
                 if miss_streak > 60:
                     break

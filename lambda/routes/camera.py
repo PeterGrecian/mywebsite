@@ -798,15 +798,22 @@ def render_skycam_player(video_url, title, hours=None):
 
 
 def render_clouds_movie(days):
-    """Render the "Clouds: The Movie" playlist page.
+    """Render the "Clouds - The Movie" playlist page.
 
     days: list of dicts
-        [{"date": "2026-05-08", "url": "<presigned>", "size_mb": 318}, ...]
-        oldest first. The caller is responsible for presigning the S3 keys
-        (URLs expire — make the page expiry a few hours, OK to refresh).
+        [{"date": "2026-05-08",
+          "hours": [{"hh":"06", "url":"<presigned>", "size_mb":4.4}, ...]},
+         ...]
+        oldest first. Each day has 1..24 hourlies; the page builds a
+        playlist by flattening (selected days) × (selected hour range).
 
     Speed buttons: 60 / 50 / 30 / 25 fps. The encoded source is 60fps so
     these map to playbackRate 1.0, 0.833, 0.5, 0.417 respectively.
+
+    Cast: a sliding window of CAST_QUEUE_SIZE items. As the cast playhead
+    nears the end of the loaded queue, the page calls queueInsertItems()
+    to append more — so playback continues forever without the receiver
+    LOAD-message size limit ever biting.
     """
     import json
     days_json = json.dumps(days)
@@ -834,14 +841,20 @@ def render_clouds_movie(days):
     .controls button.active {{ background: #007AFF; color: #fff; border-color: #007AFF; }}
     .controls .group {{ display: inline-block; margin: 0 1rem; }}
     .controls .label {{ color: #8E8E93; font-size: 0.85rem; margin-right: 0.5rem; }}
+    .controls input[type=number] {{
+        width: 3.5em; background: #161616; color: #E0E0E0;
+        border: 1px solid #2C2C2E; border-radius: 6px;
+        padding: 0.15rem 0.3rem;
+    }}
     .cast-status {{ color: #8E8E93; margin-top: 0.3rem; font-size: 0.8rem; text-align: center; }}
     google-cast-launcher {{
         display: inline-block; width: 28px; height: 28px;
         vertical-align: middle; margin-left: 0.75rem; cursor: pointer;
         --connected-color: #007AFF; --disconnected-color: #8E8E93;
     }}
-    .day-list {{ max-width: 800px; margin: 1rem auto; padding: 0 1rem; }}
+    .day-list {{ max-width: 1100px; margin: 1rem auto; padding: 0 1rem; }}
     .day-list h3 {{ color: #8E8E93; font-weight: 500; margin: 1rem 0 0.5rem; }}
+    .bulk-bar {{ margin: 0.25rem 0 0.75rem; }}
     .day-grid {{ display: grid; grid-template-columns: repeat(4, 1fr);
                  gap: 0.4rem; }}
     @media (max-width: 900px) {{ .day-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
@@ -878,8 +891,14 @@ def render_clouds_movie(days):
         <button data-speed="0.417">25fps</button>
     </div>
     <div class="group">
-        <button id="prevBtn">← Prev day</button>
-        <button id="nextBtn">Next day →</button>
+        <span class="label">Hours:</span>
+        <input id="hourFrom" type="number" min="0" max="23" value="8">
+        –
+        <input id="hourTo" type="number" min="0" max="23" value="20">
+    </div>
+    <div class="group">
+        <button id="prevBtn">← Prev</button>
+        <button id="nextBtn">Next →</button>
     </div>
     <div class="group">
         <button id="castBtn" disabled>Cast to TV</button>
@@ -887,51 +906,82 @@ def render_clouds_movie(days):
 </div>
 <div class="cast-status" id="castStatus"></div>
 <div class="day-list">
-    <h3>Days (oldest → newest). Click row to jump. Uncheck to skip.</h3>
-    <div style="margin: 0.25rem 0 0.75rem;">
+    <h3>Days (oldest → newest). Click row to play that day. Uncheck to skip.</h3>
+    <div class="bulk-bar">
         <button id="selAll">All</button>
         <button id="selNone">None</button>
         <button id="selInvert">Invert</button>
-        <span style="color:#8E8E93; margin-left:1rem; font-size:0.85rem;">
-            Cast queue: cap
-            <input id="castCap" type="number" min="1" max="50" value="12"
-                   style="width:3.5em; background:#161616; color:#E0E0E0;
-                          border:1px solid #2C2C2E; border-radius:6px;
-                          padding:0.15rem 0.3rem;">
-            from current day
-        </span>
     </div>
     <div id="rows" class="day-grid"></div>
 </div>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script>
 const DAYS = {days_json};
-let castSession = null;
+const CAST_QUEUE_SIZE = 12;     // initial items pushed to receiver
+const CAST_REFILL_AHEAD = 3;    // append more when this many items remain
 
-// State: which days are off, current speed, current index in playlist.
+// ---- State ----
 const params = new URLSearchParams(location.search);
-const offSet = new Set((params.get('off') || localStorage.getItem('cloudsOff') || '').split(',').filter(Boolean));
+const offSet = new Set(
+    (params.get('off') || localStorage.getItem('cloudsOff') || '')
+        .split(',').filter(Boolean));
 let speed = parseFloat(params.get('speed') || localStorage.getItem('cloudsSpeed') || '1.0');
-let currentIdx = 0;
+let hourFrom = parseInt(params.get('from') || localStorage.getItem('cloudsHourFrom') || '8');
+let hourTo   = parseInt(params.get('to')   || localStorage.getItem('cloudsHourTo')   || '20');
+let currentIdx = 0;             // index into the flat (day,hour) playlist
+let castQueue  = [];            // mirror of items currently on the cast receiver
+let castNextItemId = 1;         // monotonic for QueueItem.itemId
 
-const player = document.getElementById('player');
-const np = document.getElementById('np');
-const rowsEl = document.getElementById('rows');
+const player  = document.getElementById('player');
+const np      = document.getElementById('np');
+const rowsEl  = document.getElementById('rows');
+const fromEl  = document.getElementById('hourFrom');
+const toEl    = document.getElementById('hourTo');
 
-function activeDays() {{
-    return DAYS.filter(d => !offSet.has(d.date.replace(/-/g, '')));
+fromEl.value = hourFrom;
+toEl.value   = hourTo;
+
+// ---- Playlist builders ----
+
+function dayOff(date) {{
+    return offSet.has(date.replace(/-/g, ''));
+}}
+
+function hoursInRange(day) {{
+    return day.hours.filter(h => {{
+        const n = parseInt(h.hh, 10);
+        return n >= hourFrom && n <= hourTo;
+    }});
+}}
+
+// Flatten to a list of {{date, hh, url, size_mb}} entries in order.
+function playlist() {{
+    const out = [];
+    for (const d of DAYS) {{
+        if (dayOff(d.date)) continue;
+        for (const h of hoursInRange(d)) {{
+            out.push({{date: d.date, hh: h.hh, url: h.url, size_mb: h.size_mb}});
+        }}
+    }}
+    return out;
 }}
 
 function persistState() {{
     const off = Array.from(offSet).join(',');
     localStorage.setItem('cloudsOff', off);
     localStorage.setItem('cloudsSpeed', String(speed));
-    const newParams = new URLSearchParams();
-    if (off) newParams.set('off', off);
-    if (speed !== 1.0) newParams.set('speed', String(speed));
-    const qs = newParams.toString();
+    localStorage.setItem('cloudsHourFrom', String(hourFrom));
+    localStorage.setItem('cloudsHourTo', String(hourTo));
+    const np = new URLSearchParams();
+    if (off) np.set('off', off);
+    if (speed !== 1.0) np.set('speed', String(speed));
+    if (hourFrom !== 8) np.set('from', String(hourFrom));
+    if (hourTo !== 20) np.set('to', String(hourTo));
+    const qs = np.toString();
     history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
 }}
+
+// ---- Browser playback ----
 
 function setSpeed(s) {{
     speed = s;
@@ -942,7 +992,10 @@ function setSpeed(s) {{
     if (castSession) {{
         const ms = castSession.getMediaSession();
         if (ms) {{
-            const req = new chrome.cast.media.SetPlaybackRateRequest(s);
+            const legal = [0.5, 1.0, 1.5, 2.0];
+            const target = legal.reduce((p, c) =>
+                Math.abs(c - speed) < Math.abs(p - speed) ? c : p);
+            const req = new chrome.cast.media.SetPlaybackRateRequest(target);
             ms.setPlaybackRate(req, () => {{}}, e => console.warn('cast setPlaybackRate failed', e));
         }}
     }}
@@ -950,16 +1003,16 @@ function setSpeed(s) {{
 }}
 
 function loadByIndex(idx) {{
-    const list = activeDays();
-    if (list.length === 0) {{ np.textContent = 'No days selected'; return; }}
+    const list = playlist();
+    if (list.length === 0) {{ np.textContent = 'Nothing selected'; return; }}
     currentIdx = ((idx % list.length) + list.length) % list.length;
-    const day = list[currentIdx];
-    player.src = day.url;
+    const item = list[currentIdx];
+    player.src = item.url;
     player.playbackRate = speed;
     player.play().catch(() => {{}});
-    np.textContent = `${{day.date}}  (${{currentIdx + 1}} of ${{list.length}})`;
+    np.textContent = `${{item.date}} hour ${{item.hh}}  (${{currentIdx + 1}} of ${{list.length}})`;
     document.querySelectorAll('.day-row').forEach(r => {{
-        r.classList.toggle('playing', r.dataset.date === day.date);
+        r.classList.toggle('playing', r.dataset.date === item.date);
     }});
 }}
 
@@ -974,35 +1027,15 @@ document.querySelectorAll('.controls button[data-speed]').forEach(b => {{
 document.getElementById('prevBtn').addEventListener('click', prev);
 document.getElementById('nextBtn').addEventListener('click', next);
 
-// Build day rows
-DAYS.forEach((d, i) => {{
-    const row = document.createElement('div');
-    row.className = 'day-row';
-    row.dataset.date = d.date;
-    const dateFlat = d.date.replace(/-/g, '');
-    if (offSet.has(dateFlat)) row.classList.add('disabled');
-    row.innerHTML = `
-        <input type="checkbox" ${{offSet.has(dateFlat) ? '' : 'checked'}}>
-        <span class="day-label">${{d.date}}</span>
-        <span class="day-meta">${{d.size_mb}} MB</span>
-    `;
-    const cb = row.querySelector('input');
-    cb.addEventListener('click', e => {{
-        e.stopPropagation();
-        if (cb.checked) {{ offSet.delete(dateFlat); row.classList.remove('disabled'); }}
-        else            {{ offSet.add(dateFlat);    row.classList.add('disabled'); }}
-        persistState();
-    }});
-    row.addEventListener('click', () => {{
-        if (offSet.has(dateFlat)) {{ offSet.delete(dateFlat); cb.checked = true; row.classList.remove('disabled'); persistState(); }}
-        const list = activeDays();
-        const idx = list.findIndex(x => x.date === d.date);
-        if (idx >= 0) loadByIndex(idx);
-    }});
-    rowsEl.appendChild(row);
+fromEl.addEventListener('change', () => {{
+    hourFrom = parseInt(fromEl.value); persistState(); loadByIndex(0);
+}});
+toEl.addEventListener('change', () => {{
+    hourTo = parseInt(toEl.value); persistState(); loadByIndex(0);
 }});
 
-// Bulk selection
+// ---- Day rows ----
+
 function refreshRowsFromOffset() {{
     document.querySelectorAll('.day-row').forEach(r => {{
         const flat = r.dataset.date.replace(/-/g, '');
@@ -1012,6 +1045,37 @@ function refreshRowsFromOffset() {{
         if (cb) cb.checked = !off;
     }});
 }}
+
+DAYS.forEach((d) => {{
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    row.dataset.date = d.date;
+    const dateFlat = d.date.replace(/-/g, '');
+    if (offSet.has(dateFlat)) row.classList.add('disabled');
+    row.innerHTML = `
+        <input type="checkbox" ${{offSet.has(dateFlat) ? '' : 'checked'}}>
+        <span class="day-label">${{d.date}}</span>
+        <span class="day-meta">${{d.hours.length}}h</span>
+    `;
+    const cb = row.querySelector('input');
+    cb.addEventListener('click', e => {{
+        e.stopPropagation();
+        if (cb.checked) {{ offSet.delete(dateFlat); row.classList.remove('disabled'); }}
+        else            {{ offSet.add(dateFlat);    row.classList.add('disabled'); }}
+        persistState();
+    }});
+    row.addEventListener('click', () => {{
+        if (offSet.has(dateFlat)) {{
+            offSet.delete(dateFlat); cb.checked = true;
+            row.classList.remove('disabled'); persistState();
+        }}
+        const list = playlist();
+        const idx = list.findIndex(x => x.date === d.date);
+        if (idx >= 0) loadByIndex(idx);
+    }});
+    rowsEl.appendChild(row);
+}});
+
 document.getElementById('selAll').addEventListener('click', () => {{
     offSet.clear(); refreshRowsFromOffset(); persistState();
 }});
@@ -1030,7 +1094,9 @@ document.getElementById('selInvert').addEventListener('click', () => {{
 setSpeed(speed);
 loadByIndex(0);
 
-// --- Cast ---
+// ---- Cast ----
+let castSession = null;
+
 window['__onGCastApiAvailable'] = function(isAvailable) {{
     if (!isAvailable) return;
     const ctx = cast.framework.CastContext.getInstance();
@@ -1049,6 +1115,7 @@ window['__onGCastApiAvailable'] = function(isAvailable) {{
                     'Connected to ' + castSession.getCastDevice().friendlyName;
             }} else {{
                 castSession = null;
+                castQueue = [];
                 document.getElementById('castBtn').disabled = true;
                 document.getElementById('castStatus').textContent = '';
             }}
@@ -1056,54 +1123,79 @@ window['__onGCastApiAvailable'] = function(isAvailable) {{
     );
 }};
 
+function makeQueueItem(entry) {{
+    const mi = new chrome.cast.media.MediaInfo(entry.url, 'video/mp4');
+    mi.metadata = new chrome.cast.media.GenericMediaMetadata();
+    mi.metadata.title = `${{entry.date}} h${{entry.hh}}`;
+    const qi = new chrome.cast.media.QueueItem(mi);
+    qi.itemId = castNextItemId++;
+    return qi;
+}}
+
 document.getElementById('castBtn').addEventListener('click', function() {{
     if (!castSession) return;
-    const list = activeDays();
+    const list = playlist();
     if (list.length === 0) {{
-        document.getElementById('castStatus').textContent = 'No days selected';
+        document.getElementById('castStatus').textContent = 'Nothing selected';
         return;
     }}
-    // Cap the cast queue: receiver rejects too-large LOAD messages with
-    // invalid_parameter. Take a window of `cap` days starting at currentIdx,
-    // wrapping around if we run off the end.
-    const cap = Math.max(1, parseInt(document.getElementById('castCap').value) || 12);
-    const n = Math.min(cap, list.length);
-    const window = [];
-    for (let i = 0; i < n; i++) {{
-        window.push(list[(currentIdx + i) % list.length]);
+    castNextItemId = 1;
+    castQueue = [];
+    // Initial window of CAST_QUEUE_SIZE items starting at currentIdx
+    for (let i = 0; i < Math.min(CAST_QUEUE_SIZE, list.length); i++) {{
+        castQueue.push(list[(currentIdx + i) % list.length]);
     }}
-    const items = window.map((d, i) => {{
-        const mi = new chrome.cast.media.MediaInfo(d.url, 'video/mp4');
-        mi.metadata = new chrome.cast.media.GenericMediaMetadata();
-        mi.metadata.title = d.date;
-        const qi = new chrome.cast.media.QueueItem(mi);
-        qi.itemId = i + 1;
-        return qi;
-    }});
+    const items = castQueue.map(makeQueueItem);
     const request = new chrome.cast.media.LoadRequest(items[0].media);
     request.queueData = new chrome.cast.media.QueueData();
     request.queueData.items = items;
     request.queueData.startIndex = 0;
-    request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
+    request.queueData.repeatMode = chrome.cast.media.RepeatMode.OFF;
     castSession.loadMedia(request).then(
         function() {{
-            // Apply speed after load. DMR accepts {{0.5, 1.0, 1.5, 2.0}} —
-            // request our nearest legal value.
+            // Apply nearest-legal speed
             const legal = [0.5, 1.0, 1.5, 2.0];
             const target = legal.reduce((p, c) =>
                 Math.abs(c - speed) < Math.abs(p - speed) ? c : p);
             const ms = castSession.getMediaSession();
             if (ms) {{
                 const req = new chrome.cast.media.SetPlaybackRateRequest(target);
-                ms.setPlaybackRate(req, () => {{}}, e => console.warn('cast setPlaybackRate failed', e));
+                ms.setPlaybackRate(req, () => {{}}, e => console.warn('rate failed', e));
+                ms.addUpdateListener(onCastUpdate);
             }}
             document.getElementById('castStatus').textContent =
-                `Casting ${{items.length}} of ${{list.length}} day(s) (cap ${{cap}}), looping at ${{target}}× (req ${{speed}}×)`;
+                `Casting from ${{castQueue[0].date}} h${{castQueue[0].hh}} (${{items.length}} loaded; auto-extends), speed ${{target}}× (req ${{speed}}×)`;
         }},
         function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + JSON.stringify(e); }}
     );
 }});
+
+// Auto-extend the cast queue: when the receiver's "items remaining" drops
+// below CAST_REFILL_AHEAD, append more from the playlist (looping).
+function onCastUpdate(isAlive) {{
+    if (!isAlive || !castSession) return;
+    const ms = castSession.getMediaSession();
+    if (!ms || !ms.items) return;
+    const remaining = ms.items.length - ms.items.findIndex(it => it.itemId === ms.currentItemId);
+    if (remaining > CAST_REFILL_AHEAD) return;
+
+    // Append next batch from playlist (loop forever)
+    const list = playlist();
+    if (list.length === 0) return;
+    const lastEntry = castQueue[castQueue.length - 1];
+    let lastIdxInPlaylist = list.findIndex(e => e.date === lastEntry.date && e.hh === lastEntry.hh);
+    if (lastIdxInPlaylist < 0) lastIdxInPlaylist = -1;
+    const toAppend = [];
+    for (let i = 1; i <= CAST_QUEUE_SIZE; i++) {{
+        toAppend.push(list[(lastIdxInPlaylist + i) % list.length]);
+    }}
+    castQueue = castQueue.concat(toAppend);
+    const newItems = toAppend.map(makeQueueItem);
+    const req = new chrome.cast.media.QueueInsertItemsRequest(newItems);
+    ms.queueInsertItems(req, () => {{}}, e => console.warn('queue extend failed', e));
+}}
 </script></body></html>'''
+
 
 
 # ---------------------------------------------------------------------------
