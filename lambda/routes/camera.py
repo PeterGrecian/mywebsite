@@ -888,6 +888,19 @@ def render_clouds_movie(days):
 <div class="cast-status" id="castStatus"></div>
 <div class="day-list">
     <h3>Days (oldest → newest). Click row to jump. Uncheck to skip.</h3>
+    <div style="margin: 0.25rem 0 0.75rem;">
+        <button id="selAll">All</button>
+        <button id="selNone">None</button>
+        <button id="selInvert">Invert</button>
+        <span style="color:#8E8E93; margin-left:1rem; font-size:0.85rem;">
+            Cast queue: cap
+            <input id="castCap" type="number" min="1" max="50" value="12"
+                   style="width:3.5em; background:#161616; color:#E0E0E0;
+                          border:1px solid #2C2C2E; border-radius:6px;
+                          padding:0.15rem 0.3rem;">
+            from current day
+        </span>
+    </div>
     <div id="rows" class="day-grid"></div>
 </div>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -989,6 +1002,31 @@ DAYS.forEach((d, i) => {{
     rowsEl.appendChild(row);
 }});
 
+// Bulk selection
+function refreshRowsFromOffset() {{
+    document.querySelectorAll('.day-row').forEach(r => {{
+        const flat = r.dataset.date.replace(/-/g, '');
+        const off = offSet.has(flat);
+        r.classList.toggle('disabled', off);
+        const cb = r.querySelector('input');
+        if (cb) cb.checked = !off;
+    }});
+}}
+document.getElementById('selAll').addEventListener('click', () => {{
+    offSet.clear(); refreshRowsFromOffset(); persistState();
+}});
+document.getElementById('selNone').addEventListener('click', () => {{
+    DAYS.forEach(d => offSet.add(d.date.replace(/-/g, '')));
+    refreshRowsFromOffset(); persistState();
+}});
+document.getElementById('selInvert').addEventListener('click', () => {{
+    DAYS.forEach(d => {{
+        const f = d.date.replace(/-/g, '');
+        if (offSet.has(f)) offSet.delete(f); else offSet.add(f);
+    }});
+    refreshRowsFromOffset(); persistState();
+}});
+
 setSpeed(speed);
 loadByIndex(0);
 
@@ -1020,23 +1058,32 @@ window['__onGCastApiAvailable'] = function(isAvailable) {{
 
 document.getElementById('castBtn').addEventListener('click', function() {{
     if (!castSession) return;
-    // Build a queue from active days, REPEAT_ALL.
     const list = activeDays();
-    const items = list.map(d => {{
+    if (list.length === 0) {{
+        document.getElementById('castStatus').textContent = 'No days selected';
+        return;
+    }}
+    // Cap the cast queue: receiver rejects too-large LOAD messages with
+    // invalid_parameter. Take a window of `cap` days starting at currentIdx,
+    // wrapping around if we run off the end.
+    const cap = Math.max(1, parseInt(document.getElementById('castCap').value) || 12);
+    const n = Math.min(cap, list.length);
+    const window = [];
+    for (let i = 0; i < n; i++) {{
+        window.push(list[(currentIdx + i) % list.length]);
+    }}
+    const items = window.map((d, i) => {{
         const mi = new chrome.cast.media.MediaInfo(d.url, 'video/mp4');
         mi.metadata = new chrome.cast.media.GenericMediaMetadata();
         mi.metadata.title = d.date;
-        return new chrome.cast.media.QueueItem(mi);
+        const qi = new chrome.cast.media.QueueItem(mi);
+        qi.itemId = i + 1;
+        return qi;
     }});
-    if (items.length === 0) return;
-    // Clamp startIndex into valid range; assign explicit per-item itemId
-    // (DMR sometimes rejects LOAD without itemIds when queueData is set).
-    items.forEach((it, i) => {{ it.itemId = i + 1; }});
-    const startIdx = Math.max(0, Math.min(currentIdx, items.length - 1));
-    const request = new chrome.cast.media.LoadRequest(items[startIdx].media);
+    const request = new chrome.cast.media.LoadRequest(items[0].media);
     request.queueData = new chrome.cast.media.QueueData();
     request.queueData.items = items;
-    request.queueData.startIndex = startIdx;
+    request.queueData.startIndex = 0;
     request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
     castSession.loadMedia(request).then(
         function() {{
@@ -1051,7 +1098,7 @@ document.getElementById('castBtn').addEventListener('click', function() {{
                 ms.setPlaybackRate(req, () => {{}}, e => console.warn('cast setPlaybackRate failed', e));
             }}
             document.getElementById('castStatus').textContent =
-                `Casting ${{items.length}} day(s), looping at ${{target}}× (req ${{speed}}×)`;
+                `Casting ${{items.length}} of ${{list.length}} day(s) (cap ${{cap}}), looping at ${{target}}× (req ${{speed}}×)`;
         }},
         function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + JSON.stringify(e); }}
     );
