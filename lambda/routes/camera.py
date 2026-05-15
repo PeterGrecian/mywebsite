@@ -774,18 +774,23 @@ def render_skycam_player(video_url, title, hours=None):
                 }}
             }};
 
-            // Cast is one-shot for now. Looping via mediaInfo.loop, queue
-            // REPEAT_ALL, and IDLE-reload all failed on this Chromecast — to
-            // be revisited. See https://developers.google.com/cast for
-            // future investigation.
+            // Loop via one-item Queue + REPEAT_ALL — the only loop method
+            // that worked on the test Chromecast. Trade-off: the Default
+            // Media Receiver shows an "up next in N seconds…" overlay near
+            // the end of each loop, with the filename. Annoying on short
+            // clips, fine on day-long videos. See mywebsite/TODO.md.
             function castVideo() {{
                 if (!castSession) return;
                 const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
                 mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
                 mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
+                const queueItem = new chrome.cast.media.QueueItem(mediaInfo);
                 const request = new chrome.cast.media.LoadRequest(mediaInfo);
+                request.queueData = new chrome.cast.media.QueueData();
+                request.queueData.items = [queueItem];
+                request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
                 castSession.loadMedia(request).then(
-                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV'; }},
+                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV (looping)'; }},
                     function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
                 );
             }}

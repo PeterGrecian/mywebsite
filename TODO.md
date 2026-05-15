@@ -7,14 +7,15 @@
 
 ## Active
 
-- **Skycam player: cast loop on Chromecast.** `<video loop>` works in
-  the browser fine. Cast doesn't. Tried (1) `mediaInfo.loop = true`,
-  (2) one-item Queue with `RepeatMode.ALL`, (3) JS listener for
-  IDLE/FINISHED → re-`loadMedia()` — none worked on the test device
-  (one-shot, then stops). Reverted to plain one-shot cast (no overlay).
-  Worth investigating: which DMR receiver app the Chromecast is using;
-  whether a custom CAF receiver (own app ID) would help; whether a
-  Chromecast Ultra vs Google TV vs older v2 differs.
+- **Skycam player: hide the "up next" overlay during cast loop.**
+  Currently using one-item Queue + `RepeatMode.ALL` to loop on
+  Chromecast — works, but DMR shows "your video will play in N seconds…"
+  + filename across the picture near each loop boundary. Annoying on
+  short clips, tolerable on day-long videos. Other approaches that
+  failed: (1) `mediaInfo.loop = true` (ignored by DMR), (2) JS listener
+  for IDLE/FINISHED → re-`loadMedia()` (no IDLE event fired). Worth
+  investigating: a custom CAF receiver (own app ID) that suppresses
+  the overlay; whether newer Chromecast generations behave differently.
 - Better repo name and docs — this is the website publishing core; document how it works
 - T3 logging: capture `stop` query param (parklands/surbiton) for usage breakdowns
 - Retire `newhome.petergrecian.co.uk` — was the PWA test subdomain, test is over.
