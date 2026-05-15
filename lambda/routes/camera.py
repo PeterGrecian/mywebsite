@@ -1034,13 +1034,22 @@ document.getElementById('castBtn').addEventListener('click', function() {{
     request.queueData.items = items;
     request.queueData.startIndex = currentIdx;
     request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
-    request.playbackRate = speed;
     castSession.loadMedia(request).then(
         function() {{
+            // Apply speed after load. DMR accepts {{0.5, 1.0, 1.5, 2.0}} —
+            // request our nearest legal value.
+            const legal = [0.5, 1.0, 1.5, 2.0];
+            const target = legal.reduce((p, c) =>
+                Math.abs(c - speed) < Math.abs(p - speed) ? c : p);
+            const ms = castSession.getMediaSession();
+            if (ms) {{
+                const req = new chrome.cast.media.SetPlaybackRateRequest(target);
+                ms.setPlaybackRate(req, () => {{}}, e => console.warn('cast setPlaybackRate failed', e));
+            }}
             document.getElementById('castStatus').textContent =
-                `Casting ${{items.length}} day(s), looping at ${{speed}}×`;
+                `Casting ${{items.length}} day(s), looping at ${{target}}× (req ${{speed}}×)`;
         }},
-        function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
+        function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + JSON.stringify(e); }}
     );
 }});
 </script></body></html>'''
