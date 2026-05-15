@@ -1029,10 +1029,14 @@ document.getElementById('castBtn').addEventListener('click', function() {{
         return new chrome.cast.media.QueueItem(mi);
     }});
     if (items.length === 0) return;
-    const request = new chrome.cast.media.LoadRequest(items[0].media);
+    // Clamp startIndex into valid range; assign explicit per-item itemId
+    // (DMR sometimes rejects LOAD without itemIds when queueData is set).
+    items.forEach((it, i) => {{ it.itemId = i + 1; }});
+    const startIdx = Math.max(0, Math.min(currentIdx, items.length - 1));
+    const request = new chrome.cast.media.LoadRequest(items[startIdx].media);
     request.queueData = new chrome.cast.media.QueueData();
     request.queueData.items = items;
-    request.queueData.startIndex = currentIdx;
+    request.queueData.startIndex = startIdx;
     request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
     castSession.loadMedia(request).then(
         function() {{
