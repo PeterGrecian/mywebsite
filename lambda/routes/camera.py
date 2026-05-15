@@ -774,42 +774,18 @@ def render_skycam_player(video_url, title, hours=None):
                 }}
             }};
 
-            // Client-side loop: when the receiver reports IDLE/FINISHED, we
-            // re-issue loadMedia(). Default Media Receiver ignored both
-            // mediaInfo.loop and queue REPEAT_ALL on this Chromecast.
-            // Trade-off: ~half a second of black between loops.
-            let castLoopActive = false;
-
-            function loadOnce() {{
+            // Cast is one-shot for now. Looping via mediaInfo.loop, queue
+            // REPEAT_ALL, and IDLE-reload all failed on this Chromecast — to
+            // be revisited. See https://developers.google.com/cast for
+            // future investigation.
+            function castVideo() {{
+                if (!castSession) return;
                 const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
                 mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
                 mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
                 const request = new chrome.cast.media.LoadRequest(mediaInfo);
-                return castSession.loadMedia(request);
-            }}
-
-            function attachLoopListener() {{
-                // Re-attach after every loadMedia (the media session is fresh).
-                const ms = castSession.getMediaSession();
-                if (!ms) return;
-                ms.addUpdateListener(function(isAlive) {{
-                    if (!castLoopActive || !isAlive) return;
-                    if (ms.playerState === chrome.cast.media.PlayerState.IDLE &&
-                        ms.idleReason === chrome.cast.media.IdleReason.FINISHED) {{
-                        loadOnce().then(attachLoopListener,
-                            function(e) {{ document.getElementById('castStatus').textContent = 'Loop reload failed: ' + e; }});
-                    }}
-                }});
-            }}
-
-            function castVideo() {{
-                if (!castSession) return;
-                castLoopActive = true;
-                loadOnce().then(
-                    function() {{
-                        document.getElementById('castStatus').textContent = 'Playing on TV (looping)';
-                        attachLoopListener();
-                    }},
+                castSession.loadMedia(request).then(
+                    function() {{ document.getElementById('castStatus').textContent = 'Playing on TV'; }},
                     function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
                 );
             }}
