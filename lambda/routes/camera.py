@@ -813,7 +813,7 @@ def render_clouds_movie(days):
 
     return f'''<!DOCTYPE html>
 <html><head>
-<title>Clouds: The Movie</title>
+<title>Clouds - The Movie</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
     body {{ font-family: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif;
@@ -842,9 +842,13 @@ def render_clouds_movie(days):
     }}
     .day-list {{ max-width: 800px; margin: 1rem auto; padding: 0 1rem; }}
     .day-list h3 {{ color: #8E8E93; font-weight: 500; margin: 1rem 0 0.5rem; }}
+    .day-grid {{ display: grid; grid-template-columns: repeat(4, 1fr);
+                 gap: 0.4rem; }}
+    @media (max-width: 900px) {{ .day-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
+    @media (max-width: 500px) {{ .day-grid {{ grid-template-columns: 1fr; }} }}
     .day-row {{ display: flex; align-items: center; padding: 0.5rem 0.75rem;
-                border-radius: 12px; margin-bottom: 0.25rem;
-                background: #161616; cursor: pointer; transition: background 0.15s; }}
+                border-radius: 12px; background: #161616;
+                cursor: pointer; transition: background 0.15s; }}
     .day-row:hover {{ background: #1f1f1f; }}
     .day-row.playing {{ background: #003a6b; }}
     .day-row.disabled .day-label {{ color: #555; text-decoration: line-through; }}
@@ -862,7 +866,7 @@ def render_clouds_movie(days):
     <google-cast-launcher></google-cast-launcher>
 </div>
 <div class="player-wrap">
-    <video id="player" autoplay playsinline></video>
+    <video id="player" controls autoplay playsinline></video>
 </div>
 <div class="now-playing" id="np">Loading…</div>
 <div class="controls">
@@ -884,7 +888,7 @@ def render_clouds_movie(days):
 <div class="cast-status" id="castStatus"></div>
 <div class="day-list">
     <h3>Days (oldest → newest). Click row to jump. Uncheck to skip.</h3>
-    <div id="rows"></div>
+    <div id="rows" class="day-grid"></div>
 </div>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script>
