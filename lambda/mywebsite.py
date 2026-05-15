@@ -3992,6 +3992,44 @@ def lambda_handler(event, context):
             from routes.camera import render_starcam_night
             html += render_starcam_night(evening_date, stacked, brightness_data)
 
+    elif path == f'/{stage}/skycam/clouds' or path == '/skycam/clouds':
+        # "Clouds: The Movie" — playlist of all daily cloudcam videos with
+        # speed control, prev/next, cast queue.
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        days = []
+        # Walk backwards from today, find every sky_YYYYMMDD_daily.mp4.
+        # Stop after 60 consecutive missing days (covers the data gap).
+        today = datetime.utcnow()
+        miss_streak = 0
+        for back in range(0, 365):
+            d = today - timedelta(days=back)
+            ymd_path = d.strftime("%Y/%m/%d")
+            ymd_flat = d.strftime("%Y%m%d")
+            key = f"skycam/videos/{ymd_path}/sky_{ymd_flat}_daily.mp4"
+            try:
+                meta = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
+                days.append({
+                    "date": d.strftime("%Y-%m-%d"),
+                    "url":  s3.generate_presigned_url(
+                                'get_object',
+                                Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
+                                ExpiresIn=14400),  # 4 hours
+                    "size_mb": round(meta["ContentLength"] / 1024 / 1024, 1),
+                })
+                miss_streak = 0
+            except Exception:
+                miss_streak += 1
+                if miss_streak > 60:
+                    break
+        days.reverse()  # oldest first for chronological playback
+
+        from routes.camera import render_clouds_movie
+        return {
+            'statusCode': 200,
+            'body': render_clouds_movie(days),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'},
+        }
+
     elif path.startswith(f'/{stage}/skycam/play') or path.startswith('/skycam/play'):
         query_params = event.get('queryStringParameters', {}) or {}
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)

@@ -663,6 +663,7 @@ def build_cloudcam_links_block():
         'gap: 0.5rem; justify-content: center;">'
         '<a href="/skycam/videos" class="gallery-link" '
         'style="background: var(--accent); color: white;">▶ Timelapse videos</a>'
+        '<a href="/skycam/clouds" class="gallery-link">☁ Clouds: The Movie</a>'
         '<a href="/skycam/player-poc" class="gallery-link">⚙ vplayer (stub)</a>'
         '</div>'
     )

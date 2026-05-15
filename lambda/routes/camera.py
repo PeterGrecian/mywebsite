@@ -797,6 +797,251 @@ def render_skycam_player(video_url, title, hours=None):
         </script>'''
 
 
+def render_clouds_movie(days):
+    """Render the "Clouds: The Movie" playlist page.
+
+    days: list of dicts
+        [{"date": "2026-05-08", "url": "<presigned>", "size_mb": 318}, ...]
+        oldest first. The caller is responsible for presigning the S3 keys
+        (URLs expire — make the page expiry a few hours, OK to refresh).
+
+    Speed buttons: 60 / 50 / 30 / 25 fps. The encoded source is 60fps so
+    these map to playbackRate 1.0, 0.833, 0.5, 0.417 respectively.
+    """
+    import json
+    days_json = json.dumps(days)
+
+    return f'''<!DOCTYPE html>
+<html><head>
+<title>Clouds: The Movie</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    body {{ font-family: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif;
+            margin: 0; padding: 0; background: #000; color: #E0E0E0; }}
+    .nav {{ text-align: center; padding: 0.5rem; }}
+    .nav a {{ color: #007AFF; text-decoration: none; margin: 0 1rem; }}
+    .player-wrap {{ position: relative; max-width: 1280px; margin: 0 auto; }}
+    video {{ width: 100%; display: block; background: #000; }}
+    .now-playing {{ text-align: center; padding: 0.4rem 0; color: #E0E0E0;
+                    font-size: 1.1rem; font-weight: 500; }}
+    .controls {{ text-align: center; padding: 0.5rem; }}
+    .controls button {{
+        background: #161616; color: #E0E0E0; border: 1px solid #2C2C2E;
+        border-radius: 12px; padding: 0.5rem 1rem; margin: 0 0.25rem;
+        font-size: 0.9rem; cursor: pointer;
+    }}
+    .controls button:hover {{ background: #1f1f1f; }}
+    .controls button.active {{ background: #007AFF; color: #fff; border-color: #007AFF; }}
+    .controls .group {{ display: inline-block; margin: 0 1rem; }}
+    .controls .label {{ color: #8E8E93; font-size: 0.85rem; margin-right: 0.5rem; }}
+    .cast-status {{ color: #8E8E93; margin-top: 0.3rem; font-size: 0.8rem; text-align: center; }}
+    google-cast-launcher {{
+        display: inline-block; width: 28px; height: 28px;
+        vertical-align: middle; margin-left: 0.75rem; cursor: pointer;
+        --connected-color: #007AFF; --disconnected-color: #8E8E93;
+    }}
+    .day-list {{ max-width: 800px; margin: 1rem auto; padding: 0 1rem; }}
+    .day-list h3 {{ color: #8E8E93; font-weight: 500; margin: 1rem 0 0.5rem; }}
+    .day-row {{ display: flex; align-items: center; padding: 0.5rem 0.75rem;
+                border-radius: 12px; margin-bottom: 0.25rem;
+                background: #161616; cursor: pointer; transition: background 0.15s; }}
+    .day-row:hover {{ background: #1f1f1f; }}
+    .day-row.playing {{ background: #003a6b; }}
+    .day-row.disabled .day-label {{ color: #555; text-decoration: line-through; }}
+    .day-row input[type=checkbox] {{
+        margin-right: 0.75rem; width: 18px; height: 18px; accent-color: #007AFF;
+        cursor: pointer;
+    }}
+    .day-label {{ flex: 1; color: #E0E0E0; }}
+    .day-meta {{ color: #8E8E93; font-size: 0.85rem; }}
+</style>
+</head><body>
+<div class="nav">
+    <a href="/skycam/contents">Skycam</a> |
+    <a href="/contents">Home</a>
+    <google-cast-launcher></google-cast-launcher>
+</div>
+<div class="player-wrap">
+    <video id="player" autoplay playsinline></video>
+</div>
+<div class="now-playing" id="np">Loading…</div>
+<div class="controls">
+    <div class="group">
+        <span class="label">Speed:</span>
+        <button data-speed="1.0">60fps</button>
+        <button data-speed="0.833">50fps</button>
+        <button data-speed="0.5">30fps</button>
+        <button data-speed="0.417">25fps</button>
+    </div>
+    <div class="group">
+        <button id="prevBtn">← Prev day</button>
+        <button id="nextBtn">Next day →</button>
+    </div>
+    <div class="group">
+        <button id="castBtn" disabled>Cast to TV</button>
+    </div>
+</div>
+<div class="cast-status" id="castStatus"></div>
+<div class="day-list">
+    <h3>Days (oldest → newest). Click row to jump. Uncheck to skip.</h3>
+    <div id="rows"></div>
+</div>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+<script>
+const DAYS = {days_json};
+let castSession = null;
+
+// State: which days are off, current speed, current index in playlist.
+const params = new URLSearchParams(location.search);
+const offSet = new Set((params.get('off') || localStorage.getItem('cloudsOff') || '').split(',').filter(Boolean));
+let speed = parseFloat(params.get('speed') || localStorage.getItem('cloudsSpeed') || '1.0');
+let currentIdx = 0;
+
+const player = document.getElementById('player');
+const np = document.getElementById('np');
+const rowsEl = document.getElementById('rows');
+
+function activeDays() {{
+    return DAYS.filter(d => !offSet.has(d.date.replace(/-/g, '')));
+}}
+
+function persistState() {{
+    const off = Array.from(offSet).join(',');
+    localStorage.setItem('cloudsOff', off);
+    localStorage.setItem('cloudsSpeed', String(speed));
+    const newParams = new URLSearchParams();
+    if (off) newParams.set('off', off);
+    if (speed !== 1.0) newParams.set('speed', String(speed));
+    const qs = newParams.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+}}
+
+function setSpeed(s) {{
+    speed = s;
+    player.playbackRate = s;
+    document.querySelectorAll('.controls button[data-speed]').forEach(b => {{
+        b.classList.toggle('active', parseFloat(b.dataset.speed) === s);
+    }});
+    if (castSession) {{
+        const ms = castSession.getMediaSession();
+        if (ms) {{
+            const req = new chrome.cast.media.SetPlaybackRateRequest(s);
+            ms.setPlaybackRate(req, () => {{}}, e => console.warn('cast setPlaybackRate failed', e));
+        }}
+    }}
+    persistState();
+}}
+
+function loadByIndex(idx) {{
+    const list = activeDays();
+    if (list.length === 0) {{ np.textContent = 'No days selected'; return; }}
+    currentIdx = ((idx % list.length) + list.length) % list.length;
+    const day = list[currentIdx];
+    player.src = day.url;
+    player.playbackRate = speed;
+    player.play().catch(() => {{}});
+    np.textContent = `${{day.date}}  (${{currentIdx + 1}} of ${{list.length}})`;
+    document.querySelectorAll('.day-row').forEach(r => {{
+        r.classList.toggle('playing', r.dataset.date === day.date);
+    }});
+}}
+
+function next() {{ loadByIndex(currentIdx + 1); }}
+function prev() {{ loadByIndex(currentIdx - 1); }}
+
+player.addEventListener('ended', next);
+
+document.querySelectorAll('.controls button[data-speed]').forEach(b => {{
+    b.addEventListener('click', () => setSpeed(parseFloat(b.dataset.speed)));
+}});
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('nextBtn').addEventListener('click', next);
+
+// Build day rows
+DAYS.forEach((d, i) => {{
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    row.dataset.date = d.date;
+    const dateFlat = d.date.replace(/-/g, '');
+    if (offSet.has(dateFlat)) row.classList.add('disabled');
+    row.innerHTML = `
+        <input type="checkbox" ${{offSet.has(dateFlat) ? '' : 'checked'}}>
+        <span class="day-label">${{d.date}}</span>
+        <span class="day-meta">${{d.size_mb}} MB</span>
+    `;
+    const cb = row.querySelector('input');
+    cb.addEventListener('click', e => {{
+        e.stopPropagation();
+        if (cb.checked) {{ offSet.delete(dateFlat); row.classList.remove('disabled'); }}
+        else            {{ offSet.add(dateFlat);    row.classList.add('disabled'); }}
+        persistState();
+    }});
+    row.addEventListener('click', () => {{
+        if (offSet.has(dateFlat)) {{ offSet.delete(dateFlat); cb.checked = true; row.classList.remove('disabled'); persistState(); }}
+        const list = activeDays();
+        const idx = list.findIndex(x => x.date === d.date);
+        if (idx >= 0) loadByIndex(idx);
+    }});
+    rowsEl.appendChild(row);
+}});
+
+setSpeed(speed);
+loadByIndex(0);
+
+// --- Cast ---
+window['__onGCastApiAvailable'] = function(isAvailable) {{
+    if (!isAvailable) return;
+    const ctx = cast.framework.CastContext.getInstance();
+    ctx.setOptions({{
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+    }});
+    ctx.addEventListener(
+        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+        function(e) {{
+            if (e.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+                e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {{
+                castSession = ctx.getCurrentSession();
+                document.getElementById('castBtn').disabled = false;
+                document.getElementById('castStatus').textContent =
+                    'Connected to ' + castSession.getCastDevice().friendlyName;
+            }} else {{
+                castSession = null;
+                document.getElementById('castBtn').disabled = true;
+                document.getElementById('castStatus').textContent = '';
+            }}
+        }}
+    );
+}};
+
+document.getElementById('castBtn').addEventListener('click', function() {{
+    if (!castSession) return;
+    // Build a queue from active days, REPEAT_ALL.
+    const list = activeDays();
+    const items = list.map(d => {{
+        const mi = new chrome.cast.media.MediaInfo(d.url, 'video/mp4');
+        mi.metadata = new chrome.cast.media.GenericMediaMetadata();
+        mi.metadata.title = d.date;
+        return new chrome.cast.media.QueueItem(mi);
+    }});
+    if (items.length === 0) return;
+    const request = new chrome.cast.media.LoadRequest(items[0].media);
+    request.queueData = new chrome.cast.media.QueueData();
+    request.queueData.items = items;
+    request.queueData.startIndex = currentIdx;
+    request.queueData.repeatMode = chrome.cast.media.RepeatMode.ALL;
+    request.playbackRate = speed;
+    castSession.loadMedia(request).then(
+        function() {{
+            document.getElementById('castStatus').textContent =
+                `Casting ${{items.length}} day(s), looping at ${{speed}}×`;
+        }},
+        function(e) {{ document.getElementById('castStatus').textContent = 'Cast failed: ' + e; }}
+    );
+}});
+</script></body></html>'''
+
+
 # ---------------------------------------------------------------------------
 # Starcam renderers
 # ---------------------------------------------------------------------------
