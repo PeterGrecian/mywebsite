@@ -872,6 +872,41 @@ def render_clouds_movie(days):
     .day-label {{ flex: 1; color: #E0E0E0; }}
     .day-meta {{ color: #8E8E93; font-size: 0.85rem; }}
 </style>
+<script>
+// Define the Cast SDK callback BEFORE the framework script loads, so
+// that when the SDK initialises, our setup runs and the
+// <google-cast-launcher> custom element gets registered properly.
+window['__onGCastApiAvailable'] = function(isAvailable) {{
+    if (!isAvailable) return;
+    const ctx = cast.framework.CastContext.getInstance();
+    ctx.setOptions({{
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+    }});
+    ctx.addEventListener(
+        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+        function(e) {{
+            if (e.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+                e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {{
+                window.__castSession = ctx.getCurrentSession();
+                const btn = document.getElementById('castBtn');
+                if (btn) btn.disabled = false;
+                const st = document.getElementById('castStatus');
+                if (st) st.textContent =
+                    'Connected to ' + window.__castSession.getCastDevice().friendlyName;
+            }} else {{
+                window.__castSession = null;
+                window.__castQueue = [];
+                const btn = document.getElementById('castBtn');
+                if (btn) btn.disabled = true;
+                const st = document.getElementById('castStatus');
+                if (st) st.textContent = '';
+            }}
+        }}
+    );
+}};
+</script>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 </head><body>
 <div class="nav">
     <a href="/skycam/contents">Skycam</a> |
@@ -989,8 +1024,8 @@ function setSpeed(s) {{
     document.querySelectorAll('.controls button[data-speed]').forEach(b => {{
         b.classList.toggle('active', parseFloat(b.dataset.speed) === s);
     }});
-    if (castSession) {{
-        const ms = castSession.getMediaSession();
+    if (window.__castSession) {{
+        const ms = window.__castSession.getMediaSession();
         if (ms) {{
             const legal = [0.5, 1.0, 1.5, 2.0];
             const target = legal.reduce((p, c) =>
@@ -1095,33 +1130,9 @@ setSpeed(speed);
 loadByIndex(0);
 
 // ---- Cast ----
-let castSession = null;
-
-window['__onGCastApiAvailable'] = function(isAvailable) {{
-    if (!isAvailable) return;
-    const ctx = cast.framework.CastContext.getInstance();
-    ctx.setOptions({{
-        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-    }});
-    ctx.addEventListener(
-        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-        function(e) {{
-            if (e.sessionState === cast.framework.SessionState.SESSION_STARTED ||
-                e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {{
-                castSession = ctx.getCurrentSession();
-                document.getElementById('castBtn').disabled = false;
-                document.getElementById('castStatus').textContent =
-                    'Connected to ' + castSession.getCastDevice().friendlyName;
-            }} else {{
-                castSession = null;
-                castQueue = [];
-                document.getElementById('castBtn').disabled = true;
-                document.getElementById('castStatus').textContent = '';
-            }}
-        }}
-    );
-}};
+// Init code lives in the <head> so the SDK script can find the callback
+// before the <google-cast-launcher> element is parsed. The session is
+// kept on window.__castSession by that init.
 
 function makeQueueItem(entry) {{
     const mi = new chrome.cast.media.MediaInfo(entry.url, 'video/mp4');
@@ -1133,7 +1144,7 @@ function makeQueueItem(entry) {{
 }}
 
 document.getElementById('castBtn').addEventListener('click', function() {{
-    if (!castSession) return;
+    if (!window.__castSession) return;
     const list = playlist();
     if (list.length === 0) {{
         document.getElementById('castStatus').textContent = 'Nothing selected';
@@ -1151,13 +1162,13 @@ document.getElementById('castBtn').addEventListener('click', function() {{
     request.queueData.items = items;
     request.queueData.startIndex = 0;
     request.queueData.repeatMode = chrome.cast.media.RepeatMode.OFF;
-    castSession.loadMedia(request).then(
+    window.__castSession.loadMedia(request).then(
         function() {{
             // Apply nearest-legal speed
             const legal = [0.5, 1.0, 1.5, 2.0];
             const target = legal.reduce((p, c) =>
                 Math.abs(c - speed) < Math.abs(p - speed) ? c : p);
-            const ms = castSession.getMediaSession();
+            const ms = window.__castSession.getMediaSession();
             if (ms) {{
                 const req = new chrome.cast.media.SetPlaybackRateRequest(target);
                 ms.setPlaybackRate(req, () => {{}}, e => console.warn('rate failed', e));
@@ -1173,8 +1184,8 @@ document.getElementById('castBtn').addEventListener('click', function() {{
 // Auto-extend the cast queue: when the receiver's "items remaining" drops
 // below CAST_REFILL_AHEAD, append more from the playlist (looping).
 function onCastUpdate(isAlive) {{
-    if (!isAlive || !castSession) return;
-    const ms = castSession.getMediaSession();
+    if (!isAlive || !window.__castSession) return;
+    const ms = window.__castSession.getMediaSession();
     if (!ms || !ms.items) return;
     const remaining = ms.items.length - ms.items.findIndex(it => it.itemId === ms.currentItemId);
     if (remaining > CAST_REFILL_AHEAD) return;
