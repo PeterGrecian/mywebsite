@@ -1093,7 +1093,7 @@ def render_player_poc_landing():
 </body></html>'''
 
 
-def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
+def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, clips=None):
     """Render a self-contained custom video player.
 
     Three ways to specify the video(s):
@@ -1140,8 +1140,21 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
         sources.append((url, key.rsplit("/", 1)[-1]))
 
     video_url, title = sources[0]
-    in_attr  = f"{in_sec:.3f}"  if in_sec  is not None else "null"
-    out_attr = f"{out_sec:.3f}" if out_sec is not None else "null"
+    # Build initial clips list: prefer `clips` (new), fall back to in/out (legacy).
+    clip_list = []
+    if clips:
+        for pair in clips:
+            try:
+                a, b = pair
+                a = float(a); b = float(b)
+                if a < b: clip_list.append((a, b))
+            except (TypeError, ValueError):
+                continue
+    elif in_sec is not None or out_sec is not None:
+        # legacy: single clip from ?in&out (either may be omitted)
+        a = float(in_sec)  if in_sec  is not None else 0.0
+        b = float(out_sec) if out_sec is not None else None
+        clip_list.append((a, b))
     import json as _json
     import re as _re
     from datetime import datetime as _dt, timezone as _tz
@@ -1158,6 +1171,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     sources_json = _json.dumps([
         {"url": u, "label": l, "hourEpoch": _hour_epoch(l)} for u, l in sources
     ])
+    clips_json = _json.dumps([{"in": a, "out": b} for (a, b) in clip_list])
 
     return f'''<!doctype html>
 <html lang="en"><head>
@@ -1176,6 +1190,10 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   .scrub {{ max-width: 1200px; margin: 0.5rem auto; position: relative; height: 40px; }}
   .bar {{ position: absolute; top: 16px; left: 0; right: 0; height: 8px; background: var(--divider); border-radius: 4px; cursor: pointer; }}
   .play-region {{ position: absolute; top: 16px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; pointer-events: none; }}
+  .clip-band {{ position: absolute; height: 8px; background: var(--accent); opacity: 0.18; border-radius: 4px; }}
+  .clip-band.active {{ opacity: 0.55; }}
+  .clip-mark {{ position: absolute; width: 2px; height: 24px; background: var(--accent); opacity: 0.4; }}
+  .clip-mark.active {{ opacity: 1; }}
   .scrub {{ touch-action: none; }}
   select.ctl, .menu {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
   .menu-wrap {{ position: relative; display: inline-block; }}
@@ -1206,23 +1224,26 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   <style>@keyframes spin {{ to {{ transform: translate(-50%,-50%) rotate(360deg); }} }}</style>
   <div class="scrub">
     <div class="bar" id="bar"></div>
-    <div class="play-region" id="region"></div>
-    <div class="marker" id="markIn"  data-label="in"></div>
-    <div class="marker" id="markOut" data-label="out"></div>
+    <div id="clipBands" style="position:absolute; top:16px; left:0; right:0;
+         height:8px; pointer-events:none;"></div>
+    <div id="clipMarkers" style="position:absolute; top:8px; left:0; right:0;
+         height:24px; pointer-events:none;"></div>
     <div class="head" id="head"></div>
   </div>
   <div class="controls">
-    <button id="setIn">[ in</button>
-    <button id="setOut">out ]</button>
-    <button id="clearMarks">clr</button>
+    <select id="clipsSel" class="ctl" title="clips"></select>
+    <button id="clipAdd" title="new clip from playhead">+</button>
+    <button id="clipDel" title="delete clip containing playhead">−</button>
     <button id="play" title="play / pause" style="min-width:3rem;">▶</button>
     <span class="time" id="time">0.000 / 0.000</span>
     <select id="loopSel" class="ctl" title="loop mode">
-      <option value="fwd-once">→ once</option>
-      <option value="fwd-loop">↻ loop</option>
-      <option value="pingpong" selected>↔ ping-pong</option>
-      <option value="rev-once">← once (rev)</option>
-      <option value="rev-loop">↺ loop (rev)</option>
+      <option value="fwd-once" selected>→</option>
+      <option value="fwd-loop">↻</option>
+      <option value="pingpong">↔</option>
+      <option value="rev-once">←</option>
+      <option value="rev-loop">↺</option>
+      <option value="all-loop">↻↻</option>
+      <option value="all-pingpong">↔↔</option>
     </select>
     <select id="speedSel" class="ctl" title="speed">
       <option value="0.25">¼×</option>
@@ -1259,7 +1280,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">space</td><td>play / pause</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>speed down / up</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">[ ]</td><td>set in / out marker</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">[ ]</td><td>set in / out of active clip</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">+ −</td><td>add clip at playhead · delete clip containing playhead</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">L</td><td>cycle loop mode</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">1–9</td><td>jump to source N</td></tr>
@@ -1276,44 +1298,84 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   const v = document.getElementById("v");
   const head = document.getElementById("head");
   const bar  = document.getElementById("bar");
-  const region = document.getElementById("region");
-  const mIn = document.getElementById("markIn");
-  const mOut = document.getElementById("markOut");
+  const bandsEl = document.getElementById("clipBands");
+  const marksEl = document.getElementById("clipMarkers");
   const timeEl = document.getElementById("time");
   const FPS = 24;
   let dir = 1;       // +1 fwd, -1 reverse
   let speed = 1.0;
-  let inPt  = {in_attr};
-  let outPt = {out_attr};
   // loopMode: 'fwd-once' | 'fwd-loop' | 'pingpong' | 'rev-once' | 'rev-loop'
-  let loopMode = "pingpong";
+  //         | 'all-loop' | 'all-pingpong'
+  let loopMode = "fwd-once";
   let rafId = null;
   let lastTs = null;
 
   const SOURCES = {sources_json};
   let curIdx = 0;
 
+  // Clips: array of {{in, out}}. Active clip drives the in/out used by
+  // playback. 'all-*' modes iterate through all clips.
+  let CLIPS = {clips_json};
+  let activeClip = CLIPS.length > 0 ? 0 : -1;
+
   function modeDir(mode) {{
-    if (mode === "fwd-once" || mode === "fwd-loop") return 1;
+    if (mode === "fwd-once" || mode === "fwd-loop" || mode === "all-loop") return 1;
     if (mode === "rev-once" || mode === "rev-loop") return -1;
     return 0; // pingpong: keep current dir
   }}
+  function isAllMode(m) {{ return m === "all-loop" || m === "all-pingpong"; }}
 
   function dur() {{ return v.duration || 0; }}
-  function lo() {{ return inPt  != null ? inPt  : 0; }}
-  function hi() {{ return outPt != null ? outPt : dur(); }}
+  function clip(i) {{ return CLIPS[i]; }}
+  function loOf(c) {{ return c ? c.in  : 0; }}
+  function hiOf(c) {{ return c ? (c.out != null ? c.out : dur()) : dur(); }}
+  function lo() {{ return loOf(clip(activeClip)); }}
+  function hi() {{ return hiOf(clip(activeClip)); }}
 
   function fmt(t) {{ if (!isFinite(t)) return "—"; return t.toFixed(3) + "s"; }}
   function repaint() {{
     const D = dur(); if (!D) return;
     head.style.left = (v.currentTime / D * 100) + "%";
-    region.style.left  = (lo() / D * 100) + "%";
-    region.style.width = ((hi() - lo()) / D * 100) + "%";
-    mIn.style.display  = inPt  != null ? "block" : "none";
-    mOut.style.display = outPt != null ? "block" : "none";
-    if (inPt  != null) mIn.style.left  = (inPt  / D * 100) + "%";
-    if (outPt != null) mOut.style.left = (outPt / D * 100) + "%";
+    // Render all clip bands + markers.
+    bandsEl.innerHTML = "";
+    marksEl.innerHTML = "";
+    CLIPS.forEach((c, i) => {{
+      const a = loOf(c), b = hiOf(c);
+      const left = (a / D * 100), width = ((b - a) / D * 100);
+      const band = document.createElement("div");
+      band.className = "clip-band" + (i === activeClip ? " active" : "");
+      band.style.left  = left + "%";
+      band.style.width = width + "%";
+      bandsEl.appendChild(band);
+      const m1 = document.createElement("div");
+      m1.className = "clip-mark" + (i === activeClip ? " active" : "");
+      m1.style.left = left + "%";
+      marksEl.appendChild(m1);
+      const m2 = document.createElement("div");
+      m2.className = "clip-mark" + (i === activeClip ? " active" : "");
+      m2.style.left = ((b / D) * 100) + "%";
+      marksEl.appendChild(m2);
+    }});
     timeEl.textContent = fmt(v.currentTime) + " / " + fmt(D);
+  }}
+
+  function rebuildClipsDropdown() {{
+    const sel = document.getElementById("clipsSel");
+    sel.innerHTML = "";
+    if (CLIPS.length === 0) {{
+      const o = document.createElement("option");
+      o.value = "-1"; o.textContent = "no clips";
+      sel.appendChild(o);
+      sel.value = "-1";
+    }} else {{
+      CLIPS.forEach((c, i) => {{
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = `clip ${{i + 1}}: ${{loOf(c).toFixed(2)}}–${{hiOf(c).toFixed(2)}}s`;
+        sel.appendChild(o);
+      }});
+      sel.value = String(activeClip);
+    }}
   }}
 
   // Forward play uses the native <video> element. Reverse uses a JS
@@ -1333,8 +1395,23 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     lastTs = ts;
     let t = v.currentTime - speed * dt;
     if (t <= lo()) {{
-      if (loopMode === "pingpong") {{ v.currentTime = lo(); pause(); playForward(); return; }}
+      if (loopMode === "pingpong" || loopMode === "all-pingpong") {{
+        if (loopMode === "all-pingpong" && CLIPS.length > 1 && activeClip > 0) {{
+          jumpToClip(activeClip - 1);
+          rafId = requestAnimationFrame(reverseStep);
+          return;
+        }}
+        v.currentTime = lo(); pause(); playForward(); return;
+      }}
       else if (loopMode === "rev-loop") {{ t = hi(); }}
+      else if (loopMode === "all-loop") {{
+        if (CLIPS.length > 0) {{
+          const next = (activeClip - 1 + CLIPS.length) % CLIPS.length;
+          jumpToClip(next);
+          rafId = requestAnimationFrame(reverseStep);
+          return;
+        }} else {{ t = hi(); }}
+      }}
       else {{ v.currentTime = lo(); pause(); return; }}
     }}
     v.currentTime = t;
@@ -1396,12 +1473,42 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     }}
   }};
 
-  document.getElementById("setIn").onclick  = () => {{ inPt  = v.currentTime; if (outPt != null && inPt > outPt) outPt = null; repaint(); }};
-  document.getElementById("setOut").onclick = () => {{ outPt = v.currentTime; if (inPt  != null && outPt < inPt) inPt = null;  repaint(); }};
-  document.getElementById("clearMarks").onclick = () => {{ inPt = outPt = null; repaint(); }};
+  // Clip operations.
+  function setActiveClip(i) {{
+    if (i < 0 || i >= CLIPS.length) {{ activeClip = -1; rebuildClipsDropdown(); repaint(); return; }}
+    activeClip = i;
+    const c = CLIPS[i];
+    if (v.currentTime < c.in || v.currentTime > hiOf(c)) v.currentTime = c.in;
+    rebuildClipsDropdown(); repaint();
+  }}
+  function addClipAtPlayhead() {{
+    const D = dur(); if (!D) return;
+    const a = Math.max(0, v.currentTime - 0.5);
+    const b = Math.min(D, v.currentTime + 0.5);
+    CLIPS.push({{in: a, out: b}});
+    activeClip = CLIPS.length - 1;
+    rebuildClipsDropdown(); repaint();
+  }}
+  function delClipContainingPlayhead() {{
+    const t = v.currentTime;
+    const idx = CLIPS.findIndex(c => t >= loOf(c) && t <= hiOf(c));
+    if (idx < 0) return;
+    CLIPS.splice(idx, 1);
+    if (CLIPS.length === 0) activeClip = -1;
+    else if (activeClip >= CLIPS.length) activeClip = CLIPS.length - 1;
+    rebuildClipsDropdown(); repaint();
+  }}
+  function setActiveClipIn(t)  {{ if (activeClip < 0) return; CLIPS[activeClip].in  = Math.min(t, hiOf(CLIPS[activeClip])); rebuildClipsDropdown(); repaint(); }}
+  function setActiveClipOut(t) {{ if (activeClip < 0) return; CLIPS[activeClip].out = Math.max(t, loOf(CLIPS[activeClip])); rebuildClipsDropdown(); repaint(); }}
+
+  document.getElementById("clipAdd").onclick = addClipAtPlayhead;
+  document.getElementById("clipDel").onclick = delClipContainingPlayhead;
+  document.getElementById("clipsSel").onchange = (e) => {{
+    setActiveClip(parseInt(e.target.value, 10));
+  }};
 
   function cycleLoopMode() {{
-    const order = ["fwd-once","fwd-loop","pingpong","rev-once","rev-loop"];
+    const order = ["fwd-once","fwd-loop","pingpong","rev-once","rev-loop","all-loop","all-pingpong"];
     const i = order.indexOf(loopMode);
     loopMode = order[(i + 1) % order.length];
     loopSel.value = loopMode;
@@ -1410,8 +1517,17 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
 
   document.getElementById("share").onclick = () => {{
     const u = new URL(location.href);
-    if (inPt  != null) u.searchParams.set("in",  inPt.toFixed(3));  else u.searchParams.delete("in");
-    if (outPt != null) u.searchParams.set("out", outPt.toFixed(3)); else u.searchParams.delete("out");
+    u.searchParams.delete("in");
+    u.searchParams.delete("out");
+    if (CLIPS.length === 0) {{
+      u.searchParams.delete("clip");
+    }} else {{
+      u.searchParams.delete("clip");
+      // Encode each clip as in-out (comma-joined). API Gateway preserves
+      // repeated params so we serialise as one comma-list.
+      const enc = CLIPS.map(c => `${{loOf(c).toFixed(3)}}-${{hiOf(c).toFixed(3)}}`).join(",");
+      u.searchParams.set("clip", enc);
+    }}
     history.replaceState(null, "", u);
     navigator.clipboard?.writeText(u.toString());
     const share = document.getElementById("share");
@@ -1477,8 +1593,10 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     else if (e.code === "ArrowRight") {{ pause(); v.currentTime = Math.min(hi(), v.currentTime + 1/FPS); repaint(); }}
     else if (e.key === ",") nudgeSpeed(-1);
     else if (e.key === ".") nudgeSpeed(+1);
-    else if (e.key === "[") document.getElementById("setIn").click();
-    else if (e.key === "]") document.getElementById("setOut").click();
+    else if (e.key === "[") setActiveClipIn(v.currentTime);
+    else if (e.key === "]") setActiveClipOut(v.currentTime);
+    else if (e.key === "+" || e.key === "=") addClipAtPlayhead();
+    else if (e.key === "-" || e.key === "_") delClipContainingPlayhead();
     else if (e.key === "l" || e.key === "L") cycleLoopMode();
     else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
     else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
@@ -1487,18 +1605,44 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   }});
 
   v.addEventListener("loadedmetadata", () => {{
-    if (inPt  != null) inPt  = Math.max(0, Math.min(dur(), inPt));
-    if (outPt != null) outPt = Math.max(0, Math.min(dur(), outPt));
-    if (inPt != null) v.currentTime = inPt;
+    // Clamp clip times to [0, dur].
+    const D = dur();
+    CLIPS.forEach(c => {{
+      c.in = Math.max(0, Math.min(D, c.in));
+      c.out = Math.max(c.in, Math.min(D, c.out != null ? c.out : D));
+    }});
+    if (activeClip >= 0) v.currentTime = lo();
+    rebuildClipsDropdown();
     repaint();
   }});
+
+  function jumpToClip(i) {{
+    if (i < 0 || i >= CLIPS.length) return;
+    activeClip = i;
+    rebuildClipsDropdown(); repaint();
+    if (dir > 0) v.currentTime = lo();
+    else v.currentTime = hi();
+  }}
 
   // Enforce the out-marker / loop mode during native forward play.
   v.addEventListener("timeupdate", () => {{
     repaint();
     if (playing && dir > 0 && v.currentTime >= hi() - 0.01) {{
-      if (loopMode === "pingpong") {{ v.currentTime = hi(); pause(); playReverse(); }}
+      if (loopMode === "pingpong" || loopMode === "all-pingpong") {{
+        if (loopMode === "all-pingpong" && CLIPS.length > 1) {{
+          // Advance to next clip, or flip direction at the last.
+          if (activeClip < CLIPS.length - 1) {{ jumpToClip(activeClip + 1); }}
+          else {{ v.currentTime = hi(); pause(); playReverse(); }}
+        }} else {{
+          v.currentTime = hi(); pause(); playReverse();
+        }}
+      }}
       else if (loopMode === "fwd-loop") {{ v.currentTime = lo(); }}
+      else if (loopMode === "all-loop") {{
+        const next = (activeClip + 1) % Math.max(1, CLIPS.length);
+        if (CLIPS.length > 0) jumpToClip(next);
+        else {{ v.currentTime = lo(); }}
+      }}
       else {{ pause(); v.currentTime = hi(); }}
     }}
   }});
@@ -1641,6 +1785,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
       picker.appendChild(b);
     }});
   }}
+
+  rebuildClipsDropdown();
 }})();
 </script>
 </body></html>'''

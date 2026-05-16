@@ -2840,8 +2840,21 @@ def lambda_handler(event, context):
             if v in (None, ''): return None
             try: return float(v)
             except (TypeError, ValueError): return None
+        # Parse ?clip=a-b,c-d,... into [(a,b),(c,d),...].
+        clip_param = qs.get('clip') or ''
+        clips_arg = []
+        for piece in clip_param.split(','):
+            piece = piece.strip()
+            if not piece or '-' not in piece:
+                continue
+            a, _, b = piece.partition('-')
+            try:
+                clips_arg.append((float(a), float(b)))
+            except ValueError:
+                continue
         page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
-                                    src=src, srcs=srcs)
+                                    src=src, srcs=srcs,
+                                    clips=clips_arg or None)
         if page is None:
             return {'statusCode': 400,
                     'body': '<h1>400</h1><p>Invalid key.</p>',
