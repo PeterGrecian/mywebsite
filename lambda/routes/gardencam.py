@@ -1175,7 +1175,14 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   button.active {{ background: var(--accent); color: white; }}
   .scrub {{ max-width: 1200px; margin: 0.5rem auto; position: relative; height: 40px; }}
   .bar {{ position: absolute; top: 16px; left: 0; right: 0; height: 8px; background: var(--divider); border-radius: 4px; cursor: pointer; }}
-  .play-region {{ position: absolute; top: 16px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; }}
+  .play-region {{ position: absolute; top: 16px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; pointer-events: none; }}
+  .scrub {{ touch-action: none; }}
+  select.ctl, .menu {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
+  .menu-wrap {{ position: relative; display: inline-block; }}
+  .menu-pop {{ display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; min-width: 180px; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }}
+  .menu-pop.open {{ display: block; }}
+  .menu-pop button {{ display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 0.5rem 0.8rem; color: var(--text); border-radius: 0; }}
+  .menu-pop button:hover {{ background: var(--divider); }}
   .head {{ position: absolute; top: 12px; width: 4px; height: 16px; background: var(--text); border-radius: 2px; transform: translateX(-2px); pointer-events: none; }}
   .marker {{ position: absolute; top: 8px; width: 2px; height: 24px; background: var(--accent); pointer-events: none; }}
   .marker::after {{ content: attr(data-label); position: absolute; top: -16px; left: -8px; font-size: 0.7rem; color: var(--accent); }}
@@ -1205,24 +1212,35 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     <div class="head" id="head"></div>
   </div>
   <div class="controls">
-    <button id="rev">◀ Reverse</button>
-    <button id="pause">❚❚ Pause</button>
-    <button id="fwd" class="active">▶ Forward</button>
-    <span class="time" id="time">0.000 / 0.000</span>
-    <button data-speed="0.25">¼×</button>
-    <button data-speed="0.5">½×</button>
-    <button data-speed="1" class="active">1×</button>
-    <button data-speed="2">2×</button>
-    <button data-speed="4">4×</button>
     <button id="setIn">[ in</button>
     <button id="setOut">out ]</button>
-    <button id="clearMarks">clear</button>
-    <button id="loop" class="active" title="loop mode">↔</button>
-    <button id="share">share</button>
-    <button id="fs" title="fullscreen">⛶</button>
-    <button id="pip" title="picture-in-picture" style="display:none;">▭</button>
-    <button id="airplay" title="AirPlay" style="display:none;">📺</button>
-    <a id="dl" class="btn" href="#" download title="download">⤓</a>
+    <button id="clearMarks">clr</button>
+    <button id="play" title="play / pause" style="min-width:3rem;">▶</button>
+    <span class="time" id="time">0.000 / 0.000</span>
+    <select id="loopSel" class="ctl" title="loop mode">
+      <option value="fwd-once">→ once</option>
+      <option value="fwd-loop">↻ loop</option>
+      <option value="pingpong" selected>↔ ping-pong</option>
+      <option value="rev-once">← once (rev)</option>
+      <option value="rev-loop">↺ loop (rev)</option>
+    </select>
+    <select id="speedSel" class="ctl" title="speed">
+      <option value="0.25">¼×</option>
+      <option value="0.5">½×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+      <option value="4">4×</option>
+    </select>
+    <span class="menu-wrap">
+      <button id="actionsBtn" class="menu" title="more">⋯</button>
+      <div id="actionsPop" class="menu-pop">
+        <button id="share">Share clip URL</button>
+        <button id="fs">Fullscreen</button>
+        <button id="pip" style="display:none;">Picture-in-picture</button>
+        <button id="airplay" style="display:none;">AirPlay</button>
+        <button id="dl">Download</button>
+      </div>
+    </span>
   </div>
   <div id="stats" style="max-width:1200px; margin:0.25rem auto;
        color:var(--text-secondary); font-size:0.8rem; text-align:center;
@@ -1233,7 +1251,26 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     dropped <span id="dropped">0</span>
     <span id="bufferWarn" style="display:none; color:#FF9500;"> ⚠ buffering</span>
   </div>
-  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction · ↑/↓ switch source · F fullscreen</div>
+  <div class="help">press H for help · space play/pause</div>
+  <div id="helpHud" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:50; padding:2rem; overflow:auto;">
+    <div style="max-width:600px; margin:0 auto; color:var(--text); font-size:0.95rem;">
+      <h2 style="color:var(--accent); margin-top:0;">Keyboard shortcuts</h2>
+      <table style="width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;">
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">space</td><td>play / pause</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>speed down / up</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">[ ]</td><td>set in / out marker</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">L</td><td>cycle loop mode</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">1–9</td><td>jump to source N</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">F</td><td>fullscreen</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">H / Esc</td><td>this help / close</td></tr>
+      </table>
+      <p style="color:var(--text-secondary); margin-top:1.5rem;">
+        Click timeline to seek · drag the playhead to scrub
+      </p>
+    </div>
+  </div>
 <script>
 (function() {{
   const v = document.getElementById("v");
@@ -1248,12 +1285,19 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   let speed = 1.0;
   let inPt  = {in_attr};
   let outPt = {out_attr};
-  let loopMode = "pingpong";  // "pingpong" | "loop" | "once"
+  // loopMode: 'fwd-once' | 'fwd-loop' | 'pingpong' | 'rev-once' | 'rev-loop'
+  let loopMode = "pingpong";
   let rafId = null;
   let lastTs = null;
 
   const SOURCES = {sources_json};
   let curIdx = 0;
+
+  function modeDir(mode) {{
+    if (mode === "fwd-once" || mode === "fwd-loop") return 1;
+    if (mode === "rev-once" || mode === "rev-loop") return -1;
+    return 0; // pingpong: keep current dir
+  }}
 
   function dur() {{ return v.duration || 0; }}
   function lo() {{ return inPt  != null ? inPt  : 0; }}
@@ -1276,11 +1320,12 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   // frame-stepper since browsers don't support negative playbackRate for
   // compressed video. There's exactly one playing-state at a time.
   let playing = false;
+  const playBtn = document.getElementById("play");
 
-  function setActive(id) {{
-    ["rev", "fwd", "pause"].forEach(x =>
-      document.getElementById(x).classList.toggle("active", x === id));
-  }}
+  function setPlayGlyph() {{ playBtn.textContent = playing ? "❚❚" : "▶"; }}
+
+  function isLoopMode(m) {{ return m === "fwd-loop" || m === "rev-loop"; }}
+  function isOnceMode(m) {{ return m === "fwd-once" || m === "rev-once"; }}
 
   function reverseStep(ts) {{
     if (lastTs == null) lastTs = ts;
@@ -1289,7 +1334,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     let t = v.currentTime - speed * dt;
     if (t <= lo()) {{
       if (loopMode === "pingpong") {{ v.currentTime = lo(); pause(); playForward(); return; }}
-      else if (loopMode === "loop") {{ t = hi(); }}
+      else if (loopMode === "rev-loop") {{ t = hi(); }}
       else {{ v.currentTime = lo(); pause(); return; }}
     }}
     v.currentTime = t;
@@ -1303,7 +1348,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     v.playbackRate = speed;
     v.play().catch(() => {{}});
     playing = true;
-    setActive("fwd");
+    setPlayGlyph();
   }}
   function playReverse() {{
     pause();
@@ -1312,69 +1357,129 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     lastTs = null;
     rafId = requestAnimationFrame(reverseStep);
     playing = true;
-    setActive("rev");
+    setPlayGlyph();
   }}
   function pause() {{
     v.pause();
     if (rafId != null) {{ cancelAnimationFrame(rafId); rafId = null; }}
     lastTs = null;
     playing = false;
-    setActive("pause");
+    setPlayGlyph();
+  }}
+  function playInModeDirection() {{
+    const d = modeDir(loopMode);
+    if (d === -1) playReverse();
+    else if (d === 1) playForward();
+    else (dir < 0 ? playReverse() : playForward());
   }}
   function toggle() {{
     if (playing) pause();
-    else if (dir < 0) playReverse();
-    else playForward();
+    else playInModeDirection();
   }}
 
-  document.getElementById("pause").onclick = pause;
-  document.getElementById("rev").onclick   = playReverse;
-  document.getElementById("fwd").onclick   = playForward;
-  document.querySelectorAll("[data-speed]").forEach(b => {{
-    b.onclick = () => {{
-      speed = parseFloat(b.dataset.speed);
-      document.querySelectorAll("[data-speed]").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      if (playing && dir > 0) v.playbackRate = speed;
-    }};
-  }});
+  playBtn.onclick = toggle;
+
+  const speedSel = document.getElementById("speedSel");
+  speedSel.onchange = () => {{
+    speed = parseFloat(speedSel.value);
+    if (playing && dir > 0) v.playbackRate = speed;
+  }};
+
+  const loopSel = document.getElementById("loopSel");
+  loopSel.onchange = () => {{
+    loopMode = loopSel.value;
+    // Apply direction immediately if playing.
+    if (playing) {{
+      const want = modeDir(loopMode);
+      if (want === 1 && dir < 0) playForward();
+      else if (want === -1 && dir > 0) playReverse();
+    }}
+  }};
+
   document.getElementById("setIn").onclick  = () => {{ inPt  = v.currentTime; if (outPt != null && inPt > outPt) outPt = null; repaint(); }};
   document.getElementById("setOut").onclick = () => {{ outPt = v.currentTime; if (inPt  != null && outPt < inPt) inPt = null;  repaint(); }};
   document.getElementById("clearMarks").onclick = () => {{ inPt = outPt = null; repaint(); }};
-  document.getElementById("loop").onclick = () => {{
-    loopMode = loopMode === "pingpong" ? "loop" : loopMode === "loop" ? "once" : "pingpong";
-    const glyph = loopMode === "pingpong" ? "↔" : loopMode === "loop" ? "↻" : "→";
-    const btn = document.getElementById("loop");
-    btn.textContent = glyph;
-    btn.title = "loop: " + loopMode;
-  }};
+
+  function cycleLoopMode() {{
+    const order = ["fwd-once","fwd-loop","pingpong","rev-once","rev-loop"];
+    const i = order.indexOf(loopMode);
+    loopMode = order[(i + 1) % order.length];
+    loopSel.value = loopMode;
+    loopSel.onchange();
+  }}
+
   document.getElementById("share").onclick = () => {{
     const u = new URL(location.href);
     if (inPt  != null) u.searchParams.set("in",  inPt.toFixed(3));  else u.searchParams.delete("in");
     if (outPt != null) u.searchParams.set("out", outPt.toFixed(3)); else u.searchParams.delete("out");
     history.replaceState(null, "", u);
     navigator.clipboard?.writeText(u.toString());
-    document.getElementById("share").textContent = "copied";
-    setTimeout(() => document.getElementById("share").textContent = "share", 1200);
+    const share = document.getElementById("share");
+    const orig = share.textContent;
+    share.textContent = "copied";
+    setTimeout(() => share.textContent = orig, 1200);
   }};
 
-  bar.onclick = e => {{
+  // Timeline: click to seek; drag the bar to scrub.
+  let scrubbing = false;
+  function seekFromEvent(e) {{
     const r = bar.getBoundingClientRect();
-    v.currentTime = (e.clientX - r.left) / r.width * dur();
+    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    v.currentTime = (x / r.width) * dur();
     repaint();
+  }}
+  bar.addEventListener("pointerdown", e => {{
+    scrubbing = true; bar.setPointerCapture(e.pointerId); seekFromEvent(e);
+  }});
+  bar.addEventListener("pointermove", e => {{ if (scrubbing) seekFromEvent(e); }});
+  bar.addEventListener("pointerup",   e => {{
+    scrubbing = false; try {{ bar.releasePointerCapture(e.pointerId); }} catch(_){{}}
+  }});
+  bar.addEventListener("pointercancel", () => {{ scrubbing = false; }});
+
+  // Actions dropdown wiring.
+  const actionsBtn = document.getElementById("actionsBtn");
+  const actionsPop = document.getElementById("actionsPop");
+  actionsBtn.onclick = (e) => {{
+    e.stopPropagation();
+    actionsPop.classList.toggle("open");
   }};
+  document.addEventListener("click", e => {{
+    if (!actionsPop.contains(e.target) && e.target !== actionsBtn) {{
+      actionsPop.classList.remove("open");
+    }}
+  }});
+  actionsPop.querySelectorAll("button").forEach(b => {{
+    b.addEventListener("click", () => actionsPop.classList.remove("open"));
+  }});
+
+  const helpHud = document.getElementById("helpHud");
+  function setHelp(open) {{ helpHud.style.display = open ? "block" : "none"; }}
+  helpHud.addEventListener("click", () => setHelp(false));
+
+  function nudgeSpeed(delta) {{
+    const speeds = [0.25, 0.5, 1, 2, 4];
+    const i = speeds.indexOf(speed);
+    const j = Math.max(0, Math.min(speeds.length - 1, i + delta));
+    if (j !== i) {{
+      speed = speeds[j];
+      speedSel.value = String(speed);
+      if (playing && dir > 0) v.playbackRate = speed;
+    }}
+  }}
 
   document.addEventListener("keydown", e => {{
-    if (e.target.tagName === "INPUT") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.key === "Escape") {{ setHelp(false); return; }}
+    if (e.key === "h" || e.key === "H") {{ setHelp(helpHud.style.display === "none"); return; }}
     if (e.code === "Space") {{ e.preventDefault(); toggle(); }}
     else if (e.code === "ArrowLeft")  {{ pause(); v.currentTime = Math.max(lo(), v.currentTime - 1/FPS); repaint(); }}
     else if (e.code === "ArrowRight") {{ pause(); v.currentTime = Math.min(hi(), v.currentTime + 1/FPS); repaint(); }}
-    else if (e.key === ",") {{ const speeds=[0.25,0.5,1,2,4]; const i=speeds.indexOf(speed); if (i>0) {{ speed = speeds[i-1]; document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active", parseFloat(b.dataset.speed)===speed)); }} }}
-    else if (e.key === ".") {{ const speeds=[0.25,0.5,1,2,4]; const i=speeds.indexOf(speed); if (i>=0 && i<speeds.length-1) {{ speed = speeds[i+1]; document.querySelectorAll("[data-speed]").forEach(b=>b.classList.toggle("active", parseFloat(b.dataset.speed)===speed)); }} }}
+    else if (e.key === ",") nudgeSpeed(-1);
+    else if (e.key === ".") nudgeSpeed(+1);
     else if (e.key === "[") document.getElementById("setIn").click();
     else if (e.key === "]") document.getElementById("setOut").click();
-    else if (e.key === "l" || e.key === "L") document.getElementById("loop").click();
-    else if (e.key === "r" || e.key === "R") {{ if (dir > 0) playReverse(); else playForward(); }}
+    else if (e.key === "l" || e.key === "L") cycleLoopMode();
     else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
     else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
     else if (e.key >= "1" && e.key <= "9") {{ const i = parseInt(e.key, 10) - 1; if (i < SOURCES.length) swap(i); }}
@@ -1393,7 +1498,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     repaint();
     if (playing && dir > 0 && v.currentTime >= hi() - 0.01) {{
       if (loopMode === "pingpong") {{ v.currentTime = hi(); pause(); playReverse(); }}
-      else if (loopMode === "loop") {{ v.currentTime = lo(); }}
+      else if (loopMode === "fwd-loop") {{ v.currentTime = lo(); }}
       else {{ pause(); v.currentTime = hi(); }}
     }}
   }});
@@ -1486,15 +1591,13 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     apBtn.style.display = "";
     apBtn.onclick = () => v.webkitShowPlaybackTargetPicker?.();
   }}
-  // Download link: use current source URL, force a sensible filename.
-  function refreshDownload() {{
+  // Download: open the source URL in a new tab. Cross-origin S3 ignores
+  // the HTMLAnchorElement download attribute, so this is the cleanest path.
+  function refreshDownload() {{}}
+  document.getElementById("dl").onclick = () => {{
     const cur = SOURCES[curIdx];
-    if (!cur) return;
-    const dl = document.getElementById("dl");
-    dl.href = cur.url;
-    dl.setAttribute("download", cur.label || "video.mp4");
-  }}
-  refreshDownload();
+    if (cur) window.open(cur.url, "_blank");
+  }};
 
   // Media Session API: hardware keys / lockscreen integration.
   if ("mediaSession" in navigator) {{
