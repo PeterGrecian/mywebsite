@@ -1259,6 +1259,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
         <button id="fs">Fullscreen</button>
         <button id="pip" style="display:none;">Picture-in-picture</button>
         <button id="airplay" style="display:none;">AirPlay</button>
+        <button id="cast" style="display:none;">Cast (Chromecast)</button>
         <button id="dl">Download</button>
       </div>
     </span>
@@ -1293,6 +1294,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       </p>
     </div>
   </div>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script>
 (function() {{
   const v = document.getElementById("v");
@@ -1735,6 +1737,35 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     apBtn.style.display = "";
     apBtn.onclick = () => v.webkitShowPlaybackTargetPicker?.();
   }}
+
+  // Chromecast via the Cast SDK. cast_sender.js calls __onGCastApiAvailable
+  // once the framework is ready. Default media receiver app ID = CC1AD845.
+  const castBtn = document.getElementById("cast");
+  window.__onGCastApiAvailable = function(isAvailable) {{
+    if (!isAvailable) return;
+    try {{
+      cast.framework.CastContext.getInstance().setOptions({{
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+      }});
+      castBtn.style.display = "";
+      castBtn.onclick = async () => {{
+        const ctx = cast.framework.CastContext.getInstance();
+        try {{
+          await ctx.requestSession();
+        }} catch (e) {{ /* user cancelled or no devices */ return; }}
+        const session = ctx.getCurrentSession();
+        if (!session) return;
+        const cur = SOURCES[curIdx];
+        const mediaInfo = new chrome.cast.media.MediaInfo(cur.url, "video/mp4");
+        mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+        mediaInfo.metadata.title = cur.label || "gardencam";
+        const request = new chrome.cast.media.LoadRequest(mediaInfo);
+        request.currentTime = v.currentTime;
+        await session.loadMedia(request);
+      }};
+    }} catch (e) {{ /* SDK loaded but Cast not supported */ }}
+  }};
   // Download: open the source URL in a new tab. Cross-origin S3 ignores
   // the HTMLAnchorElement download attribute, so this is the cleanest path.
   function refreshDownload() {{}}
