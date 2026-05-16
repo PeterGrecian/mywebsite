@@ -1006,30 +1006,39 @@ def render_player_poc_landing():
 </body></html>'''
 
 
-def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
+def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     """Render a self-contained custom video player.
 
-    Two ways to specify the video:
-      - key=skycam/...    presigns the gardencam S3 bucket
-      - src=<https URL>   plays a publicly hosted mp4 (whitelisted hosts only)
+    Three ways to specify the video(s):
+      - key=skycam/...           presigns the gardencam S3 bucket
+      - src=<https URL>          plays a publicly hosted mp4
+      - srcs=[<URL>, <URL>, ...] multi-source: first plays, ↑/↓ cycle
 
-    Page is shareable via /skycam/player?key=...&in=...&out=... or
-    /skycam/player?src=...&in=...&out=...
+    Hostnames are whitelisted to petergrecian.co.uk and *.amazonaws.com.
     """
     from urllib.parse import urlparse
-    if src:
-        u = urlparse(src)
-        ALLOWED_HOSTS = (
-            "www.petergrecian.co.uk",
-            "petergrecian.co.uk",
-        )
-        host_ok = (u.scheme == "https"
-                   and (u.hostname in ALLOWED_HOSTS
-                        or (u.hostname or "").endswith(".amazonaws.com")))
-        if not host_ok or ".." in u.path:
+    ALLOWED_HOSTS = ("www.petergrecian.co.uk", "petergrecian.co.uk")
+
+    def _validate(s):
+        u = urlparse(s)
+        ok = (u.scheme == "https"
+              and (u.hostname in ALLOWED_HOSTS
+                   or (u.hostname or "").endswith(".amazonaws.com"))
+              and ".." not in u.path)
+        return (s, u.path.rsplit("/", 1)[-1] or "video") if ok else None
+
+    sources = []  # list of (url, label)
+    if srcs:
+        for s in srcs:
+            v = _validate(s)
+            if v is None:
+                return None
+            sources.append(v)
+    elif src:
+        v = _validate(src)
+        if v is None:
             return None
-        video_url = src
-        title = u.path.rsplit("/", 1)[-1] or "video"
+        sources.append(v)
     else:
         import boto3
         if not key.startswith("skycam/") or ".." in key:
@@ -1037,14 +1046,17 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
         s3 = boto3.client("s3", region_name="eu-west-1")
         bucket = "gardencam-berrylands-eu-west-1"
         try:
-            video_url = s3.generate_presigned_url(
+            url = s3.generate_presigned_url(
                 "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)
         except Exception:
             return None
-        title = key.rsplit("/", 1)[-1]
+        sources.append((url, key.rsplit("/", 1)[-1]))
 
+    video_url, title = sources[0]
     in_attr  = f"{in_sec:.3f}"  if in_sec  is not None else "null"
     out_attr = f"{out_sec:.3f}" if out_sec is not None else "null"
+    import json as _json
+    sources_json = _json.dumps([{"url": u, "label": l} for u, l in sources])
 
     return f'''<!doctype html>
 <html lang="en"><head>
@@ -1072,8 +1084,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
 </head><body>
   <div class="top">
     <a href="/skycam">← Sky Camera</a>
-    <span class="filename">{title}</span>
+    <span class="filename" id="filename">{title}</span>
   </div>
+  <div class="controls" id="sourcePicker" style="display:none;"></div>
   <video id="v" src="{video_url}" preload="auto" playsinline></video>
   <div class="scrub">
     <div class="bar" id="bar"></div>
@@ -1098,7 +1111,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
     <button id="loop" class="active">loop: ping-pong</button>
     <button id="share">share</button>
   </div>
-  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction</div>
+  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction · ↑/↓ switch source</div>
 <script>
 (function() {{
   const v = document.getElementById("v");
@@ -1116,6 +1129,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
   let loopMode = "pingpong";  // "pingpong" | "loop" | "once"
   let rafId = null;
   let lastTs = null;
+
+  const SOURCES = {sources_json};
+  let curIdx = 0;
 
   function dur() {{ return v.duration || 0; }}
   function lo() {{ return inPt  != null ? inPt  : 0; }}
@@ -1234,6 +1250,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
     else if (e.key === "]") document.getElementById("setOut").click();
     else if (e.key === "l" || e.key === "L") document.getElementById("loop").click();
     else if (e.key === "r" || e.key === "R") {{ if (dir > 0) playReverse(); else playForward(); }}
+    else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
+    else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
+    else if (e.key >= "1" && e.key <= "9") {{ const i = parseInt(e.key, 10) - 1; if (i < SOURCES.length) swap(i); }}
   }});
 
   v.addEventListener("loadedmetadata", () => {{
@@ -1252,6 +1271,42 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
       else {{ pause(); v.currentTime = hi(); }}
     }}
   }});
+
+  // ---- Multi-source A/B ----
+  function swap(i) {{
+    if (i < 0) i = SOURCES.length - 1;
+    if (i >= SOURCES.length) i = 0;
+    if (i === curIdx || !SOURCES[i]) return;
+    const wasPlaying = playing;
+    const wasDir = dir;
+    const t = v.currentTime;
+    curIdx = i;
+    document.getElementById("filename").textContent = SOURCES[i].label;
+    document.querySelectorAll("#sourcePicker button").forEach((b, j) =>
+      b.classList.toggle("active", j === i));
+    pause();
+    v.src = SOURCES[i].url;
+    const onMeta = () => {{
+      v.removeEventListener("loadedmetadata", onMeta);
+      v.currentTime = Math.min(t, dur());
+      repaint();
+      if (wasPlaying) {{ wasDir > 0 ? playForward() : playReverse(); }}
+    }};
+    v.addEventListener("loadedmetadata", onMeta);
+    v.load();
+  }}
+
+  if (SOURCES.length > 1) {{
+    const picker = document.getElementById("sourcePicker");
+    picker.style.display = "flex";
+    SOURCES.forEach((s, i) => {{
+      const b = document.createElement("button");
+      b.textContent = (i + 1) + ". " + s.label;
+      if (i === 0) b.classList.add("active");
+      b.onclick = () => swap(i);
+      picker.appendChild(b);
+    }});
+  }}
 }})();
 </script>
 </body></html>'''
