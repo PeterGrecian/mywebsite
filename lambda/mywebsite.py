@@ -2818,12 +2818,13 @@ def lambda_handler(event, context):
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
         key = qs.get('key', '')
+        src = qs.get('src')
         def _f(name):
             v = qs.get(name)
             if v in (None, ''): return None
             try: return float(v)
             except (TypeError, ValueError): return None
-        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'))
+        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'), src=src)
         if page is None:
             return {'statusCode': 400,
                     'body': '<h1>400</h1><p>Invalid key.</p>',

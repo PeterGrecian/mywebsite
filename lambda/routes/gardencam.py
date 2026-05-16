@@ -1006,27 +1006,45 @@ def render_player_poc_landing():
 </body></html>'''
 
 
-def render_skycam_player(key, in_sec=None, out_sec=None):
-    """Render a self-contained custom video player for a skycam/* S3 key.
-    Validates and presigns the key (1h URL); the page itself is permanent
-    and shareable via /skycam/player?key=...&in=...&out=...
-    """
-    import boto3
-    from urllib.parse import quote
-    if not key.startswith("skycam/") or ".." in key:
-        return None
-    s3 = boto3.client("s3", region_name="eu-west-1")
-    bucket = "gardencam-berrylands-eu-west-1"
-    try:
-        video_url = s3.generate_presigned_url(
-            "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)
-    except Exception:
-        return None
+def render_skycam_player(key, in_sec=None, out_sec=None, src=None):
+    """Render a self-contained custom video player.
 
-    title = key.rsplit("/", 1)[-1]
+    Two ways to specify the video:
+      - key=skycam/...    presigns the gardencam S3 bucket
+      - src=<https URL>   plays a publicly hosted mp4 (whitelisted hosts only)
+
+    Page is shareable via /skycam/player?key=...&in=...&out=... or
+    /skycam/player?src=...&in=...&out=...
+    """
+    from urllib.parse import urlparse
+    if src:
+        u = urlparse(src)
+        ALLOWED_HOSTS = (
+            "www.petergrecian.co.uk",
+            "petergrecian.co.uk",
+        )
+        host_ok = (u.scheme == "https"
+                   and (u.hostname in ALLOWED_HOSTS
+                        or (u.hostname or "").endswith(".amazonaws.com")))
+        if not host_ok or ".." in u.path:
+            return None
+        video_url = src
+        title = u.path.rsplit("/", 1)[-1] or "video"
+    else:
+        import boto3
+        if not key.startswith("skycam/") or ".." in key:
+            return None
+        s3 = boto3.client("s3", region_name="eu-west-1")
+        bucket = "gardencam-berrylands-eu-west-1"
+        try:
+            video_url = s3.generate_presigned_url(
+                "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)
+        except Exception:
+            return None
+        title = key.rsplit("/", 1)[-1]
+
     in_attr  = f"{in_sec:.3f}"  if in_sec  is not None else "null"
     out_attr = f"{out_sec:.3f}" if out_sec is not None else "null"
-    share_key = quote(key, safe="")
 
     return f'''<!doctype html>
 <html lang="en"><head>
