@@ -823,11 +823,81 @@ _MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"]
 
 
-def render_timelapse_index():
-    """Year → month → day drilldown of skycam timelapse videos.
-    Sticky native-video player at top; presigned 1h URLs."""
+def _render_day_card(y, m, dd, day, presign):
+    """Render one day's card (label + button row). Used both at page render
+    and for the lazy /skycam/timelapse-day endpoint."""
+    btns = []
+    date_str = f"{y}-{m}-{dd}"
+    if day["day_key"]:
+        url = presign(day["day_key"])
+        btns.append(
+            f'<button class="vbtn primary" data-src="{url}" '
+            f'data-key="{day["day_key"]}" '
+            f'data-label="{date_str} whole day">▶ Whole day</button>')
+    for hh, k in day["hourly"]:
+        url = presign(k)
+        btns.append(
+            f'<button class="vbtn" data-src="{url}" '
+            f'data-key="{k}" '
+            f'data-label="{date_str} {hh}">{hh}</button>')
+    return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
+            f'<div class="btn-row">{"".join(btns)}</div></div>')
+
+
+def _render_calendars_html(tree, today_ymd, yesterday_ymd):
+    """Render `cal`-style month grids for every month with content, newest first.
+    Clickable cells are days with content (excluding today/yesterday which
+    render as eager cards). Today/yesterday cells are highlighted but not
+    clickable in the calendar (you're already looking at them)."""
+    import calendar as _cal
+    out = []
+    years_sorted = sorted(tree.keys(), reverse=True)
+    for y in years_sorted:
+        months = tree[y]
+        for m in sorted(months.keys(), reverse=True):
+            days = months[m]
+            yi, mi = int(y), int(m)
+            cal = _cal.Calendar(firstweekday=6)  # Sunday-first to match `cal`
+            weeks = cal.monthdayscalendar(yi, mi)
+            rows = []
+            for wk in weeks:
+                cells = []
+                for d in wk:
+                    if d == 0:
+                        cells.append('<td class="cal-empty"></td>')
+                        continue
+                    dd = f"{d:02d}"
+                    date_str = f"{y}-{m}-{dd}"
+                    has = dd in days
+                    is_today = (y, m, dd) == today_ymd
+                    is_yest  = (y, m, dd) == yesterday_ymd
+                    classes = ["cal-day"]
+                    if not has: classes.append("cal-none")
+                    if is_today: classes.append("cal-today")
+                    if is_yest:  classes.append("cal-yest")
+                    if has and not is_today and not is_yest:
+                        classes.append("cal-clickable")
+                        cells.append(f'<td class="{" ".join(classes)}" '
+                                     f'data-date="{date_str}">{d}</td>')
+                    else:
+                        cells.append(f'<td class="{" ".join(classes)}">{d}</td>')
+                rows.append(f"<tr>{''.join(cells)}</tr>")
+            out.append(
+                f'<table class="cal">'
+                f'<caption>{_MONTH_NAMES[mi]} {y}</caption>'
+                f'<thead><tr>'
+                f'<th>Su</th><th>Mo</th><th>Tu</th><th>We</th>'
+                f'<th>Th</th><th>Fr</th><th>Sa</th>'
+                f'</tr></thead>'
+                f'<tbody>{"".join(rows)}</tbody></table>')
+    return "".join(out)
+
+
+def render_timelapse_index(focus_date=None):
+    """Default: today + yesterday eager, older months as cal-style grids.
+    If focus_date='YYYY-MM-DD', show focus_date + previous-day pair instead."""
     import boto3
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
     s3 = boto3.client("s3", region_name="eu-west-1")
     bucket = "gardencam-berrylands-eu-west-1"
     tree = _list_video_tree()
@@ -837,52 +907,41 @@ def render_timelapse_index():
             "get_object",
             Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
 
-    today = datetime.now(timezone.utc)
-    today_ymd = (today.strftime("%Y"), today.strftime("%m"), today.strftime("%d"))
+    today_dt = datetime.now(timezone.utc)
+    if focus_date:
+        try:
+            anchor = datetime.strptime(focus_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            anchor = today_dt
+    else:
+        anchor = today_dt
+    prev_dt = anchor - timedelta(days=1)
 
-    def render_day(y, m, dd, day):
-        btns = []
-        date_str = f"{y}-{m}-{dd}"
-        if day["day_key"]:
-            url = presign(day["day_key"])
-            btns.append(
-                f'<button class="vbtn primary" data-src="{url}" '
-                f'data-key="{day["day_key"]}" '
-                f'data-label="{date_str} whole day">▶ Whole day</button>')
-        for hh, k in day["hourly"]:
-            url = presign(k)
-            btns.append(
-                f'<button class="vbtn" data-src="{url}" '
-                f'data-key="{k}" '
-                f'data-label="{date_str} {hh}">{hh}</button>')
-        return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
-                f'<div class="btn-row">{"".join(btns)}</div></div>')
+    def _ymd(dt):
+        return (dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d"))
 
-    sections = []
-    years_sorted = sorted(tree.keys(), reverse=True)
-    for y in years_sorted:
-        months = tree[y]
-        is_current_year = (y == today_ymd[0])
-        year_total = sum(len(months[m]) for m in months)
-        year_open = " open" if is_current_year else ""
-        month_blocks = []
-        for m in sorted(months.keys(), reverse=True):
-            days = months[m]
-            is_current_month = (y, m) == today_ymd[:2]
-            month_open = " open" if is_current_month else ""
-            day_blocks = [render_day(y, m, dd, days[dd])
-                          for dd in sorted(days.keys(), reverse=True)]
-            month_blocks.append(
-                f'<details class="lvl-month"{month_open}>'
-                f'<summary>{_MONTH_NAMES[int(m)]} {y} '
-                f'<span class="count">({len(days)} days)</span></summary>'
-                f'{"".join(day_blocks)}</details>')
-        sections.append(
-            f'<details class="lvl-year"{year_open}>'
-            f'<summary>{y} <span class="count">({year_total} days)</span></summary>'
-            f'{"".join(month_blocks)}</details>')
+    anchor_ymd = _ymd(anchor)
+    prev_ymd   = _ymd(prev_dt)
+    today_ymd  = _ymd(today_dt)
+    yesterday_ymd = _ymd(today_dt - timedelta(days=1))
+
+    eager_cards = []
+    for (y, m, dd) in (anchor_ymd, prev_ymd):
+        day = tree.get(y, {}).get(m, {}).get(dd)
+        if day is not None:
+            eager_cards.append(_render_day_card(y, m, dd, day, presign))
+
+    eager_html = "".join(eager_cards) or (
+        '<p style="text-align:center;color:#8E8E93">'
+        'No videos for the selected day(s).</p>')
+
+    calendars_html = _render_calendars_html(tree, today_ymd, yesterday_ymd)
 
     tl_tag = _build_tag(_GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME)
+    is_focused = focus_date is not None
+    reset_link = (
+        '<a href="/skycam/timelapse" class="reset-link">↻ Back to today</a>'
+        if is_focused else '')
 
     return f'''<!doctype html><html><head><meta charset="utf-8">
 <title>Skycam Timelapse</title>
@@ -899,19 +958,11 @@ def render_timelapse_index():
     background:#000; }}
   .now-playing {{ text-align:center; color:#8E8E93; font-size:0.85rem;
     margin-top:0.4rem; }}
-  .lvl-year, .lvl-month {{ max-width:1200px; margin:0.5rem auto; }}
-  .lvl-year > summary {{ font-size:1.2rem; font-weight:600; padding:0.6rem 1rem;
-    background:#161616; border-radius:12px; cursor:pointer; list-style:none;
-    color:#E0E0E0; }}
-  .lvl-month > summary {{ font-size:1rem; padding:0.4rem 1rem;
-    margin:0.4rem 0 0.2rem 1rem; cursor:pointer; list-style:none;
-    color:#8E8E93; }}
-  details > summary::before {{ content:"▸ "; display:inline-block;
-    transition:transform 0.15s; }}
-  details[open] > summary::before {{ transform:rotate(90deg); }}
-  .count {{ color:#8E8E93; font-weight:400; font-size:0.85em; }}
+  .reset-link {{ display:inline-block; margin:0.5rem auto; padding:0.4rem 0.8rem;
+    background:#161616; border:1px solid #2C2C2E; border-radius:8px;
+    color:#007AFF; font-size:0.9rem; }}
   .day-card {{ background:#161616; border-radius:12px; padding:1rem;
-    margin:0.5rem 1rem; }}
+    margin:0.5rem auto; max-width:1200px; }}
   .day-label {{ color:#8E8E93; font-size:0.9rem; margin-bottom:0.5rem; }}
   .btn-row {{ display:flex; flex-wrap:wrap; gap:0.4rem; }}
   .vbtn {{ background:#2C2C2E; color:#E0E0E0; border:none;
@@ -921,6 +972,26 @@ def render_timelapse_index():
   .vbtn:hover {{ background:#3a3a3c; }}
   .vbtn.primary:hover {{ background:#0a84ff; }}
   .vbtn.active {{ outline:2px solid #007AFF; }}
+  #cards {{ margin-bottom:1.5rem; }}
+  #cals {{ max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap;
+    gap:1rem; justify-content:center; }}
+  table.cal {{ background:#161616; border-radius:12px; padding:0.75rem 1rem;
+    border-collapse:separate; border-spacing:2px; font-variant-numeric:tabular-nums; }}
+  table.cal caption {{ color:#E0E0E0; font-size:0.95rem; font-weight:600;
+    padding-bottom:0.4rem; caption-side:top; }}
+  table.cal th {{ color:#8E8E93; font-weight:400; font-size:0.75rem;
+    padding:2px 6px; text-align:center; }}
+  table.cal td {{ text-align:center; padding:6px 8px; min-width:1.8em;
+    font-size:0.85rem; color:#E0E0E0; }}
+  table.cal td.cal-none {{ color:#3a3a3c; }}
+  table.cal td.cal-clickable {{ cursor:pointer; background:#2C2C2E;
+    border-radius:6px; }}
+  table.cal td.cal-clickable:hover {{ background:#007AFF; color:#fff; }}
+  table.cal td.cal-today {{ outline:2px solid #007AFF; border-radius:6px;
+    color:#007AFF; font-weight:600; }}
+  table.cal td.cal-yest {{ outline:1px solid #007AFF; border-radius:6px;
+    color:#E0E0E0; }}
+  table.cal td.cal-empty {{ color:transparent; }}
 </style></head><body>
 <div class="nav"><a href="/skycam">← Skycam</a> · <a href="/contents">Home</a></div>
 <div class="tag">{tl_tag}</div>
@@ -932,29 +1003,85 @@ def render_timelapse_index():
        style="display:none; color:#007AFF; font-size:0.85rem;">⚙ Open in advanced player ↗</a>
   </div>
 </div>
-{"".join(sections) if sections else "<p style='text-align:center;color:#8E8E93'>No videos yet.</p>"}
+<div style="text-align:center;">{reset_link}</div>
+<div id="cards">{eager_html}</div>
+<div id="cals">{calendars_html}</div>
 <script>
   const v = document.getElementById('v');
   const np = document.getElementById('np');
   const adv = document.getElementById('adv');
   let active = null;
-  document.querySelectorAll('.vbtn').forEach(b => {{
-    b.addEventListener('click', () => {{
-      if (active) active.classList.remove('active');
-      active = b; b.classList.add('active');
-      v.src = b.dataset.src; np.textContent = b.dataset.label;
-      if (b.dataset.key) {{
-        adv.href = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
-        adv.style.display = 'inline';
-      }} else {{
-        adv.style.display = 'none';
+
+  function wireButtons(root) {{
+    root.querySelectorAll('.vbtn').forEach(b => {{
+      if (b.dataset.wired) return;
+      b.dataset.wired = '1';
+      b.addEventListener('click', () => {{
+        if (active) active.classList.remove('active');
+        active = b; b.classList.add('active');
+        v.src = b.dataset.src; np.textContent = b.dataset.label;
+        if (b.dataset.key) {{
+          adv.href = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
+          adv.style.display = 'inline';
+        }} else {{
+          adv.style.display = 'none';
+        }}
+        v.play().catch(() => {{}});
+        v.scrollIntoView({{behavior:'smooth', block:'start'}});
+      }});
+    }});
+  }}
+  wireButtons(document);
+
+  // Calendar day click → fetch that day + previous, replace #cards.
+  document.querySelectorAll('table.cal td.cal-clickable').forEach(td => {{
+    td.addEventListener('click', async () => {{
+      const date = td.dataset.date;
+      const cards = document.getElementById('cards');
+      cards.innerHTML = '<p style="text-align:center;color:#8E8E93">Loading…</p>';
+      try {{
+        const resp = await fetch('/skycam/timelapse-day?date=' + encodeURIComponent(date));
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        cards.innerHTML = await resp.text();
+        wireButtons(cards);
+        history.pushState({{date}}, '', '/skycam/timelapse?date=' + encodeURIComponent(date));
+        cards.scrollIntoView({{behavior:'smooth', block:'start'}});
+      }} catch (e) {{
+        cards.innerHTML = '<p style="text-align:center;color:#FF3B30">Load failed: ' + e + '</p>';
       }}
-      v.play().catch(() => {{}});
-      v.scrollIntoView({{behavior:'smooth', block:'start'}});
     }});
   }});
 </script>
 </body></html>'''
+
+
+def render_timelapse_day_fragment(date_str):
+    """Return HTML fragment of <date_str> + previous-day cards.
+    Used by the calendar's click handler to lazy-load day pairs."""
+    import boto3
+    from datetime import datetime, timezone, timedelta
+    try:
+        anchor = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    prev = anchor - timedelta(days=1)
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket = "gardencam-berrylands-eu-west-1"
+
+    def presign(k):
+        return s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
+
+    tree = _list_video_tree()
+    cards = []
+    for dt in (anchor, prev):
+        y, m, dd = dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d")
+        day = tree.get(y, {}).get(m, {}).get(dd)
+        if day is not None:
+            cards.append(_render_day_card(y, m, dd, day, presign))
+    return "".join(cards) or (
+        '<p style="text-align:center;color:#8E8E93">No videos for this day.</p>')
 
 
 def render_player_poc_landing():

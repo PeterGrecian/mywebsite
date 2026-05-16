@@ -2804,7 +2804,21 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/skycam/timelapse' or path == '/skycam/timelapse':
         from routes.gardencam import _init_theme, render_timelapse_index
         _init_theme(THEME_CSS_JS)
-        return {'statusCode': 200, 'body': render_timelapse_index(),
+        qs = event.get('queryStringParameters') or {}
+        focus = qs.get('date')
+        return {'statusCode': 200, 'body': render_timelapse_index(focus_date=focus),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif path == f'/{stage}/skycam/timelapse-day' or path == '/skycam/timelapse-day':
+        from routes.gardencam import render_timelapse_day_fragment
+        qs = event.get('queryStringParameters') or {}
+        date = (qs.get('date') or '').strip()
+        frag = render_timelapse_day_fragment(date) if date else None
+        if frag is None:
+            return {'statusCode': 400,
+                    'body': '<p>invalid date</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        return {'statusCode': 200, 'body': frag,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path == f'/{stage}/skycam/player-poc' or path == '/skycam/player-poc':
