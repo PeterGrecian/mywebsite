@@ -1056,7 +1056,21 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     in_attr  = f"{in_sec:.3f}"  if in_sec  is not None else "null"
     out_attr = f"{out_sec:.3f}" if out_sec is not None else "null"
     import json as _json
-    sources_json = _json.dumps([{"url": u, "label": l} for u, l in sources])
+    import re as _re
+    from datetime import datetime as _dt, timezone as _tz
+
+    def _hour_epoch(label):
+        """Parse 'sky_YYYYMMDD_HH.mp4' → unix epoch of hour start (UTC).
+        Returns None for unrecognised names (e.g. seam_gold.mp4 or _daily)."""
+        m = _re.match(r"sky_(\d{4})(\d{2})(\d{2})_(\d{2})\.mp4", label)
+        if not m:
+            return None
+        y, mo, d, h = (int(x) for x in m.groups())
+        return int(_dt(y, mo, d, h, tzinfo=_tz.utc).timestamp())
+
+    sources_json = _json.dumps([
+        {"url": u, "label": l, "hourEpoch": _hour_epoch(l)} for u, l in sources
+    ])
 
     return f'''<!doctype html>
 <html lang="en"><head>
@@ -1087,7 +1101,15 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     <span class="filename" id="filename">{title}</span>
   </div>
   <div class="controls" id="sourcePicker" style="display:none;"></div>
-  <video id="v" src="{video_url}" preload="auto" playsinline></video>
+  <div style="position:relative; max-width:1200px; margin:0 auto;">
+    <video id="v" src="{video_url}" preload="auto" playsinline
+           x-webkit-airplay="allow"></video>
+    <div id="spinner" style="display:none; position:absolute; top:50%; left:50%;
+         transform:translate(-50%,-50%); width:48px; height:48px;
+         border:4px solid #ffffff44; border-top-color:#fff; border-radius:50%;
+         animation:spin 0.8s linear infinite; pointer-events:none;"></div>
+  </div>
+  <style>@keyframes spin {{ to {{ transform: translate(-50%,-50%) rotate(360deg); }} }}</style>
   <div class="scrub">
     <div class="bar" id="bar"></div>
     <div class="play-region" id="region"></div>
@@ -1108,10 +1130,23 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     <button id="setIn">[ in</button>
     <button id="setOut">out ]</button>
     <button id="clearMarks">clear</button>
-    <button id="loop" class="active">loop: ping-pong</button>
+    <button id="loop" class="active" title="loop mode">↔</button>
     <button id="share">share</button>
+    <button id="fs" title="fullscreen">⛶</button>
+    <button id="pip" title="picture-in-picture" style="display:none;">▭</button>
+    <button id="airplay" title="AirPlay" style="display:none;">📺</button>
+    <a id="dl" class="btn" href="#" download title="download">⤓</a>
   </div>
-  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction · ↑/↓ switch source</div>
+  <div id="stats" style="max-width:1200px; margin:0.25rem auto;
+       color:var(--text-secondary); font-size:0.8rem; text-align:center;
+       font-variant-numeric: tabular-nums;">
+    <span id="wallTime">—</span> ·
+    frame <span id="frameCur">—</span>/<span id="frameTot">—</span> ·
+    fps <span id="fpsActual">—</span>/60 ·
+    dropped <span id="dropped">0</span>
+    <span id="bufferWarn" style="display:none; color:#FF9500;"> ⚠ buffering</span>
+  </div>
+  <div class="help">space play/pause · ←/→ frame step · ,/. speed · [ / ] markers · L loop mode · R reverse direction · ↑/↓ switch source · F fullscreen</div>
 <script>
 (function() {{
   const v = document.getElementById("v");
@@ -1221,7 +1256,10 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
   document.getElementById("clearMarks").onclick = () => {{ inPt = outPt = null; repaint(); }};
   document.getElementById("loop").onclick = () => {{
     loopMode = loopMode === "pingpong" ? "loop" : loopMode === "loop" ? "once" : "pingpong";
-    document.getElementById("loop").textContent = "loop: " + loopMode;
+    const glyph = loopMode === "pingpong" ? "↔" : loopMode === "loop" ? "↻" : "→";
+    const btn = document.getElementById("loop");
+    btn.textContent = glyph;
+    btn.title = "loop: " + loopMode;
   }};
   document.getElementById("share").onclick = () => {{
     const u = new URL(location.href);
@@ -1253,6 +1291,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
     else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
     else if (e.key >= "1" && e.key <= "9") {{ const i = parseInt(e.key, 10) - 1; if (i < SOURCES.length) swap(i); }}
+    else if (e.key === "f" || e.key === "F") document.getElementById("fs").click();
   }});
 
   v.addEventListener("loadedmetadata", () => {{
@@ -1272,6 +1311,110 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     }}
   }});
 
+  // ---- Stats / world time / fullscreen / pip / airplay / dl ----
+  const WALLCLOCK_PER_VIDEO_SEC = 180;
+  const OUTPUT_FPS = 60;
+  const wallEl    = document.getElementById("wallTime");
+  const frameCur  = document.getElementById("frameCur");
+  const frameTot  = document.getElementById("frameTot");
+  const fpsActual = document.getElementById("fpsActual");
+  const droppedEl = document.getElementById("dropped");
+  const bufferWarn= document.getElementById("bufferWarn");
+  const spinner   = document.getElementById("spinner");
+
+  function fmtWall(sec) {{
+    const d = new Date(sec * 1000);
+    return d.toLocaleTimeString("en-GB", {{ hour:"2-digit", minute:"2-digit",
+        second:"2-digit", timeZone:"Europe/London" }});
+  }}
+
+  function updateStats() {{
+    const D = dur();
+    if (D) frameTot.textContent = Math.round(D * OUTPUT_FPS);
+    frameCur.textContent = Math.round(v.currentTime * OUTPUT_FPS);
+    const cur = SOURCES[curIdx];
+    if (cur && cur.hourEpoch != null) {{
+      wallEl.textContent = fmtWall(cur.hourEpoch + v.currentTime * WALLCLOCK_PER_VIDEO_SEC);
+    }} else {{
+      wallEl.textContent = "—";
+    }}
+  }}
+
+  // FPS measurement + dropped frames via requestVideoFrameCallback if available.
+  let lastVFCTs = null, vfcFrames = 0, fpsWindow = [];
+  let droppedBase = 0;
+  function vfc(now, meta) {{
+    if (lastVFCTs != null) {{
+      const dt = (now - lastVFCTs) / 1000;
+      if (dt > 0 && dt < 1) fpsWindow.push(1 / dt);
+      if (fpsWindow.length > 30) fpsWindow.shift();
+      const avg = fpsWindow.reduce((a, b) => a + b, 0) / fpsWindow.length;
+      fpsActual.textContent = avg.toFixed(1);
+    }}
+    lastVFCTs = now;
+    vfcFrames++;
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(vfc);
+  }}
+  if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(vfc);
+
+  setInterval(() => {{
+    updateStats();
+    if (v.getVideoPlaybackQuality) {{
+      const q = v.getVideoPlaybackQuality();
+      droppedEl.textContent = (q.droppedVideoFrames - droppedBase);
+    }}
+    // Buffered indicator: warn if currentTime is past the buffered end.
+    let inBuf = false;
+    for (let i = 0; i < v.buffered.length; i++) {{
+      if (v.currentTime >= v.buffered.start(i) - 0.1 &&
+          v.currentTime <= v.buffered.end(i) + 0.1) {{ inBuf = true; break; }}
+    }}
+    bufferWarn.style.display = (!playing || inBuf) ? "none" : "inline";
+  }}, 250);
+
+  v.addEventListener("playing", () => {{ spinner.style.display = "none"; }});
+  v.addEventListener("waiting", () => {{ spinner.style.display = playing ? "block" : "none"; }});
+  v.addEventListener("canplay", () => {{ spinner.style.display = "none"; }});
+  // Reset dropped baseline when switching sources or starting fresh playback.
+  v.addEventListener("loadstart", () => {{
+    if (v.getVideoPlaybackQuality) droppedBase = v.getVideoPlaybackQuality().droppedVideoFrames;
+    fpsWindow = []; lastVFCTs = null;
+  }});
+
+  // Fullscreen / PiP / AirPlay / Download wiring.
+  document.getElementById("fs").onclick = () => {{
+    if (document.fullscreenElement) document.exitFullscreen();
+    else v.requestFullscreen?.();
+  }};
+  const pipBtn = document.getElementById("pip");
+  if (document.pictureInPictureEnabled) {{
+    pipBtn.style.display = "";
+    pipBtn.onclick = async () => {{
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await v.requestPictureInPicture();
+    }};
+  }}
+  const apBtn = document.getElementById("airplay");
+  if (window.WebKitPlaybackTargetAvailabilityEvent) {{
+    apBtn.style.display = "";
+    apBtn.onclick = () => v.webkitShowPlaybackTargetPicker?.();
+  }}
+  // Download link: use current source URL, force a sensible filename.
+  function refreshDownload() {{
+    const cur = SOURCES[curIdx];
+    if (!cur) return;
+    const dl = document.getElementById("dl");
+    dl.href = cur.url;
+    dl.setAttribute("download", cur.label || "video.mp4");
+  }}
+  refreshDownload();
+
+  // Media Session API: hardware keys / lockscreen integration.
+  if ("mediaSession" in navigator) {{
+    navigator.mediaSession.setActionHandler("play", playForward);
+    navigator.mediaSession.setActionHandler("pause", pause);
+  }}
+
   // ---- Multi-source A/B ----
   function swap(i) {{
     if (i < 0) i = SOURCES.length - 1;
@@ -1284,6 +1427,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None):
     document.getElementById("filename").textContent = SOURCES[i].label;
     document.querySelectorAll("#sourcePicker button").forEach((b, j) =>
       b.classList.toggle("active", j === i));
+    refreshDownload();
     pause();
     v.src = SOURCES[i].url;
     const onMeta = () => {{
