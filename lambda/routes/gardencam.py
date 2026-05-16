@@ -847,11 +847,13 @@ def render_timelapse_index():
             url = presign(day["day_key"])
             btns.append(
                 f'<button class="vbtn primary" data-src="{url}" '
+                f'data-key="{day["day_key"]}" '
                 f'data-label="{date_str} whole day">▶ Whole day</button>')
         for hh, k in day["hourly"]:
             url = presign(k)
             btns.append(
                 f'<button class="vbtn" data-src="{url}" '
+                f'data-key="{k}" '
                 f'data-label="{date_str} {hh}">{hh}</button>')
         return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
                 f'<div class="btn-row">{"".join(btns)}</div></div>')
@@ -925,17 +927,28 @@ def render_timelapse_index():
 <div class="player">
   <video id="v" controls playsinline preload="metadata"></video>
   <div class="now-playing" id="np">Pick a video below</div>
+  <div style="text-align:center; margin-top:0.4rem;">
+    <a id="adv" href="#" target="_blank"
+       style="display:none; color:#007AFF; font-size:0.85rem;">⚙ Open in advanced player ↗</a>
+  </div>
 </div>
 {"".join(sections) if sections else "<p style='text-align:center;color:#8E8E93'>No videos yet.</p>"}
 <script>
   const v = document.getElementById('v');
   const np = document.getElementById('np');
+  const adv = document.getElementById('adv');
   let active = null;
   document.querySelectorAll('.vbtn').forEach(b => {{
     b.addEventListener('click', () => {{
       if (active) active.classList.remove('active');
       active = b; b.classList.add('active');
       v.src = b.dataset.src; np.textContent = b.dataset.label;
+      if (b.dataset.key) {{
+        adv.href = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
+        adv.style.display = 'inline';
+      }} else {{
+        adv.style.display = 'none';
+      }}
       v.play().catch(() => {{}});
       v.scrollIntoView({{behavior:'smooth', block:'start'}});
     }});
