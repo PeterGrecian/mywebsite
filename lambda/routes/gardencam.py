@@ -823,22 +823,20 @@ _MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"]
 
 
-def _render_day_card(y, m, dd, day, presign):
+def _render_day_card(y, m, dd, day, presign=None):
     """Render one day's card (label + button row). Used both at page render
-    and for the lazy /skycam/timelapse-day endpoint."""
+    and for the lazy /skycam/timelapse-day endpoint. Clicks go to the
+    advanced player at /skycam/player?key=..., so no presigning is needed
+    here (presign kept as an optional arg for back-compat)."""
     btns = []
     date_str = f"{y}-{m}-{dd}"
     if day["day_key"]:
-        url = presign(day["day_key"])
         btns.append(
-            f'<button class="vbtn primary" data-src="{url}" '
-            f'data-key="{day["day_key"]}" '
+            f'<button class="vbtn primary" data-key="{day["day_key"]}" '
             f'data-label="{date_str} whole day">▶ Whole day</button>')
     for hh, k in day["hourly"]:
-        url = presign(k)
         btns.append(
-            f'<button class="vbtn" data-src="{url}" '
-            f'data-key="{k}" '
+            f'<button class="vbtn" data-key="{k}" '
             f'data-label="{date_str} {hh}">{hh}</button>')
     return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
             f'<div class="btn-row">{"".join(btns)}</div></div>')
@@ -896,16 +894,8 @@ def _render_calendars_html(tree, today_ymd, yesterday_ymd):
 def render_timelapse_index(focus_date=None):
     """Default: today + yesterday eager, older months as cal-style grids.
     If focus_date='YYYY-MM-DD', show focus_date + previous-day pair instead."""
-    import boto3
     from datetime import datetime, timezone, timedelta
-    s3 = boto3.client("s3", region_name="eu-west-1")
-    bucket = "gardencam-berrylands-eu-west-1"
     tree = _list_video_tree()
-
-    def presign(k):
-        return s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
 
     today_dt = datetime.now(timezone.utc)
     if focus_date:
@@ -929,7 +919,7 @@ def render_timelapse_index(focus_date=None):
     for (y, m, dd) in (anchor_ymd, prev_ymd):
         day = tree.get(y, {}).get(m, {}).get(dd)
         if day is not None:
-            eager_cards.append(_render_day_card(y, m, dd, day, presign))
+            eager_cards.append(_render_day_card(y, m, dd, day))
 
     eager_html = "".join(eager_cards) or (
         '<p style="text-align:center;color:#8E8E93">'
@@ -995,39 +985,18 @@ def render_timelapse_index(focus_date=None):
 </style></head><body>
 <div class="nav"><a href="/skycam">← Skycam</a> · <a href="/contents">Home</a></div>
 <div class="tag">{tl_tag}</div>
-<div class="player">
-  <video id="v" controls playsinline preload="metadata"></video>
-  <div class="now-playing" id="np">Pick a video below</div>
-  <div style="text-align:center; margin-top:0.4rem;">
-    <a id="adv" href="#" target="_blank"
-       style="display:none; color:#007AFF; font-size:0.85rem;">⚙ Open in advanced player ↗</a>
-  </div>
-</div>
 <div style="text-align:center;">{reset_link}</div>
 <div id="cards">{eager_html}</div>
 <div id="cals">{calendars_html}</div>
 <script>
-  const v = document.getElementById('v');
-  const np = document.getElementById('np');
-  const adv = document.getElementById('adv');
-  let active = null;
-
   function wireButtons(root) {{
     root.querySelectorAll('.vbtn').forEach(b => {{
       if (b.dataset.wired) return;
       b.dataset.wired = '1';
       b.addEventListener('click', () => {{
-        if (active) active.classList.remove('active');
-        active = b; b.classList.add('active');
-        v.src = b.dataset.src; np.textContent = b.dataset.label;
-        if (b.dataset.key) {{
-          adv.href = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
-          adv.style.display = 'inline';
-        }} else {{
-          adv.style.display = 'none';
-        }}
-        v.play().catch(() => {{}});
-        v.scrollIntoView({{behavior:'smooth', block:'start'}});
+        if (!b.dataset.key) return;
+        const url = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
+        window.open(url, '_blank');
       }});
     }});
   }}
@@ -1058,28 +1027,19 @@ def render_timelapse_index(focus_date=None):
 def render_timelapse_day_fragment(date_str):
     """Return HTML fragment of <date_str> + previous-day cards.
     Used by the calendar's click handler to lazy-load day pairs."""
-    import boto3
     from datetime import datetime, timezone, timedelta
     try:
         anchor = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except ValueError:
         return None
     prev = anchor - timedelta(days=1)
-    s3 = boto3.client("s3", region_name="eu-west-1")
-    bucket = "gardencam-berrylands-eu-west-1"
-
-    def presign(k):
-        return s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket, "Key": k}, ExpiresIn=3600)
-
     tree = _list_video_tree()
     cards = []
     for dt in (anchor, prev):
         y, m, dd = dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d")
         day = tree.get(y, {}).get(m, {}).get(dd)
         if day is not None:
-            cards.append(_render_day_card(y, m, dd, day, presign))
+            cards.append(_render_day_card(y, m, dd, day))
     return "".join(cards) or (
         '<p style="text-align:center;color:#8E8E93">No videos for this day.</p>')
 
