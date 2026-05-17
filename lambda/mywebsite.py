@@ -3531,12 +3531,6 @@ def lambda_handler(event, context):
         html += t3_format_html(arrivals)
 
     elif path == f'/{stage}/springcam' or path == '/springcam':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
-            }
         images = get_latest_springcam_images(3)
         if images:
             from routes.camera import render_camera_latest
@@ -3551,12 +3545,6 @@ def lambda_handler(event, context):
             }
 
     elif path.startswith(f'/{stage}/springcam/gallery') or path.startswith('/springcam/gallery'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
-            }
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
         week_param = query_params.get('week', '')
@@ -3636,12 +3624,6 @@ def lambda_handler(event, context):
             )
 
     elif path.startswith(f'/{stage}/springcam/videos') or path.startswith('/springcam/videos'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
-            }
 
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
         videos = []
@@ -3669,12 +3651,6 @@ def lambda_handler(event, context):
                                    videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
 
     elif path.startswith(f'/{stage}/springcam/play') or path.startswith('/springcam/play'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
-            }
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
@@ -3693,12 +3669,6 @@ def lambda_handler(event, context):
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
 
     elif path.startswith(f'/{stage}/springcam/fullres') or path.startswith('/springcam/fullres'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Spring Camera"'}
-            }
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
