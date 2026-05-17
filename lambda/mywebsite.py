@@ -16,6 +16,7 @@ except ImportError:
 
 GARDENCAM_BUCKET = "gardencam-berrylands-eu-west-1"
 GARDENCAM_REGION = "eu-west-1"
+STARCAM_BUCKET = "starcam-berrylands-eu-west-1"
 GARDENCAM_PARAMETER_NAME = "/berrylands/gardencam/password"
 GARDENCAM_PASSWORD = None
 GARDENCAM_EARLIEST_IMAGE = "2026-01-19"  # First image: garden_20260119_185439.jpg
@@ -299,14 +300,14 @@ def parse_timestamp_from_key(key):
     return None
 
 
-def get_presigned_url(key, expires_in=3600):
+def get_presigned_url(key, expires_in=3600, bucket=None):
     """Generate presigned URL for a specific S3 key."""
     if not BOTO3_AVAILABLE:
         return None
     s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
     return s3.generate_presigned_url(
         'get_object',
-        Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
+        Params={'Bucket': bucket or GARDENCAM_BUCKET, 'Key': key},
         ExpiresIn=expires_in
     )
 
@@ -905,6 +906,127 @@ def get_springcam_images_for_date(date_str):
         return images
     except Exception as e:
         print(f"Error fetching springcam images for {date_str}: {e}")
+        return []
+
+
+# ── Starcam ──────────────────────────────────────────────────────────────────
+
+STARCAM_PREFIX = "frames/"
+STARCAM_KEY_PREFIX = "frames/star_"
+STARCAM_EARLIEST_DATE = "2026-05-17"  # First starcam image
+
+
+def starcam_thumb_key(key):
+    """Convert a starcam image key to its 800px thumbnail key.
+
+    e.g. frames/star_20260517_111057_stacked.jpg
+      -> frames/thumb_800px_star_20260517_111057_stacked.jpg
+    """
+    folder, _, basename = key.rpartition('/')
+    return f"{folder}/thumb_800px_{basename}"
+
+
+def get_latest_starcam_images(count=3):
+    """Get presigned URLs for the latest N starcam images from S3."""
+    if not BOTO3_AVAILABLE:
+        return []
+
+    import time
+    t0 = time.time()
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    all_objects = []
+
+    # Fast path: try last 60 days by date prefix
+    for days_ago in range(60):
+        date = datetime.utcnow() - timedelta(days=days_ago)
+        prefix = f"frames/star_{date.strftime('%Y%m%d')}"
+        try:
+            response = s3.list_objects_v2(Bucket=STARCAM_BUCKET, Prefix=prefix, MaxKeys=100)
+            if "Contents" in response:
+                all_objects.extend(response["Contents"])
+            if len(all_objects) >= count * 2:
+                break
+        except Exception:
+            pass
+
+    # Fall back to full scan if fast path found nothing
+    if not all_objects:
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix=STARCAM_KEY_PREFIX):
+            if "Contents" in page:
+                all_objects.extend(page["Contents"])
+
+    if not all_objects:
+        return []
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+
+    images = []
+    for obj in objects[:count * 4]:
+        key = obj["Key"]
+        thumb_key = starcam_thumb_key(key)
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({
+            'url': get_presigned_url(thumb_key, bucket=STARCAM_BUCKET),
+            'full_url': get_presigned_url(key, bucket=STARCAM_BUCKET),
+            'timestamp': timestamp,
+            'key': key,
+        })
+        if len(images) >= count:
+            break
+
+    print(f"[TIMING] get_latest_starcam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
+    return images
+
+
+def get_all_starcam_images(max_keys=None):
+    """Get all starcam images from S3, newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    paginator = s3.get_paginator('list_objects_v2')
+    all_objects = []
+    for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix=STARCAM_KEY_PREFIX):
+        if "Contents" in page:
+            all_objects.extend(page["Contents"])
+
+    objects = sorted(
+        [o for o in all_objects if o["Key"].endswith('.jpg')],
+        key=lambda x: x["Key"], reverse=True
+    )
+    images = []
+    for obj in objects:
+        key = obj["Key"]
+        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+        images.append({'key': key, 'timestamp': timestamp, 'last_modified': obj["LastModified"]})
+        if max_keys and len(images) >= max_keys:
+            break
+    return images
+
+
+def get_starcam_images_for_date(date_str):
+    """Get starcam images for a specific date (YYYY-MM-DD), newest first."""
+    if not BOTO3_AVAILABLE:
+        return []
+    prefix = f"frames/star_{date_str.replace('-', '')}"
+    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    try:
+        images = []
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if not key.endswith('.jpg'):
+                    continue
+                timestamp = parse_timestamp_from_key(key) or obj['LastModified'].strftime('%Y-%m-%d %H:%M:%S')
+                images.append({'key': key, 'timestamp': timestamp})
+        images.sort(key=lambda x: x['timestamp'], reverse=True)
+        return images
+    except Exception as e:
+        print(f"Error fetching starcam images for {date_str}: {e}")
         return []
 
 
@@ -3585,6 +3707,180 @@ def lambda_handler(event, context):
             from routes.camera import render_camera_fullres
             html += render_camera_fullres('Spring Camera', image_url, ts,
                                           latest_path='../springcam', gallery_path='gallery')
+        else:
+            html += '<p>No image specified.</p>'
+
+    elif path == f'/{stage}/starcam' or path == '/starcam':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        images = get_latest_starcam_images(3)
+        if images:
+            from routes.camera import render_camera_latest
+            html += render_camera_latest('Star Camera', images, theme_css_js=THEME_CSS_JS,
+                                         gallery_path='starcam/gallery', fullres_path='starcam/fullres',
+                                         videos_path='starcam/videos')
+        else:
+            return {
+                'statusCode': 502,
+                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Star Camera</h1><p>No images yet.</p></body></html>',
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
+
+    elif path.startswith(f'/{stage}/starcam/gallery') or path.startswith('/starcam/gallery'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        query_params = event.get('queryStringParameters', {}) or {}
+        day_param = query_params.get('day', '')
+        week_param = query_params.get('week', '')
+        month_param = query_params.get('month', '')
+        year_param = query_params.get('year', '')
+        page_param = int(query_params.get('page', '1'))
+        per_page = 20
+
+        if year_param:
+            months = _months_in_year(year_param, STARCAM_EARLIEST_DATE)
+            months_with_counts = []
+            for m in reversed(months):
+                days = _days_in_month(m, STARCAM_EARLIEST_DATE)
+                count = sum(len(get_starcam_images_for_date(d)) for d in days)
+                if count > 0:
+                    months_with_counts.append((m, count))
+            from routes.camera import render_gallery_year
+            html += render_gallery_year('Star Camera', year_param, months_with_counts,
+                                        gallery_path='gallery', latest_path='../starcam')
+
+        elif month_param:
+            weeks = _weeks_in_month(month_param, STARCAM_EARLIEST_DATE)
+            weeks_with_days = []
+            for w in reversed(weeks):
+                w_days = _days_in_week(w, STARCAM_EARLIEST_DATE)
+                w_days = [d for d in w_days if d[:7] == month_param]
+                day_counts = []
+                for d in reversed(w_days):
+                    count = len(get_starcam_images_for_date(d))
+                    if count > 0:
+                        day_counts.append((d, count))
+                if day_counts:
+                    weeks_with_days.append((w, day_counts))
+            from routes.camera import render_gallery_month
+            html += render_gallery_month('Star Camera', month_param, weeks_with_days,
+                                          gallery_path='gallery', latest_path='../starcam',
+                                          year_str=month_param[:4])
+
+        elif week_param:
+            w_days = _days_in_week(week_param, STARCAM_EARLIEST_DATE)
+            days_with_counts = []
+            for d in reversed(w_days):
+                count = len(get_starcam_images_for_date(d))
+                if count > 0:
+                    days_with_counts.append((d, count))
+            from datetime import date as _date
+            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+            month_str = thursday.strftime('%Y-%m')
+            from routes.camera import render_gallery_week
+            html += render_gallery_week('Star Camera', week_param, days_with_counts,
+                                         gallery_path='gallery', latest_path='../starcam',
+                                         month_str=month_str)
+
+        else:
+            if not day_param:
+                day_param = _today_london()
+            all_day_images = get_starcam_images_for_date(day_param)
+            total = len(all_day_images)
+            total_pages = max(1, math.ceil(total / per_page))
+            page_param = max(1, min(page_param, total_pages))
+            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+            week_iso = _iso_week_for_date(day_param)
+            from routes.camera import render_gallery_day
+            html += render_gallery_day(
+                'Star Camera', day_param, page_images,
+                page=page_param, total_pages=total_pages, total_images=total,
+                thumb_key_fn=starcam_thumb_key,
+                gallery_path='gallery', latest_path='../starcam', fullres_path='../starcam/fullres',
+                week_iso=week_iso,
+            )
+
+    elif path.startswith(f'/{stage}/starcam/videos') or path.startswith('/starcam/videos'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        videos = []
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix='videos/'):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.mp4'):
+                        continue
+                    basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                    videos.append({
+                        'key': key,
+                        'url': f"play?key={key}",
+                        'size_mb': obj['Size'] / 1048576,
+                        'label': basename,
+                        'is_daily': False,
+                    })
+        except Exception as e:
+            print(f"Error listing starcam videos: {e}")
+
+        from routes.camera import render_videos_day
+        html += render_videos_day('Star Camera', _today_london(), videos,
+                                   latest_path='../starcam', gallery_path='gallery',
+                                   videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
+
+    elif path.startswith(f'/{stage}/starcam/play') or path.startswith('/starcam/play'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+
+        query_params = event.get('queryStringParameters', {}) or {}
+        video_key = query_params.get('key', '')
+        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+
+        try:
+            s3.head_object(Bucket=STARCAM_BUCKET, Key=video_key)
+            video_url = s3.generate_presigned_url(
+                'get_object', Params={'Bucket': STARCAM_BUCKET, 'Key': video_key},
+                ExpiresIn=7200)
+            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
+            from routes.camera import render_skycam_player
+            html += render_skycam_player(video_url, basename, hours=[])
+        except Exception as e:
+            print(f"Error loading starcam video: {e}")
+            html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
+
+    elif path.startswith(f'/{stage}/starcam/fullres') or path.startswith('/starcam/fullres'):
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        params = event.get('queryStringParameters') or {}
+        image_key = params.get('key', '')
+        if image_key:
+            image_url = get_presigned_url(image_key, bucket=STARCAM_BUCKET)
+            ts = parse_timestamp_from_key(image_key) or image_key
+            from routes.camera import render_camera_fullres
+            html += render_camera_fullres('Star Camera', image_url, ts,
+                                          latest_path='../starcam', gallery_path='gallery')
         else:
             html += '<p>No image specified.</p>'
 

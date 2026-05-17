@@ -102,6 +102,28 @@ resource "aws_iam_role_policy" "s3_gardencam" {
   })
 }
 
+resource "aws_iam_role_policy" "s3_starcam" {
+  name = "s3-starcam"
+  role = aws_iam_role.mywebsite_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::starcam-berrylands-eu-west-1",
+          "arn:aws:s3:::starcam-berrylands-eu-west-1/*"
+        ]
+      }
+    ]
+  })
+}
+
 # SSM Parameter Store access
 resource "aws_iam_role_policy" "ssm_parameters" {
   name = "ssm-parameters"
