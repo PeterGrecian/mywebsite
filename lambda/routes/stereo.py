@@ -25,16 +25,91 @@ PLACE_LABELS = {
 
 
 # Beauty renders — finished pieces served from R2.
-# url is full https URL (R2 custom domain). source_fps and output_fps are
-# advisory metadata for the gallery; the encode pipeline embeds them in
-# the burned label of the actual file.
+# url is full https URL (R2 custom domain).
+# Structured pipeline metadata (source_fps, output_fps, source_mbps, output_mbps,
+# mci, baseline_s) is shown by the video viewers' info panel. baseline_s is in
+# seconds; the viewer also derives the equivalent in source frames as
+# round(baseline_s × source_fps).
 BEAUTY_RENDERS = [
+    {
+        "slug": "clouds-train-2-b4-1k-nomci-skymask",
+        "url": R2_VIDEO_BASE + "clouds-train-2-b4-1k-nomci-skymask.mp4",
+        "title": "Clouds from train — 4s baseline + sky mask",
+        "subtitle": "1:28 · 1K stereo · 30 fps native · 4.0s baseline · HSV-intersection sky mask",
+        "notes": "Same 4s-baseline render as the adjacent variant, with a post-process sky mask: HSV-threshold per eye, intersect (parallax-aware so foreground clutter fails), feather, composite over a pale-blue sampled from the first frame's brightest agreed-sky pixels. Non-sky regions dissolve into uniform pale-blue, leaving the cloud composition unfought. Smaller file (10 MiB vs 15 MiB) because uniform fill compresses better.",
+        "source_fps": 30, "output_fps": 30,
+        "source_mbps": 20, "output_mbps": 0.9,
+        "mci": False, "baseline_s": 4.0,
+    },
+    {
+        "slug": "clouds-train-2-b3-1k-nomci",
+        "url": R2_VIDEO_BASE + "clouds-train-2-b3-1k-nomci.mp4",
+        "title": "Clouds from train — 3s baseline (no MCI)",
+        "subtitle": "1:29 · 1K stereo · 30 fps native · 3.0s baseline · single-stage Cloud Run",
+        "notes": "92s source rendered in one ffmpeg pass on Cloud Run (8 vCPU, 4 GiB, ~5 min wall). No motion-compensated interpolation — source 30 fps passes through unchanged. Single-stage pipeline (inline-v5-nomci.sh) skips the split-and-join because there's no slow stage to parallelise without MCI.",
+        "source_fps": 30, "output_fps": 30,
+        "source_mbps": 20, "output_mbps": 1.4,
+        "mci": False, "baseline_s": 3.0,
+    },
+    {
+        "slug": "clouds-train-2-b4-1k-nomci",
+        "url": R2_VIDEO_BASE + "clouds-train-2-b4-1k-nomci.mp4",
+        "title": "Clouds from train — 4s baseline (no MCI)",
+        "subtitle": "1:28 · 1K stereo · 30 fps native · 4.0s baseline · single-stage Cloud Run",
+        "notes": "92s source rendered in one ffmpeg pass on Cloud Run (8 vCPU, 4 GiB). 4s baseline sits between the 3s and 5s variants for direct comparison of how baseline affects perceived cloud depth.",
+        "source_fps": 30, "output_fps": 30,
+        "source_mbps": 20, "output_mbps": 1.4,
+        "mci": False, "baseline_s": 4.0,
+    },
+    {
+        "slug": "clouds-train-2-b10-1k",
+        "url": R2_VIDEO_BASE + "clouds-train-2-b10-1k.mp4",
+        "title": "Clouds from train — 10s baseline",
+        "subtitle": "1:22 · 1K stereo · 30→60 fps mci · 10.0s baseline · 3-part join",
+        "notes": "92s source rendered via the three-stage long-baseline pipeline: 3×31s prep-mci parts in parallel with seam-frame borrowing, mono concat, then 10s stereo offset. Wide baseline emphasises the depth of cloud layers.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 1.7,
+        "mci": True, "baseline_s": 10.0,
+    },
+    {
+        "slug": "clouds-train-2-b5-1k",
+        "url": R2_VIDEO_BASE + "clouds-train-2-b5-1k.mp4",
+        "title": "Clouds from train — 5s baseline",
+        "subtitle": "1:27 · 1K stereo · 30→60 fps mci · 5.0s baseline · 3-part join",
+        "notes": "Same 92s source as the 10s render, with a 5s baseline for comparison. Three-stage pipeline with bridge-frame-clean joins between parts.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 1.6,
+        "mci": True, "baseline_s": 5.0,
+    },
+    {
+        "slug": "clouds-train-2-test-0p5k-v3",
+        "url": R2_VIDEO_BASE + "clouds-train-2-test-0p5k-v3.mp4",
+        "title": "Clouds from train — 9s seam test (0.5K)",
+        "subtitle": "0:07 · 0.5K stereo · 30→60 fps mci · 2.0s baseline · 3-part join",
+        "notes": "Validation of the three-stage long-baseline pipeline. 9s source split into 3×3s parts, each prep-mci'd in parallel with seam-frame borrowing (option-2 fix from gardencam) so the two interior joins are bridge-frame-clean. Concat + symmetric head/tail trim for time-aligned stereo. End-to-end ~20 min, mostly VM allocation; ffmpeg work ~70s total.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 0.6,
+        "mci": True, "baseline_s": 2.0,
+    },
+    {
+        "slug": "kingston-bus-1k",
+        "url": R2_VIDEO_BASE + "kingston-bus-1k.mp4",
+        "title": "Kingston by Bus",
+        "subtitle": "1K stereo · 30→60 fps mci · 1-frame baseline",
+        "notes": "Landscape pan from the top deck through Kingston. 1-frame baseline (0.0167s) appropriate for the close-foreground bus context. inline-v4 single-pass pipeline on e2-standard-2, eye_order right-early baked in.",
+        "source_fps": 60, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 5.0,
+        "mci": True, "baseline_s": 0.0167,
+    },
     {
         "slug": "clouds-train-2-1k",
         "url": R2_VIDEO_BASE + "clouds-train-2-1k.mp4",
         "title": "Clouds from train — 92s split-and-join test",
         "subtitle": "1:32 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "1080p Top Shot source rendered as three parallel 30s parts on e2-standard-2 (2 vCPU, 8 GiB) with a fourth concat job polling GCS until all parts present. Total wall 29 min vs ~110 min sequential = 3.8× speedup. First run with STEREO_EYE_ORDER=right-early baked into the encode (no post-swap needed).",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 5.0,
+        "mci": True, "baseline_s": 2.0,
     },
     {
         "slug": "clouds-train-1-1k",
@@ -42,6 +117,9 @@ BEAUTY_RENDERS = [
         "title": "Clouds from train — 4K source at 1K",
         "subtitle": "0:46 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "4K source downscaled in prep stage to 1K (1280×720) per eye before mci. CRF 28 single-pass on e2-standard-2 (2 vCPU, 8 GiB). Peak RAM 5.97 GiB, wall 48 min. Eyes swapped post-encode for right-to-left camera motion.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 43, "output_mbps": 3.7,
+        "mci": True, "baseline_s": 2.0,
     },
     {
         "slug": "clouds-train-3-1k",
@@ -49,6 +127,9 @@ BEAUTY_RENDERS = [
         "title": "Clouds from train — 1K test",
         "subtitle": "0:18 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "First clouds-from-train experiment. 1080p Top Shot source downscaled to 1K (1280×720) per eye, mci interpolation, CRF 28. Eyes swapped post-encode for right-to-left camera motion.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 5.0,
+        "mci": True, "baseline_s": 2.0,
     },
     {
         "slug": "waterloo-60",
@@ -56,8 +137,39 @@ BEAUTY_RENDERS = [
         "title": "Arrival at Waterloo",
         "subtitle": "4:18 · 1080p stereo · 30→60 fps mci",
         "notes": "Bus-train journey from Surbiton ending at Waterloo. Software-encoded HEVC two-pass slow preset, 8 segments rendered in parallel on GCP Batch, served from Cloudflare R2.",
+        "source_fps": 30, "output_fps": 60,
+        "source_mbps": 20, "output_mbps": 5.0,
+        "mci": True, "baseline_s": 0.0333,
     },
 ]
+
+
+def _beauty_info_html(video_url):
+    """Build a small info block describing the render pipeline for a beauty video.
+    Returns empty string if the URL isn't a known beauty render."""
+    b = next((b for b in BEAUTY_RENDERS if b["url"] == video_url), None)
+    if not b:
+        return ""
+    src_fps = b.get("source_fps")
+    out_fps = b.get("output_fps")
+    src_mbps = b.get("source_mbps")
+    out_mbps = b.get("output_mbps")
+    mci = b.get("mci")
+    base_s = b.get("baseline_s")
+    if src_fps is None:
+        return ""
+    base_frames = round(base_s * src_fps) if base_s is not None else None
+    pipeline = f"{src_fps} fps @ {src_mbps} Mbps → {out_fps} fps @ {out_mbps} Mbps"
+    mci_str = "MCI" if mci else "no MCI"
+    base_str = (f"baseline {base_s:g}s = {base_frames} src frame"
+                + ("s" if base_frames != 1 else "")) if base_s is not None else ""
+    return (
+        '<div class="render-info">'
+        f'<span>{pipeline}</span>'
+        f'<span>{mci_str}</span>'
+        f'<span>{base_str}</span>'
+        '</div>'
+    )
 
 
 # Manually curated video list — add entries here after uploading to S3
@@ -433,13 +545,24 @@ def render_viewer_page(*, theme_css_js, img_param):
     const separationVal = document.getElementById('separation-val');
 
     let swapped = {swapped_js};
-    let zoom = 1.0;  // >1 = zoomed out (image smaller), <1 = zoomed in
+    let zoom = 0.83;  // start 20% more zoomed in (uScale<1 = narrower FOV)
     let eyeShiftX = 0;  // normalized: per-eye X offset within its half (signed)
     let eyeShiftY = 0;  // normalized: per-eye Y offset (signed, mirrored between eyes)
     let xrSession = null;
     let gl = null;
     let prog = null;
     let tex = null;
+    let toastTimer = null;
+    function showToast(msg) {{
+      status.textContent = msg;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {{ status.textContent = ''; }}, 2000);
+    }}
+    function flipSwap() {{
+      swapped = !swapped;
+      swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+      showToast(swapped ? 'swapped' : 'not swapped');
+    }}
 
     preview.crossOrigin = 'anonymous';
     preview.src = JPS_URL;
@@ -459,10 +582,7 @@ def render_viewer_page(*, theme_css_js, img_param):
       separationVal.textContent = parseFloat(separationSlider.value).toFixed(2);
     }});
 
-    swapBtn.addEventListener('click', () => {{
-      swapped = !swapped;
-      swapBtn.textContent = swapped ? 'Order B' : 'Order A';
-    }});
+    swapBtn.addEventListener('click', flipSwap);
 
     // Prev/next navigation — keeps the WebXR session alive by swapping the texture in-place.
     // Falls back to URL navigation when not in VR.
@@ -568,8 +688,7 @@ def render_viewer_page(*, theme_css_js, img_param):
           // A/X button (index 4) → swap eyes
           const aBtn = gp.buttons[4];
           if (aBtn?.pressed && !wasPressed[id][4]) {{
-            swapped = !swapped;
-            swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+            flipSwap();
           }}
           wasPressed[id][4] = aBtn?.pressed;
 
@@ -790,6 +909,8 @@ def render_video_sphere_page(*, theme_css_js, video_file):
         video_url = S3_VIDEO_BASE + video_file
         label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
 
+    info_html = _beauty_info_html(video_url)
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -818,7 +939,13 @@ def render_video_sphere_page(*, theme_css_js, video_file):
       cursor: pointer; flex: 1;
     }}
     button.secondary {{ background: var(--card-bg); color: var(--accent); border: 1px solid var(--divider); }}
-    #status {{ color: var(--text-secondary); font-size: 0.85rem; }}
+    #status {{ color: var(--text-secondary); font-size: 0.85rem; min-height: 1.2em; }}
+    .render-info {{
+      display: flex; flex-wrap: wrap; gap: 4px 12px;
+      justify-content: center; max-width: 600px;
+      color: var(--text-secondary); font-size: 0.75rem;
+      font-family: monospace;
+    }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 1rem 0; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
     #xr-canvas {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }}
@@ -827,6 +954,7 @@ def render_video_sphere_page(*, theme_css_js, video_file):
 <body>
   <div id="ui">
     <h1>{label}</h1>
+    {info_html}
     <video id="preview" src="{video_url}" controls playsinline loop crossorigin="anonymous"></video>
     <div id="controls">
       <div class="control-row">
@@ -853,16 +981,24 @@ def render_video_sphere_page(*, theme_css_js, video_file):
     const convergenceVal = document.getElementById('convergence-val');
 
     let swapped = false;
-    let zoom = 1.0;
+    let zoom = 0.83;  // start 20% more zoomed in (uScale<1 = narrower FOV = zoomed in)
     let xrSession = null, gl = null;
+    let toastTimer = null;
+    function showToast(msg) {{
+      status.textContent = msg;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {{ status.textContent = ''; }}, 2000);
+    }}
+    function flipSwap() {{
+      swapped = !swapped;
+      swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+      showToast(swapped ? 'swapped' : 'not swapped');
+    }}
 
     convergenceSlider.addEventListener('input', () => {{
       convergenceVal.textContent = parseFloat(convergenceSlider.value).toFixed(1) + '°';
     }});
-    swapBtn.addEventListener('click', () => {{
-      swapped = !swapped;
-      swapBtn.textContent = swapped ? 'Order B' : 'Order A';
-    }});
+    swapBtn.addEventListener('click', flipSwap);
 
     vrBtn.addEventListener('click', async () => {{
       if (xrSession) {{ await xrSession.end(); return; }}
@@ -919,8 +1055,7 @@ def render_video_sphere_page(*, theme_css_js, video_file):
 
           const aBtn = gp.buttons[4];
           if (aBtn?.pressed && !wasPressed[id][4]) {{
-            swapped = !swapped;
-            swapBtn.textContent = swapped ? 'Order B' : 'Order A';
+            flipSwap();
           }}
           wasPressed[id][4] = aBtn?.pressed;
 
@@ -1089,6 +1224,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
                 "weasel","ferret","dormouse","raven","magpie","starling","linnet"]
         render_video_viewer_page._pet = _r.choice(pets)
     page_pet = render_video_viewer_page._pet
+    info_html = _beauty_info_html(video_url)
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1126,6 +1262,13 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       text-align: center;
       border: 1px solid #2C2C2E;
     }}
+    .render-info {{
+      display: flex; flex-wrap: wrap; gap: 4px 12px;
+      justify-content: center; max-width: 600px;
+      color: #8E8E93; font-size: 0.75rem;
+      font-family: monospace;
+      margin: 0.5rem 1rem;
+    }}
     #xr-canvas {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; }}
   </style>
 </head>
@@ -1134,6 +1277,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
     <!-- preload=auto loads enough to show the slate frame; no autoplay so slate stays visible -->
     <video id="vid" src="{video_url}" controls playsinline loop preload="auto"></video>
   </div>
+  {info_html}
   <div class="hint">
     <strong>Quest: </strong>tap <strong>Play</strong> then <strong>Fullscreen</strong> — press <strong>O</strong> to push to background for stereo.<br>
     Or tap <strong>Enter VR</strong> for WebXR mode.
