@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Sync site-contents.json to DynamoDB mywebsite-contents table."""
+"""Sync site-contents.json to DynamoDB mywebsite-contents table.
+
+DESTRUCTIVE: this is a full replace. Any row in DynamoDB whose `path` is
+not in site-contents.json gets DELETED. The JSON is the single source of
+truth; the table is downstream. So:
+
+  1. Always edit site-contents.json, never the DynamoDB table directly.
+  2. Run `git diff site-contents.json` before sync; that's exactly the
+     set of changes about to land in DynamoDB.
+  3. If something is in DynamoDB but not in the JSON it will disappear
+     on the next sync. That is the intended behaviour, not a bug.
+
+Lesson learned 2026-05-17: `skycam` and `stereo` were added directly to
+DynamoDB and never back-propagated. A later sync deleted them. Recovered
+by adding both to the JSON and re-running.
+"""
 
 import json
 import sys

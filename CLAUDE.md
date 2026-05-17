@@ -61,6 +61,12 @@ The contents/navigation page is data-driven:
 - Sync to DynamoDB: `python tools/sync-contents.py`
 - Lambda reads `mywebsite-contents` table at runtime
 
+**The sync is a destructive full replace.** Any row in DynamoDB whose
+`path` is not in `site-contents.json` is deleted. Never edit the
+DynamoDB table directly; always edit the JSON and re-sync, otherwise
+your changes get silently wiped on the next sync. See the docstring in
+`tools/sync-contents.py` for details.
+
 ## Shared Data Stores (read from other projects)
 
 - DynamoDB: `pi-fleet-status`, `gardencam-stats`, `gardencam-commands`, `cv-access-logs`, `lambda-execution-logs`
