@@ -1366,21 +1366,26 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     let lastMediaTime = null;
     const probe = (now, meta) => {{
       const t = meta.mediaTime;
-      if (lastMediaTime !== null) {{
-        const dt = t - lastMediaTime;
-        // 0.003 s = 333 fps; 0.5 s = 2 fps. Skip seeks (large dt) and
-        // dupes (zero / negative dt).
-        if (dt > 0.003 && dt < 0.5) samples.push(dt);
-      }}
+      // Only sample during natural playback. Skip if seeking, paused, or
+      // if the dt is too big to plausibly be one frame (catches frames
+      // presented immediately after a seek). 0.003 s = 333 fps; 0.07 s
+      // = 14 fps. Inside that band, the median is the per-file frame
+      // duration. Refines continuously: every natural-playback frame
+      // adds a sample, FPS updates on each one once we have >=12.
+      const dt = lastMediaTime === null ? 0 : t - lastMediaTime;
       lastMediaTime = t;
-      if (samples.length < 12) {{
-        v.requestVideoFrameCallback(probe);
-      }} else {{
-        samples.sort((a, b) => a - b);
-        const median = samples[samples.length >> 1];
-        const f = 1 / median;
-        if (f > 1 && f < 240) FPS = Math.round(f);
+      const playingNaturally = !v.seeking && !v.paused;
+      if (playingNaturally && dt > 0.003 && dt < 0.07) {{
+        samples.push(dt);
+        if (samples.length > 60) samples.shift();
+        if (samples.length >= 12) {{
+          const sorted = samples.slice().sort((a, b) => a - b);
+          const median = sorted[sorted.length >> 1];
+          const f = 1 / median;
+          if (f > 1 && f < 240) FPS = Math.round(f);
+        }}
       }}
+      v.requestVideoFrameCallback(probe);
     }};
     v.requestVideoFrameCallback(probe);
     // rVFC only fires while frames are being presented. FPS converges
