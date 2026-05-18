@@ -836,12 +836,15 @@ _MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"]
 
 
-def _render_day_card(y, m, dd, day, presign=None):
+def _render_day_card(y, m, dd, day, presign=None, camera=None):
     """Render one day's card (label + button row). Used both at page render
     and for the lazy /<camera>/timelapse-day endpoint. Clicks go to the
     advanced player at /<camera>/player?key=...; the wiring JS reads the
     camera prefix from data-key, so no need to thread camera_name through
-    here. presign kept as optional for back-compat."""
+    here. presign kept as optional for back-compat.
+
+    When camera is provided, also renders a sightings strip (bird/ufo
+    crops detected by starcam_debird.py) underneath the buttons."""
     btns = []
     date_str = f"{y}-{m}-{dd}"
     if day["day_key"]:
@@ -852,8 +855,86 @@ def _render_day_card(y, m, dd, day, presign=None):
         btns.append(
             f'<button class="vbtn" data-key="{k}" '
             f'data-label="{date_str} {hh}">{hh}</button>')
+
+    strip = _render_sightings_strip(y, m, dd, camera) if camera else ""
+
     return (f'<div class="day-card"><div class="day-label">{date_str}</div>'
-            f'<div class="btn-row">{"".join(btns)}</div></div>')
+            f'<div class="btn-row">{"".join(btns)}</div>'
+            f'{strip}</div>')
+
+
+def _render_sightings_strip(y, m, dd, camera):
+    """Fetch any sighting crops for this day from S3 and render them as a
+    thumbnail strip under the hour buttons. Empty string if no sightings."""
+    cfg = _CAMERA_CONFIGS.get(camera)
+    if not cfg:
+        return ""
+    bucket = cfg["bucket"]
+    prefix = f"sightings/{y}/{m}/{dd}/"
+
+    import boto3
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    paginator = s3.get_paginator("list_objects_v2")
+    manifests = []
+    crops = {}
+    try:
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                k = obj["Key"]
+                if k.endswith("/index.json"):
+                    manifests.append(k)
+                elif k.endswith(".jpg"):
+                    crops[k.rsplit("/", 1)[-1]] = k
+    except Exception:
+        return ""
+
+    sightings = []
+    for mk in manifests:
+        try:
+            body = s3.get_object(Bucket=bucket, Key=mk)["Body"].read()
+            for line in body.decode().splitlines():
+                try:
+                    sightings.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        except Exception:
+            continue
+    if not sightings:
+        return ""
+
+    # Sort by daily frame index so the gallery reads left-to-right in time.
+    sightings.sort(key=lambda s: s.get("daily_frame_idx", 0))
+
+    tiles = []
+    for s in sightings:
+        crop_name = f"{s['epoch_ms']}_{s['cx']}_{s['cy']}.jpg"
+        crop_key = crops.get(crop_name)
+        if not crop_key:
+            continue
+        try:
+            url = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket, "Key": crop_key},
+                ExpiresIn=3600,
+            )
+        except Exception:
+            continue
+        hour_mp4 = s.get("hour_mp4", "?")
+        daily_mp4 = s.get("daily_mp4", "?")
+        h_idx = s.get("hour_frame_idx", "?")
+        d_idx = s.get("daily_frame_idx", "?")
+        title = (f"{daily_mp4} frame {d_idx} · {hour_mp4} frame {h_idx} · "
+                 f"area={s.get('area', '?')} dark={s.get('dark_delta', '?')}")
+        tiles.append(
+            f'<img class="sight" src="{url}" title="{title}" alt="{title}">'
+        )
+
+    if not tiles:
+        return ""
+    return ('<div class="sightings-strip">'
+            f'<div class="sightings-label">Sightings ({len(tiles)})</div>'
+            f'<div class="sightings-tiles">{"".join(tiles)}</div>'
+            '</div>')
 
 
 def _render_calendars_html(tree, today_ymd, yesterday_ymd):
@@ -958,7 +1039,7 @@ def render_timelapse_index(focus_date=None, camera="skycam"):
     for (y, m, dd) in (anchor_ymd, prev_ymd):
         day = tree.get(y, {}).get(m, {}).get(dd)
         if day is not None:
-            eager_cards.append(_render_day_card(y, m, dd, day))
+            eager_cards.append(_render_day_card(y, m, dd, day, camera=camera))
 
     eager_html = "".join(eager_cards) or (
         '<p style="text-align:center;color:#8E8E93">'
@@ -1001,6 +1082,13 @@ def render_timelapse_index(focus_date=None, camera="skycam"):
   .vbtn:hover {{ background:#3a3a3c; }}
   .vbtn.primary:hover {{ background:#0a84ff; }}
   .vbtn.active {{ outline:2px solid #007AFF; }}
+  .sightings-strip {{ margin-top:0.8rem; padding-top:0.6rem;
+    border-top:1px solid #2C2C2E; }}
+  .sightings-label {{ color:#8E8E93; font-size:0.8rem;
+    margin-bottom:0.4rem; }}
+  .sightings-tiles {{ display:flex; flex-wrap:wrap; gap:0.4rem; }}
+  .sight {{ height:64px; width:auto; border-radius:6px;
+    background:#000; cursor:default; }}
   #cards {{ margin-bottom:1.5rem; }}
   #cals {{ max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap;
     gap:1rem; justify-content:center; }}
@@ -1083,7 +1171,7 @@ def render_timelapse_day_fragment(date_str, camera="skycam"):
         y, m, dd = dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d")
         day = tree.get(y, {}).get(m, {}).get(dd)
         if day is not None:
-            cards.append(_render_day_card(y, m, dd, day))
+            cards.append(_render_day_card(y, m, dd, day, camera=camera))
     return "".join(cards) or (
         '<p style="text-align:center;color:#8E8E93">No videos for this day.</p>')
 
