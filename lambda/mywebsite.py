@@ -3692,7 +3692,8 @@ def lambda_handler(event, context):
             from routes.camera import render_camera_latest
             html += render_camera_latest('Star Camera', images, theme_css_js=THEME_CSS_JS,
                                          gallery_path='starcam/gallery', fullres_path='starcam/fullres',
-                                         videos_path='starcam/videos')
+                                         videos_path='starcam/videos',
+                                         advanced_videos_path='starcam/timelapse')
         else:
             return {
                 'statusCode': 502,
@@ -3778,6 +3779,77 @@ def lambda_handler(event, context):
                 gallery_path='gallery', latest_path='../starcam', fullres_path='../starcam/fullres',
                 week_iso=week_iso,
             )
+
+    elif path == f'/{stage}/starcam/timelapse' or path == '/starcam/timelapse':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        from routes.gardencam import _init_theme, render_timelapse_index
+        _init_theme(THEME_CSS_JS)
+        qs = event.get('queryStringParameters') or {}
+        focus = qs.get('date')
+        return {'statusCode': 200,
+                'body': render_timelapse_index(focus_date=focus, camera='starcam'),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif path == f'/{stage}/starcam/timelapse-day' or path == '/starcam/timelapse-day':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        from routes.gardencam import render_timelapse_day_fragment
+        qs = event.get('queryStringParameters') or {}
+        date = (qs.get('date') or '').strip()
+        frag = render_timelapse_day_fragment(date, camera='starcam') if date else None
+        if frag is None:
+            return {'statusCode': 400, 'body': '<p>invalid date</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        return {'statusCode': 200, 'body': frag,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif path == f'/{stage}/starcam/player' or path == '/starcam/player':
+        if not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
+            }
+        from routes.gardencam import _init_theme, render_skycam_player
+        _init_theme(THEME_CSS_JS)
+        qs = event.get('queryStringParameters') or {}
+        mvqs = event.get('multiValueQueryStringParameters') or {}
+        key = qs.get('key', '')
+        src = qs.get('src')
+        srcs = mvqs.get('src') if mvqs and len(mvqs.get('src') or []) > 1 else None
+        def _f(name):
+            v = qs.get(name)
+            if v in (None, ''): return None
+            try: return float(v)
+            except (TypeError, ValueError): return None
+        clip_param = qs.get('clip') or ''
+        clips_arg = []
+        for piece in clip_param.split(','):
+            piece = piece.strip()
+            if not piece or '-' not in piece:
+                continue
+            a, _, b = piece.partition('-')
+            try:
+                clips_arg.append((float(a), float(b)))
+            except ValueError:
+                continue
+        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
+                                    src=src, srcs=srcs,
+                                    clips=clips_arg or None)
+        if page is None:
+            return {'statusCode': 400, 'body': '<h1>400</h1><p>Invalid key.</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        return {'statusCode': 200, 'body': page,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path.startswith(f'/{stage}/starcam/videos') or path.startswith('/starcam/videos'):
         if not check_basic_auth(event, GARDENCAM_PASSWORD):

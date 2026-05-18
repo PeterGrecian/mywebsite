@@ -760,13 +760,26 @@ gardencam / vplay grow their own build manifests.</p>
 build_cloudcam_poc_banner = build_cloudcam_links_block
 
 
-def _list_video_tree():
-    """Scan skycam/videos/ and skycam/rerender/ and return a nested tree:
+def _list_video_tree(bucket="gardencam-berrylands-eu-west-1",
+                     video_prefix="skycam/videos/",
+                     rerender_prefix="skycam/rerender/"):
+    """Scan <bucket>/<video_prefix> (and optionally <rerender_prefix>) and
+    return a nested tree:
         { 'YYYY': { 'MM': { 'DD': {'day_key': k|None, 'hourly': [(hh,k)...]} } } }
-    Prefers rerender/ entries when both exist for the same day."""
+    Prefers rerender/ entries when both exist for the same day.
+
+    Filename conventions handled (after the camera-name prefix):
+      <name>_YYYYMMDD_HH.mp4       — live hourly
+      <name>_YYYYMMDD_daily.mp4    — live day
+      <name>_YYYYMMDD_night.mp4    — night
+      <name>_YYYYMMDD[_HH]_rerender.mp4 — post-processed rerender
+    The split-on-underscore tree-builder only inspects seg[2] for the tag,
+    so it works for any camera-name prefix (sky/starcam/etc.).
+
+    rerender_prefix=None disables the rerender scan (starcam has no
+    rerender pipeline yet)."""
     import boto3
     s3 = boto3.client("s3", region_name="eu-west-1")
-    bucket = "gardencam-berrylands-eu-west-1"
     paginator = s3.get_paginator("list_objects_v2")
 
     def collect(prefix, suffix):
@@ -803,8 +816,8 @@ def _list_video_tree():
                             day["hourly"].append((tag, k))
         return days
 
-    rerender = collect("skycam/rerender/", "_rerender.mp4")
-    videos = collect("skycam/videos/", ".mp4")
+    videos = collect(video_prefix, ".mp4")
+    rerender = collect(rerender_prefix, "_rerender.mp4") if rerender_prefix else {}
 
     merged = {}
     for ymd, d in videos.items():
@@ -825,9 +838,10 @@ _MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
 
 def _render_day_card(y, m, dd, day, presign=None):
     """Render one day's card (label + button row). Used both at page render
-    and for the lazy /skycam/timelapse-day endpoint. Clicks go to the
-    advanced player at /skycam/player?key=..., so no presigning is needed
-    here (presign kept as an optional arg for back-compat)."""
+    and for the lazy /<camera>/timelapse-day endpoint. Clicks go to the
+    advanced player at /<camera>/player?key=...; the wiring JS reads the
+    camera prefix from data-key, so no need to thread camera_name through
+    here. presign kept as optional for back-compat."""
     btns = []
     date_str = f"{y}-{m}-{dd}"
     if day["day_key"]:
@@ -891,11 +905,36 @@ def _render_calendars_html(tree, today_ymd, yesterday_ymd):
     return "".join(out)
 
 
-def render_timelapse_index(focus_date=None):
+_CAMERA_CONFIGS = {
+    "skycam": {
+        "title": "Skycam Timelapse",
+        "bucket": "gardencam-berrylands-eu-west-1",
+        "video_prefix": "skycam/videos/",
+        "rerender_prefix": "skycam/rerender/",
+        "back_label": "← Skycam",
+        "back_url": "/skycam",
+    },
+    "starcam": {
+        "title": "Starcam Timelapse",
+        "bucket": "starcam-berrylands-eu-west-1",
+        "video_prefix": "videos/",
+        "rerender_prefix": None,
+        "back_label": "← Starcam",
+        "back_url": "/starcam",
+    },
+}
+
+
+def render_timelapse_index(focus_date=None, camera="skycam"):
     """Default: today + yesterday eager, older months as cal-style grids.
     If focus_date='YYYY-MM-DD', show focus_date + previous-day pair instead."""
     from datetime import datetime, timezone, timedelta
-    tree = _list_video_tree()
+    cfg = _CAMERA_CONFIGS[camera]
+    tree = _list_video_tree(
+        bucket=cfg["bucket"],
+        video_prefix=cfg["video_prefix"],
+        rerender_prefix=cfg["rerender_prefix"],
+    )
 
     today_dt = datetime.now(timezone.utc)
     if focus_date:
@@ -930,11 +969,11 @@ def render_timelapse_index(focus_date=None):
     tl_tag = _build_tag(_GC_VERSION, _GC_COMMIT, _GC_COMMIT_TIME)
     is_focused = focus_date is not None
     reset_link = (
-        '<a href="/skycam/timelapse" class="reset-link">↻ Back to today</a>'
+        f'<a href="/{camera}/timelapse" class="reset-link">↻ Back to today</a>'
         if is_focused else '')
 
     return f'''<!doctype html><html><head><meta charset="utf-8">
-<title>Skycam Timelapse</title>
+<title>{cfg["title"]}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body {{ font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif;
@@ -983,7 +1022,7 @@ def render_timelapse_index(focus_date=None):
     color:#E0E0E0; }}
   table.cal td.cal-empty {{ color:transparent; }}
 </style></head><body>
-<div class="nav"><a href="/skycam">← Skycam</a> · <a href="/contents">Home</a></div>
+<div class="nav"><a href="{cfg["back_url"]}">{cfg["back_label"]}</a> · <a href="/contents">Home</a></div>
 <div class="tag">{tl_tag}</div>
 <div style="text-align:center;">{reset_link}</div>
 <div id="cards">{eager_html}</div>
@@ -995,7 +1034,7 @@ def render_timelapse_index(focus_date=None):
       b.dataset.wired = '1';
       b.addEventListener('click', () => {{
         if (!b.dataset.key) return;
-        const url = '/skycam/player?key=' + encodeURIComponent(b.dataset.key);
+        const url = '/{camera}/player?key=' + encodeURIComponent(b.dataset.key);
         window.open(url, '_blank');
       }});
     }});
@@ -1009,11 +1048,11 @@ def render_timelapse_index(focus_date=None):
       const cards = document.getElementById('cards');
       cards.innerHTML = '<p style="text-align:center;color:#8E8E93">Loading…</p>';
       try {{
-        const resp = await fetch('/skycam/timelapse-day?date=' + encodeURIComponent(date));
+        const resp = await fetch('/{camera}/timelapse-day?date=' + encodeURIComponent(date));
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         cards.innerHTML = await resp.text();
         wireButtons(cards);
-        history.pushState({{date}}, '', '/skycam/timelapse?date=' + encodeURIComponent(date));
+        history.pushState({{date}}, '', '/{camera}/timelapse?date=' + encodeURIComponent(date));
         cards.scrollIntoView({{behavior:'smooth', block:'start'}});
       }} catch (e) {{
         cards.innerHTML = '<p style="text-align:center;color:#FF3B30">Load failed: ' + e + '</p>';
@@ -1024,7 +1063,7 @@ def render_timelapse_index(focus_date=None):
 </body></html>'''
 
 
-def render_timelapse_day_fragment(date_str):
+def render_timelapse_day_fragment(date_str, camera="skycam"):
     """Return HTML fragment of <date_str> + previous-day cards.
     Used by the calendar's click handler to lazy-load day pairs."""
     from datetime import datetime, timezone, timedelta
@@ -1033,7 +1072,12 @@ def render_timelapse_day_fragment(date_str):
     except ValueError:
         return None
     prev = anchor - timedelta(days=1)
-    tree = _list_video_tree()
+    cfg = _CAMERA_CONFIGS[camera]
+    tree = _list_video_tree(
+        bucket=cfg["bucket"],
+        video_prefix=cfg["video_prefix"],
+        rerender_prefix=cfg["rerender_prefix"],
+    )
     cards = []
     for dt in (anchor, prev):
         y, m, dd = dt.strftime("%Y"), dt.strftime("%m"), dt.strftime("%d")
@@ -1128,10 +1172,18 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
         sources.append(v)
     else:
         import boto3
-        if not key.startswith("skycam/") or ".." in key:
+        if ".." in key:
+            return None
+        # Key shape -> bucket. Skycam keys all live under skycam/ in the
+        # shared gardencam bucket; starcam has its own bucket with no
+        # camera-name prefix (just videos/ or rerender/).
+        if key.startswith("skycam/"):
+            bucket = "gardencam-berrylands-eu-west-1"
+        elif key.startswith("videos/") or key.startswith("rerender/"):
+            bucket = "starcam-berrylands-eu-west-1"
+        else:
             return None
         s3 = boto3.client("s3", region_name="eu-west-1")
-        bucket = "gardencam-berrylands-eu-west-1"
         try:
             url = s3.generate_presigned_url(
                 "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)

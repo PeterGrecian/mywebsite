@@ -1,7 +1,7 @@
 """Shared camera page renderers for springcam and skycam."""
 
 
-def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, fullres_path, videos_path=None, starcam_path=None):
+def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, fullres_path, videos_path=None, starcam_path=None, advanced_videos_path=None):
     """Render a camera latest-images page."""
     cards = ''
     for img in images:
@@ -15,6 +15,7 @@ def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, ful
                 </div>'''
 
     videos_link = f'<a href="{videos_path}" class="gallery-link">Timelapse Videos</a>' if videos_path else ''
+    advanced_link = f'<a href="{advanced_videos_path}" class="gallery-link">⚙ Advanced player</a>' if advanced_videos_path else ''
     starcam_link = f'<a href="{starcam_path}" class="gallery-link">Starcam</a>' if starcam_path else ''
 
     return f'''{theme_css_js}
@@ -39,6 +40,7 @@ def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, ful
             <h1>{camera_name}</h1>
             <a href="{gallery_path}" class="gallery-link">View Full Gallery</a>
             {videos_link}
+            {advanced_link}
             {starcam_link}
             <div class="gallery">
             {cards}</div>'''
