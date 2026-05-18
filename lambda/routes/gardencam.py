@@ -1355,37 +1355,38 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   const bandsEl = document.getElementById("clipBands");
   const marksEl = document.getElementById("clipMarkers");
   const timeEl = document.getElementById("time");
-  // Detected once the video metadata + first frame arrive. Until then,
-  // step-mode uses 1/30 as a fallback. Wrong value here is the cause of
-  // the "press right, frame stays same / skips two" beating — step must
-  // match the true output frame interval.
+  // Detected from the gaps between consecutive presented frames via
+  // requestVideoFrameCallback's mediaTime. NEVER use
+  // getVideoPlaybackQuality().totalVideoFrames here — that's a running
+  // count of frames rendered so far, not a per-file frame count.
   let FPS = 30;
-  // Frame step using requestVideoFrameCallback when available: snaps to
-  // the next/previous decoded frame regardless of currentTime arithmetic.
-  // Falls back to currentTime += 1/FPS for browsers without rVFC.
   const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
-  function detectFps() {{
-    try {{
-      const q = v.getVideoPlaybackQuality && v.getVideoPlaybackQuality();
-      if (q && q.totalVideoFrames > 0 && v.duration > 0) {{
-        const f = q.totalVideoFrames / v.duration;
-        if (f > 1 && f < 240) FPS = f;
-      }}
-    }} catch (e) {{}}
-  }}
-  v.addEventListener('loadedmetadata', detectFps);
-  // totalVideoFrames is often 0 until decode has actually started.
-  // Re-probe after a few frames have been rendered.
   if (hasRVFC) {{
-    let probed = 0;
-    const probe = () => {{
-      probed++;
-      if (probed === 5) detectFps();
-      else v.requestVideoFrameCallback(probe);
+    const samples = [];
+    let lastMediaTime = null;
+    const probe = (now, meta) => {{
+      const t = meta.mediaTime;
+      if (lastMediaTime !== null) {{
+        const dt = t - lastMediaTime;
+        // 0.003 s = 333 fps; 0.5 s = 2 fps. Skip seeks (large dt) and
+        // dupes (zero / negative dt).
+        if (dt > 0.003 && dt < 0.5) samples.push(dt);
+      }}
+      lastMediaTime = t;
+      if (samples.length < 12) {{
+        v.requestVideoFrameCallback(probe);
+      }} else {{
+        samples.sort((a, b) => a - b);
+        const median = samples[samples.length >> 1];
+        const f = 1 / median;
+        if (f > 1 && f < 240) FPS = Math.round(f);
+      }}
     }};
     v.requestVideoFrameCallback(probe);
-  }} else {{
-    v.addEventListener('loadeddata', () => setTimeout(detectFps, 250));
+    // rVFC only fires while frames are being presented. FPS converges
+    // within ~12 frames of playback (~0.2 s at 60 fps). Until then,
+    // step uses the 30-fps fallback — close enough that the first
+    // few step presses might be slightly off, then it self-corrects.
   }}
 
   function stepFrame(direction) {{
