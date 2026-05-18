@@ -1355,7 +1355,52 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   const bandsEl = document.getElementById("clipBands");
   const marksEl = document.getElementById("clipMarkers");
   const timeEl = document.getElementById("time");
-  const FPS = 24;
+  // Detected once the video metadata + first frame arrive. Until then,
+  // step-mode uses 1/30 as a fallback. Wrong value here is the cause of
+  // the "press right, frame stays same / skips two" beating — step must
+  // match the true output frame interval.
+  let FPS = 30;
+  // Frame step using requestVideoFrameCallback when available: snaps to
+  // the next/previous decoded frame regardless of currentTime arithmetic.
+  // Falls back to currentTime += 1/FPS for browsers without rVFC.
+  const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+  function detectFps() {{
+    try {{
+      const q = v.getVideoPlaybackQuality && v.getVideoPlaybackQuality();
+      if (q && q.totalVideoFrames > 0 && v.duration > 0) {{
+        const f = q.totalVideoFrames / v.duration;
+        if (f > 1 && f < 240) FPS = f;
+      }}
+    }} catch (e) {{}}
+  }}
+  v.addEventListener('loadedmetadata', detectFps);
+  // totalVideoFrames is often 0 until decode has actually started.
+  // Re-probe after a few frames have been rendered.
+  if (hasRVFC) {{
+    let probed = 0;
+    const probe = () => {{
+      probed++;
+      if (probed === 5) detectFps();
+      else v.requestVideoFrameCallback(probe);
+    }};
+    v.requestVideoFrameCallback(probe);
+  }} else {{
+    v.addEventListener('loadeddata', () => setTimeout(detectFps, 250));
+  }}
+
+  function stepFrame(direction) {{
+    pause();
+    const step = 1 / FPS;
+    const t = direction > 0
+      ? Math.min(hi(), v.currentTime + step)
+      : Math.max(lo(), v.currentTime - step);
+    v.currentTime = t;
+    // requestVideoFrameCallback fires after the seek's new frame is
+    // composited — repaint then so HUD reflects the displayed frame,
+    // not the requested time.
+    if (hasRVFC) v.requestVideoFrameCallback(() => repaint());
+    else repaint();
+  }}
   let dir = 1;       // +1 fwd, -1 reverse
   let speed = 1.0;
   // loopMode: 'fwd-once' | 'fwd-loop' | 'pingpong' | 'rev-once' | 'rev-loop'
@@ -1643,8 +1688,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     if (e.key === "Escape") {{ setHelp(false); return; }}
     if (e.key === "h" || e.key === "H") {{ setHelp(helpHud.style.display === "none"); return; }}
     if (e.code === "Space") {{ e.preventDefault(); toggle(); }}
-    else if (e.code === "ArrowLeft")  {{ pause(); v.currentTime = Math.max(lo(), v.currentTime - 1/FPS); repaint(); }}
-    else if (e.code === "ArrowRight") {{ pause(); v.currentTime = Math.min(hi(), v.currentTime + 1/FPS); repaint(); }}
+    else if (e.code === "ArrowLeft")  {{ stepFrame(-1); }}
+    else if (e.code === "ArrowRight") {{ stepFrame(+1); }}
     else if (e.key === ",") nudgeSpeed(-1);
     else if (e.key === ".") nudgeSpeed(+1);
     else if (e.key === "[") setActiveClipIn(v.currentTime);
