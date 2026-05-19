@@ -902,55 +902,64 @@ def _render_sightings_strip(y, m, dd, camera):
     if not sightings:
         return ""
 
-    # Sort by daily frame index so the gallery reads left-to-right in time.
-    sightings.sort(key=lambda s: s.get("daily_frame_idx", 0))
+    # Group sightings by source frame (epoch_ms). One tile per frame
+    # uses the *composite* image we write alongside the per-sighting
+    # crops — shows every trigger on that frame painted at its real
+    # bbox so you can see spatial relationships at a glance.
+    by_frame: dict[int, list[dict]] = {}
+    for s in sightings:
+        by_frame.setdefault(s["epoch_ms"], []).append(s)
 
-    # Map (date, hour) to the hour-mp4 S3 key so we can click through to
-    # the advanced player at the right frame. The video bucket is the
-    # same as the sightings bucket here (starcam).
-    def _hour_key_for(date_ymd: tuple[str, str, str], hour: str) -> str:
-        yy, mm, dd = date_ymd
-        return f"{cfg['video_prefix']}{yy}/{mm}/{dd}/{camera}_{yy}{mm}{dd}_{hour}.mp4"
+    # Sort frames by daily index ascending (read L→R in time).
+    def _daily_idx(group):
+        return group[0].get("daily_frame_idx", 0)
+    grouped = sorted(by_frame.values(), key=_daily_idx)
 
     tiles = []
-    for s in sightings:
-        crop_name = f"{s['epoch_ms']}_{s['cx']}_{s['cy']}.jpg"
-        crop_key = crops.get(crop_name)
-        if not crop_key:
+    for group in grouped:
+        epoch_ms = group[0]["epoch_ms"]
+        composite_name = f"{epoch_ms}_composite.jpg"
+        composite_key = crops.get(composite_name)
+        if not composite_key:
             continue
         try:
             url = s3.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": bucket, "Key": crop_key},
+                Params={"Bucket": bucket, "Key": composite_key},
                 ExpiresIn=3600,
             )
         except Exception:
             continue
-        hour_mp4 = s.get("hour_mp4", "?")
-        h_idx = s.get("hour_frame_idx")
-        d_idx = s.get("daily_frame_idx", "?")
-        area = s.get("area", "?")
-        dark = s.get("dark_delta", "?")
+        # Pick the most prominent sighting on this frame to represent it
+        # in the title / evidence-pack click target.
+        rep = max(group, key=lambda s: s.get("dark_delta", 0))
+        hour_mp4 = rep.get("hour_mp4", "?")
+        h_idx = rep.get("hour_frame_idx")
+        d_idx = rep.get("daily_frame_idx", "?")
+        n = len(group)
+        max_dark = max(s.get("dark_delta", 0) for s in group)
+        total_area = sum(s.get("area", 0) for s in group)
 
-        # Build click target: player at the hour mp4 with a clip around
-        # the sighting. 60 fps means time = (idx - 1) / 60.
+        # Click target: the puppy-sightings viewer (LAN-only). Evidence
+        # packs live on puppy's local disk and are served by
+        # ~/super/services/puppy_sightings.py over plain HTTP — this is
+        # diagnostic data so home-network-only is by design.
+        # Note: browsers may flag the http→ link from this HTTPS page as
+        # mixed-content on first click; that's acceptable for the LAN
+        # diagnostic surface.
         href = None
-        if isinstance(h_idx, int) and hour_mp4 != "?":
-            # Extract hour from filename like "starcam_20260518_18.mp4"
+        if hour_mp4 != "?":
             try:
                 hh = hour_mp4.rsplit("_", 1)[1].split(".", 1)[0]
-                key_for_player = _hour_key_for((y, m, dd), hh)
-                t = max(0.0, (h_idx - 1) / 60.0)
-                clip_arg = f"{max(0, t - 0.5):.3f}-{t + 0.5:.3f}"
-                from urllib.parse import quote
-                href = (f"/{camera}/player?key={quote(key_for_player, safe='')}"
-                        f"&clip={clip_arg}")
+                sid = f"{rep['epoch_ms']}_{rep['cx']}_{rep['cy']}"
+                href = (f"http://192.168.4.138:8910/sighting"
+                        f"?date={y}-{m}-{dd}&hour={hh}&id={sid}")
             except Exception:
                 href = None
 
-        label = f"{hour_mp4} f{h_idx}"
+        label = f"{hour_mp4} f{h_idx}" + (f" ×{n}" if n > 1 else "")
         title = (f"daily f{d_idx} · {hour_mp4} f{h_idx} · "
-                 f"area={area} dark={dark}")
+                 f"{n} trigger(s) · area={total_area} dark={max_dark}")
 
         tile = (f'<figure class="sight-tile">'
                 f'<img class="sight" src="{url}" title="{title}" alt="{title}">'
@@ -966,6 +975,7 @@ def _render_sightings_strip(y, m, dd, camera):
             f'<div class="sightings-label">Sightings ({len(tiles)})</div>'
             f'<div class="sightings-tiles">{"".join(tiles)}</div>'
             '</div>')
+
 
 
 def _render_calendars_html(tree, today_ymd, yesterday_ymd):
