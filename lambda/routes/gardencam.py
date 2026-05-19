@@ -1482,11 +1482,18 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   const bandsEl = document.getElementById("clipBands");
   const marksEl = document.getElementById("clipMarkers");
   const timeEl = document.getElementById("time");
-  // Detected from the gaps between consecutive presented frames via
-  // requestVideoFrameCallback's mediaTime. NEVER use
-  // getVideoPlaybackQuality().totalVideoFrames here — that's a running
-  // count of frames rendered so far, not a per-file frame count.
-  let FPS = 30;
+  // Default matches what we produce (image2 @ 60 fps for every hour
+  // and day mp4 on both starcam and skycam). The rVFC probe below
+  // refines this *if* the user plays the video, but until then 60 is
+  // the right answer for any of our keys. Defaulting to 30 caused
+  // arrow-key stepping to advance by 2 source frames at a time when
+  // the user opened the player and immediately pressed an arrow
+  // without playing first.
+  //
+  // NEVER use getVideoPlaybackQuality().totalVideoFrames here — that's
+  // a running count of frames rendered so far, not a per-file frame
+  // count.
+  let FPS = 60;
   const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
   if (hasRVFC) {{
     const samples = [];
@@ -1515,10 +1522,11 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       v.requestVideoFrameCallback(probe);
     }};
     v.requestVideoFrameCallback(probe);
-    // rVFC only fires while frames are being presented. FPS converges
-    // within ~12 frames of playback (~0.2 s at 60 fps). Until then,
-    // step uses the 30-fps fallback — close enough that the first
-    // few step presses might be slightly off, then it self-corrects.
+    // rVFC only fires while frames are being presented. The probe
+    // refines FPS within ~12 frames of natural playback in case the
+    // source isn't actually 60 fps; the 60 default above means
+    // stepping is correct from the very first arrow-key press for our
+    // standard output.
   }}
 
   function stepFrame(direction) {{

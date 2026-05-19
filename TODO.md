@@ -4,7 +4,6 @@
 
 - Contents page: links change the location bar but not the contents
 - Cloudflare purge appears faulty — investigate
-- **Player step-mode advances 2 frames per ArrowLeft/ArrowRight on 60 fps starcam videos.** FPS detection via rVFC mediaTime medians (commit fb20f3d) still underestimates by 2x even after rejecting seek-induced samples (v.seeking + dt<0.07 s filter). Likely cause: browsers snap currentTime seeks to the previous keyframe, and starcam mp4s have default GOP=250 (= 4 s keyframe interval at 60 fps), so single-frame seeks may decode forward through a GOP and present a frame ≥2 ahead of where requested. **Fix candidates:** (a) re-encode starcam with `-g 30` (0.5 s keyframe interval) — encoder-side change in `Berrylands/gardencam/starcam_processor.py`, costs some compression efficiency; (b) use rVFC for the step itself (request next presented frame instead of arithmetic seek); (c) maintain a frame-index → mediaTime map populated during playback, then seek to the *next mapped time* rather than +1/FPS. Skycam at 24 fps is unaffected (less sensitive to step-arithmetic rounding). Live on prod at /starcam/player.
 
 ## Active
 
