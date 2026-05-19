@@ -905,6 +905,13 @@ def _render_sightings_strip(y, m, dd, camera):
     # Sort by daily frame index so the gallery reads left-to-right in time.
     sightings.sort(key=lambda s: s.get("daily_frame_idx", 0))
 
+    # Map (date, hour) to the hour-mp4 S3 key so we can click through to
+    # the advanced player at the right frame. The video bucket is the
+    # same as the sightings bucket here (starcam).
+    def _hour_key_for(date_ymd: tuple[str, str, str], hour: str) -> str:
+        yy, mm, dd = date_ymd
+        return f"{cfg['video_prefix']}{yy}/{mm}/{dd}/{camera}_{yy}{mm}{dd}_{hour}.mp4"
+
     tiles = []
     for s in sightings:
         crop_name = f"{s['epoch_ms']}_{s['cx']}_{s['cy']}.jpg"
@@ -920,14 +927,38 @@ def _render_sightings_strip(y, m, dd, camera):
         except Exception:
             continue
         hour_mp4 = s.get("hour_mp4", "?")
-        daily_mp4 = s.get("daily_mp4", "?")
-        h_idx = s.get("hour_frame_idx", "?")
+        h_idx = s.get("hour_frame_idx")
         d_idx = s.get("daily_frame_idx", "?")
-        title = (f"{daily_mp4} frame {d_idx} · {hour_mp4} frame {h_idx} · "
-                 f"area={s.get('area', '?')} dark={s.get('dark_delta', '?')}")
-        tiles.append(
-            f'<img class="sight" src="{url}" title="{title}" alt="{title}">'
-        )
+        area = s.get("area", "?")
+        dark = s.get("dark_delta", "?")
+
+        # Build click target: player at the hour mp4 with a clip around
+        # the sighting. 60 fps means time = (idx - 1) / 60.
+        href = None
+        if isinstance(h_idx, int) and hour_mp4 != "?":
+            # Extract hour from filename like "starcam_20260518_18.mp4"
+            try:
+                hh = hour_mp4.rsplit("_", 1)[1].split(".", 1)[0]
+                key_for_player = _hour_key_for((y, m, dd), hh)
+                t = max(0.0, (h_idx - 1) / 60.0)
+                clip_arg = f"{max(0, t - 0.5):.3f}-{t + 0.5:.3f}"
+                from urllib.parse import quote
+                href = (f"/{camera}/player?key={quote(key_for_player, safe='')}"
+                        f"&clip={clip_arg}")
+            except Exception:
+                href = None
+
+        label = f"{hour_mp4} f{h_idx}"
+        title = (f"daily f{d_idx} · {hour_mp4} f{h_idx} · "
+                 f"area={area} dark={dark}")
+
+        tile = (f'<figure class="sight-tile">'
+                f'<img class="sight" src="{url}" title="{title}" alt="{title}">'
+                f'<figcaption class="sight-label">{label}</figcaption>'
+                f'</figure>')
+        if href:
+            tile = f'<a class="sight-link" href="{href}">{tile}</a>'
+        tiles.append(tile)
 
     if not tiles:
         return ""
@@ -1086,9 +1117,17 @@ def render_timelapse_index(focus_date=None, camera="skycam"):
     border-top:1px solid #2C2C2E; }}
   .sightings-label {{ color:#8E8E93; font-size:0.8rem;
     margin-bottom:0.4rem; }}
-  .sightings-tiles {{ display:flex; flex-wrap:wrap; gap:0.4rem; }}
+  .sightings-tiles {{ display:flex; flex-wrap:wrap; gap:0.6rem; }}
+  .sight-link {{ display:inline-block; text-decoration:none; }}
+  .sight-tile {{ margin:0; display:flex; flex-direction:column;
+    align-items:center; gap:2px; }}
   .sight {{ height:64px; width:auto; border-radius:6px;
-    background:#000; cursor:default; }}
+    background:#000; display:block; }}
+  .sight-link:hover .sight {{ outline:2px solid #007AFF; }}
+  .sight-label {{ color:#8E8E93; font-size:0.7rem;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    white-space:nowrap; }}
+  .sight-link:hover .sight-label {{ color:#007AFF; }}
   #cards {{ margin-bottom:1.5rem; }}
   #cals {{ max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap;
     gap:1rem; justify-content:center; }}
