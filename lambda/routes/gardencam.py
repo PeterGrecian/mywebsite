@@ -2072,48 +2072,53 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
 
 
 def render_gardencam_main(images, image_cards, poc_banner_html=""):
-    """Render the main gardencam page with latest images."""
+    """Render the /skycam landing page.
+
+    Simplified 2026-05-20: dropped the 3-latest-images carousel (the
+    stills were often hours stale and pushed everything else below the
+    fold); dropped the Starcam link (starcam has its own landing page);
+    promoted the advanced player to primary CTA.
+
+    `images` and `image_cards` args kept for API compat with the caller;
+    no longer used in the body.
+    """
     return f'''\
 {_THEME_CSS_JS}
             <title>Sky Camera</title>
             <style>
-                body {{ font-family: var(--font); text-align: center; margin: 1rem; background: var(--bg); color: var(--text); }}
-                h1 {{ margin-bottom: 1rem; font-size: 2rem; }}
-                .gallery-link {{ display: inline-block; margin-bottom: 1.5rem; padding: 0.5rem 1.5rem; background: var(--card-bg); color: var(--accent); text-decoration: none; border-radius: 8px; border: 1px solid var(--divider); transition: opacity 0.2s; }}
-                .gallery-link:hover {{ opacity: 0.8; }}
-                .gallery {{ display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; max-width: 1024px; margin: 0 auto; }}
-                .image-container {{ flex: 1; min-width: 280px; max-width: 340px; }}
-                .image-container a {{ display: block; cursor: pointer; }}
-                .image-container img {{ width: 100%; height: auto; border-radius: 8px; transition: opacity 0.2s; }}
-                .image-container img:hover {{ opacity: 0.85; }}
-                .timestamp {{ color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.9rem; }}
-                .label {{ color: var(--text-secondary); font-weight: bold; margin-bottom: 0.5rem; font-size: 1rem; }}
-
-                /* Mobile/Tablet - stack vertically */
-                @media (max-width: 1024px) {{
-                    body {{ margin: 0.5rem; }}
-                    h1 {{ font-size: 1.5rem; margin-bottom: 0.75rem; }}
-                    .gallery {{ flex-direction: column; gap: 1rem; }}
-                    .image-container {{ min-width: 100%; max-width: 100%; }}
-                    .label {{ font-size: 1rem; }}
-                    .timestamp {{ font-size: 0.85rem; }}
-                }}
+                body {{ font-family: var(--font); text-align: center; margin: 1rem;
+                    background: var(--bg); color: var(--text); }}
+                h1 {{ margin: 0.6rem 0; font-size: 1.4rem; }}
+                .links {{ display: flex; flex-wrap: wrap; gap: 0.4rem;
+                    justify-content: center; align-items: center;
+                    max-width: 900px; margin: 0.4rem auto; }}
+                .link {{ display: inline-block; padding: 0.35rem 0.9rem;
+                    background: var(--card-bg); color: var(--accent);
+                    text-decoration: none; border-radius: 8px;
+                    border: 1px solid var(--divider); font-size: 0.9rem;
+                    transition: opacity 0.2s; }}
+                .link:hover {{ opacity: 0.8; }}
+                .link.primary {{ background: var(--accent); color: white;
+                    font-weight: 600; padding: 0.45rem 1.1rem; }}
+                .link.secondary {{ opacity: 0.7; font-size: 0.82rem; }}
+                button.link {{ cursor: pointer; font-family: inherit; }}
+                #captureStatus {{ font-size: 0.85rem;
+                    color: var(--text-secondary); margin-top: 0.3rem; }}
             </style>
             {build_skycam_top_bar()}
             <h1>Sky Camera</h1>
-            <div style="margin-bottom: 1rem;">
-                <a href="gardencam/gallery" class="gallery-link">Stills</a>
-                <a href="/skycam/videos" class="gallery-link" style="margin-left: 0.5rem;">Videos</a>
-                <a href="/skycam/starcam" class="gallery-link" style="margin-left: 0.5rem;">Starcam</a>
-                <span style="color: var(--text-secondary); margin-left: 0.5rem; font-size: 0.85rem;">see also springcam (offline)</span>
+            <div class="links">
+              <a href="/skycam/timelapse" class="link primary">▶ Advanced player</a>
+              <a href="/skycam/videos" class="link">Videos</a>
+              <a href="/skycam/clouds" class="link">☁ Clouds: The Movie</a>
             </div>
             {poc_banner_html}
-            <div style="margin-bottom: 1rem;">
-                <a href="gardencam/stats" class="gallery-link">Capture Stats</a>
-                <a href="gardencam/s3-stats" class="gallery-link" style="margin-left: 0.5rem;">Storage Stats</a>
-                <button id="captureBtn" class="gallery-link" style="margin-left: 0.5rem; cursor: pointer;">📷 Capture Now</button>
+            <div class="links">
+              <a href="gardencam/stats" class="link secondary">Capture Stats</a>
+              <a href="gardencam/s3-stats" class="link secondary">Storage Stats</a>
+              <button id="captureBtn" class="link secondary">📷 Capture Now</button>
             </div>
-            <div id="captureStatus" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+            <div id="captureStatus"></div>
             <script>
             document.getElementById('captureBtn').addEventListener('click', function() {{
                 const btn = this;
@@ -2121,13 +2126,11 @@ def render_gardencam_main(images, image_cards, poc_banner_html=""):
                 btn.disabled = true;
                 btn.textContent = '📷 Capturing...';
                 status.textContent = 'Sending capture command...';
-                status.style.color = '#4a9eff';
 
                 fetch('gardencam/capture', {{ method: 'POST' }})
                     .then(response => response.json())
                     .then(data => {{
                         status.textContent = data.message || 'Capture command sent! Image will appear in ~30 seconds.';
-                        status.style.color = '#10b981';
                         setTimeout(() => {{
                             btn.disabled = false;
                             btn.textContent = '📷 Capture Now';
@@ -2135,38 +2138,11 @@ def render_gardencam_main(images, image_cards, poc_banner_html=""):
                     }})
                     .catch(error => {{
                         status.textContent = 'Error: ' + error.message;
-                        status.style.color = '#ef4444';
                         btn.disabled = false;
                         btn.textContent = '📷 Capture Now';
                     }});
             }});
-
-            // Page load performance tracking
-            window.addEventListener('load', function() {{
-                // Wait a bit for images to fully load
-                setTimeout(function() {{
-                    const perfData = window.performance.timing;
-                    const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
-                    const domReadyTime = perfData.domContentLoadedEventEnd - perfData.navigationStart;
-                    const serverResponseTime = perfData.responseEnd - perfData.requestStart;
-
-                    // Send timing data to server
-                    fetch('gardencam/timing', {{
-                        method: 'POST',
-                        headers: {{ 'Content-Type': 'application/json' }},
-                        body: JSON.stringify({{
-                            pageLoadTime: pageLoadTime,
-                            domReadyTime: domReadyTime,
-                            serverResponseTime: serverResponseTime,
-                            timestamp: new Date().toISOString(),
-                            userAgent: navigator.userAgent
-                        }})
-                    }}).catch(err => console.log('Timing log failed:', err));
-                }}, 500);
-            }});
-            </script>
-            <div class="gallery">
-            {image_cards}</div>'''
+            </script>'''
 
 
 def render_gardencam_main_card(label, img_key, img_url, timestamp, time_delta, resolution_display, stats_display):

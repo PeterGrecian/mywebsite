@@ -2985,39 +2985,17 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path == f'/{stage}/skycam' or path == '/skycam':
-        images = get_latest_skycam_images(3)
-        if images:
-            from routes.gardencam import (_init_theme, render_gardencam_main,
-                                           render_gardencam_main_card,
-                                           build_cloudcam_poc_banner)
-            _init_theme(THEME_CSS_JS)
-            poc_banner = build_cloudcam_poc_banner()
-
-            labels = ['Latest', 'Previous', 'Earlier']
-            image_cards = ''
-            for idx, img in enumerate(images):
-                label = labels[idx] if idx < len(labels) else f'Image {idx+1}'
-                resolution_display = f" • {img['resolution']}" if img.get('resolution') else ""
-                stats_display = img.get('stats_display', '')
-
-                time_delta = ""
-                if idx > 0:
-                    previous_img = images[idx - 1]
-                    time_delta = calculate_time_delta(img['timestamp'], previous_img['timestamp'])
-                    if time_delta:
-                        time_delta = f"{time_delta} "
-
-                image_cards += render_gardencam_main_card(
-                    label, img['key'], img['url'], img['timestamp'],
-                    time_delta, resolution_display, stats_display)
-
-            html += render_gardencam_main(images, image_cards, poc_banner)
-        else:
-            return {
-                'statusCode': 502,
-                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Sky Camera</h1><p>No images available yet.</p></body></html>',
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
+        # The page no longer shows the 3-latest-images carousel — the
+        # carousel was usually stale (yesterday's frames) and pushed the
+        # useful links below the fold. The POC banner (Timelapse videos
+        # + Clouds + Advanced player) is dropped too: its three links
+        # already live in the main `links` row in render_gardencam_main.
+        # The legacy `images`/`image_cards`/`poc_banner_html` args are
+        # still passed for API compat with the renderer's signature.
+        from routes.gardencam import _init_theme, render_gardencam_main
+        _init_theme(THEME_CSS_JS)
+        html += render_gardencam_main(images=[], image_cards='',
+                                       poc_banner_html='')
 
     elif path == f'/{stage}/lambda-stats/data' or path == '/lambda-stats/data':
         # Lambda statistics data endpoint - returns JSON
@@ -3687,19 +3665,36 @@ def lambda_handler(event, context):
                 'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
                 'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
             }
-        images = get_latest_starcam_images(3)
-        if images:
-            from routes.camera import render_camera_latest
-            html += render_camera_latest('Star Camera', images, theme_css_js=THEME_CSS_JS,
-                                         gallery_path='starcam/gallery', fullres_path='starcam/fullres',
-                                         videos_path='starcam/videos',
-                                         advanced_videos_path='starcam/timelapse')
-        else:
-            return {
-                'statusCode': 502,
-                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Star Camera</h1><p>No images yet.</p></body></html>',
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
+        # Simplified 2026-05-20 to mirror /skycam: drop the 3-latest-
+        # images carousel + "View Full Gallery" button. Advanced player
+        # is the primary CTA.
+        html += f'''{THEME_CSS_JS}
+            <title>Star Camera</title>
+            <style>
+                body {{ font-family: var(--font); text-align: center; margin: 1rem;
+                    background: var(--bg); color: var(--text); }}
+                h1 {{ margin: 0.6rem 0; font-size: 1.4rem; }}
+                .links {{ display: flex; flex-wrap: wrap; gap: 0.4rem;
+                    justify-content: center; align-items: center;
+                    max-width: 900px; margin: 0.4rem auto; }}
+                .link {{ display: inline-block; padding: 0.35rem 0.9rem;
+                    background: var(--card-bg); color: var(--accent);
+                    text-decoration: none; border-radius: 8px;
+                    border: 1px solid var(--divider); font-size: 0.9rem;
+                    transition: opacity 0.2s; }}
+                .link:hover {{ opacity: 0.8; }}
+                .link.primary {{ background: var(--accent); color: white;
+                    font-weight: 600; padding: 0.45rem 1.1rem; }}
+            </style>
+            <div style="text-align: center; margin-bottom: 0.6rem;">
+              <a href="/contents" style="color: var(--accent); text-decoration: none;
+                font-size: 0.85rem;">Home</a>
+            </div>
+            <h1>Star Camera</h1>
+            <div class="links">
+              <a href="/starcam/timelapse" class="link primary">▶ Advanced player</a>
+              <a href="/starcam/videos" class="link">Videos</a>
+            </div>'''
 
     elif path.startswith(f'/{stage}/starcam/gallery') or path.startswith('/starcam/gallery'):
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
