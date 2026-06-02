@@ -677,6 +677,250 @@ _VIDEO_PAGE_STYLE = '''
         </style>'''
 
 
+VERDICT_GLYPH = {
+    "clear":   ("☀",  "#34C759", "Clear"),
+    "cloudy":  ("☁",  "#8E8E93", "Cloudy"),
+    "rain":    ("🌧",  "#007AFF", "Rain"),
+    "moon":    ("🌕",  "#FF9500", "Moon / twilight"),
+    "no-data": ("·",   "#8E8E93", "No data"),
+}
+
+
+# Precomputed via astropy (sun-moon elongation extrema), 2026-2027.
+# Regenerate with `astro/bin/regen-moon-phases` if extending the range.
+_NEW_MOONS = {"2026-01-18", "2026-02-17", "2026-03-19", "2026-04-17",
+              "2026-05-16", "2026-06-15", "2026-07-14", "2026-08-12",
+              "2026-09-11", "2026-10-10", "2026-11-09", "2026-12-09",
+              "2027-01-07", "2027-02-06", "2027-03-08", "2027-04-06",
+              "2027-05-06", "2027-06-04", "2027-07-04", "2027-08-02",
+              "2027-08-31", "2027-09-30", "2027-10-29", "2027-11-28",
+              "2027-12-27"}
+_FULL_MOONS = {"2026-01-03", "2026-02-01", "2026-03-03", "2026-04-02",
+               "2026-05-01", "2026-05-31", "2026-06-30", "2026-07-29",
+               "2026-08-28", "2026-09-26", "2026-10-26", "2026-11-24",
+               "2026-12-24", "2027-01-22", "2027-02-20", "2027-03-22",
+               "2027-04-20", "2027-05-20", "2027-06-19", "2027-07-18",
+               "2027-08-17", "2027-09-15", "2027-10-15", "2027-11-14",
+               "2027-12-13"}
+
+
+def _moon_phase_marker(year: int, month: int, day: int) -> tuple[str, str] | None:
+    iso = f"{year:04d}-{month:02d}-{day:02d}"
+    if iso in _NEW_MOONS:
+        return ("●", "#8E8E93")
+    if iso in _FULL_MOONS:
+        return ("○", "#FFFFFF")
+    return None
+
+
+def render_starcam_nights_index(nights):
+    """Calendar overview at /starcam/nights.
+
+    nights: list of dicts {night, verdict, hours_ok, hours_total, pole_spread_px}
+            sorted newest-first.
+    """
+    from datetime import date as _date, timedelta as _td
+
+    by_iso = {n["night"]: n for n in nights}
+    today = _date.today()
+    # Anchor: Monday of the current week.
+    monday_this_week = today - _td(days=today.weekday())
+    # Earliest week: Monday of the week containing the oldest night (or
+    # this week if no data yet).
+    oldest_iso = min(by_iso) if by_iso else today.isoformat()
+    oldest = _date.fromisoformat(oldest_iso)
+    monday_oldest = oldest - _td(days=oldest.weekday())
+    n_weeks = ((monday_this_week - monday_oldest).days // 7) + 1
+
+    rows = []
+    last_month = None
+    for w in range(n_weeks):
+        week_start = monday_this_week - _td(days=7 * w)
+        # Month divider when the row's *Sunday* (week_start + 6) is in
+        # a different month from the previous row's Sunday.
+        week_end = week_start + _td(days=6)
+        month_label = week_end.strftime("%B %Y")
+        if month_label != last_month:
+            rows.append(
+                f'<div style="grid-column:1 / -1;color:#8E8E93;font-size:0.8rem;'
+                f'margin:0.6rem 0 0.2rem;">{month_label}</div>')
+            last_month = month_label
+
+        for i in range(7):
+            d = week_start + _td(days=i)
+            moon = _moon_phase_marker(d.year, d.month, d.day)
+            moon_html = (f'<span style="position:absolute;top:3px;right:5px;'
+                         f'color:{moon[1]};font-size:0.85rem;line-height:1;">'
+                         f'{moon[0]}</span>') if moon else ''
+            day_label = f'{d.day}'
+            if d > today:
+                # Future day — placeholder.
+                rows.append(
+                    f'<div style="position:relative;aspect-ratio:1;'
+                    f'background:#050505;border-radius:8px;padding:6px;'
+                    f'color:#1a1a1a;font-size:0.75rem;">{day_label}{moon_html}</div>')
+                continue
+            n = by_iso.get(d.isoformat())
+            if n is None:
+                rows.append(
+                    f'<div style="position:relative;aspect-ratio:1;'
+                    f'background:#0a0a0a;border-radius:8px;padding:6px;'
+                    f'color:#3a3a3a;font-size:0.75rem;">{day_label}{moon_html}</div>')
+                continue
+            glyph, colour, _ = VERDICT_GLYPH.get(
+                n["verdict"], VERDICT_GLYPH["no-data"])
+            rows.append(
+                f'<a href="/starcam/night/{n["night"]}" style="position:relative;'
+                f'display:flex;flex-direction:column;aspect-ratio:1;'
+                f'background:#161616;border-radius:8px;padding:6px;'
+                f'text-decoration:none;color:#E0E0E0;border:1px solid {colour};">'
+                f'<span style="font-size:0.75rem;color:#8E8E93;">{day_label}</span>'
+                f'<span style="flex:1;display:flex;align-items:center;'
+                f'justify-content:center;font-size:1.4rem;color:{colour};">'
+                f'{glyph}</span>{moon_html}</a>')
+
+    months_html = [
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);'
+        'gap:6px;max-width:560px;">'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Mon</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Tue</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Wed</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Thu</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Fri</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Sat</div>'
+        '<div style="font-size:0.7rem;color:#8E8E93;text-align:center;">Sun</div>'
+        + "".join(rows) +
+        '</div>'
+    ]
+
+    legend = " · ".join(
+        f'<span style="color:{c};">{g}</span> {label}'
+        for v, (g, c, label) in VERDICT_GLYPH.items())
+    legend += (' · <span style="color:#FFFFFF;">○</span> full moon'
+               ' · <span style="color:#8E8E93;">●</span> new moon')
+
+    return f'''<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Camera — Nights</title>
+<style>
+  body {{ background: #000; color: #E0E0E0;
+    font-family: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif;
+    margin: 0; padding: 1rem; max-width: 1100px; margin: 0 auto; }}
+  a {{ color: #007AFF; text-decoration: none; }}
+  .nav {{ font-size: 0.85rem; margin-bottom: 0.6rem; }}
+  .legend {{ color: #8E8E93; font-size: 0.85rem; margin: 0.4rem 0 1rem; }}
+</style>
+</head><body>
+<div class="nav"><a href="/starcam">← Star Camera</a> · <a href="/contents">Home</a></div>
+<h1 style="margin:0.6rem 0;font-size:1.4rem;">Nights</h1>
+<div class="legend">{legend}</div>
+{"".join(months_html) or "<p style='color:#8E8E93;'>No nights published yet.</p>"}
+</body></html>'''
+
+
+def render_starcam_night_results(night_str, summary, urls):
+    """Public per-night results page for /starcam/night/<YYYY-MM-DD>.
+
+    summary: parsed summary.json (includes verdict, aggregate, hours[]).
+    urls:    dict of presigned URLs keyed by basename
+             (brightness.png, all-night-derot.jpg, sum_HH.jpg, ...).
+    """
+    verdict = summary.get("verdict", "no-data")
+    glyph, colour, label = VERDICT_GLYPH.get(verdict, VERDICT_GLYPH["no-data"])
+    agg = summary.get("aggregate", {}) or {}
+    hours = sorted(summary.get("hours", []) or [],
+                   key=lambda h: (int(h["hh"]) + 24) % 36)
+
+    brightness_img = ""
+    if urls.get("brightness.png"):
+        brightness_img = (
+            f'<img src="{urls["brightness.png"]}" '
+            f'alt="brightness vs time" style="width:100%;max-width:960px;">')
+
+    derot_img = ""
+    if urls.get("all-night-derot.jpg"):
+        derot_img = (
+            f'<h2>All-night derotation</h2>'
+            f'<img src="{urls["all-night-derot.jpg"]}" '
+            f'alt="all-night derot" style="width:100%;max-width:960px;'
+            f'background:#000;">')
+
+    hour_cards = []
+    for h in hours:
+        hh = h["hh"]
+        thumb_url = urls.get(f"sum_{hh}.jpg")
+        thumb = (f'<img src="{thumb_url}" alt="sum_{hh}" '
+                 f'style="width:100%;border-radius:8px;background:#000;">'
+                 if thumb_url else '<div style="height:120px;'
+                 'background:#161616;border-radius:8px;"></div>')
+        mean = h.get("mean_brightness")
+        mean_str = f"{mean:.2f}" if mean is not None else "—"
+        status = h.get("status", "")
+        status_colour = ("#34C759" if status == "ok"
+                         else "#FF9500" if status == "skipped-bright"
+                         else "#8E8E93")
+        hour_cards.append(
+            f'<div style="background:#161616;border-radius:12px;padding:10px;">'
+            f'{thumb}'
+            f'<div style="display:flex;justify-content:space-between;'
+            f'align-items:center;margin-top:6px;">'
+            f'<span style="font-weight:600;">{hh}:00</span>'
+            f'<span style="color:#8E8E93;font-size:0.85rem;">'
+            f'<span style="color:{status_colour};">●</span> {mean_str}</span>'
+            f'</div></div>')
+
+    wall = summary.get("wall_seconds") or 0
+    wall_str = f"{wall // 60}m {wall % 60}s" if wall else "—"
+    spread = agg.get("pole_spread_px")
+    spread_str = f"{spread:.0f} px" if spread is not None else "—"
+
+    return f'''<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Camera — {night_str}</title>
+<style>
+  :root {{
+    --bg: #000; --card-bg: #161616; --text: #E0E0E0;
+    --muted: #8E8E93; --accent: #007AFF; --divider: #2C2C2E;
+    --font: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif;
+  }}
+  body {{ background: var(--bg); color: var(--text); font-family: var(--font);
+         margin: 0; padding: 1rem; max-width: 1100px; margin: 0 auto; }}
+  a {{ color: var(--accent); text-decoration: none; }}
+  h1 {{ margin: 0.6rem 0; font-size: 1.4rem; }}
+  h2 {{ margin: 1.4rem 0 0.6rem; font-size: 1.1rem; color: var(--muted);
+        font-weight: 500; }}
+  .verdict {{ display: inline-flex; align-items: center; gap: 0.4rem;
+              padding: 0.25rem 0.7rem; background: var(--card-bg);
+              border-radius: 999px; border: 1px solid {colour};
+              color: {colour}; font-size: 0.9rem; }}
+  .stats {{ display: flex; flex-wrap: wrap; gap: 1.2rem; color: var(--muted);
+            font-size: 0.85rem; margin: 0.6rem 0 1.2rem; }}
+  .hour-grid {{ display: grid; grid-template-columns: repeat(auto-fill,
+                 minmax(140px, 1fr)); gap: 10px; }}
+  .nav {{ font-size: 0.85rem; margin-bottom: 0.6rem; }}
+</style>
+</head><body>
+<div class="nav"><a href="/starcam">← Star Camera</a> · <a href="/contents">Home</a></div>
+<h1>Star Camera — {night_str}</h1>
+<div class="verdict">{glyph} {label}</div>
+<div class="stats">
+  <span>Hours OK: <b style="color:var(--text);">{agg.get('hours_ok', 0)}/{agg.get('hours_total', 0)}</b></span>
+  <span>Skipped (bright): <b style="color:var(--text);">{agg.get('hours_skipped_bright', 0)}</b></span>
+  <span>Pole spread: <b style="color:var(--text);">{spread_str}</b></span>
+  <span>Wall time: <b style="color:var(--text);">{wall_str}</b></span>
+</div>
+<h2>Brightness vs time</h2>
+{brightness_img}
+{derot_img}
+<h2>Per-hour stacks</h2>
+<div class="hour-grid">{''.join(hour_cards)}</div>
+</body></html>'''
+
+
 def render_skycam_player(video_url, title, hours=None):
     """Render a cast-enabled video player with clock overlay and loop."""
     import json

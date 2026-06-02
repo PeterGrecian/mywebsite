@@ -3658,13 +3658,82 @@ def lambda_handler(event, context):
         else:
             html += '<p>No image specified.</p>'
 
+    elif (path == f'/{stage}/starcam/nights' or path == '/starcam/nights'):
+        # PUBLIC — calendar index of published nights.
+        import json as _json
+        try:
+            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            paginator = s3.get_paginator('list_objects_v2')
+            nights = []
+            for page_resp in paginator.paginate(
+                    Bucket=STARCAM_BUCKET, Prefix='nights/',
+                    Delimiter='/'):
+                for cp in page_resp.get('CommonPrefixes') or []:
+                    night_str = cp['Prefix'].split('/')[-2]
+                    try:
+                        obj = s3.get_object(
+                            Bucket=STARCAM_BUCKET,
+                            Key=f'nights/{night_str}/summary.json')
+                        s = _json.loads(obj['Body'].read())
+                        agg = s.get('aggregate', {}) or {}
+                        nights.append({
+                            'night': night_str,
+                            'verdict': s.get('verdict', 'no-data'),
+                            'hours_ok': agg.get('hours_ok', 0),
+                            'hours_total': agg.get('hours_total', 0),
+                            'pole_spread_px': agg.get('pole_spread_px'),
+                        })
+                    except Exception:
+                        continue
+            nights.sort(key=lambda n: n['night'], reverse=True)
+        except Exception as e:
+            return {'statusCode': 500,
+                    'body': f'<p>error: {e}</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        from routes.camera import render_starcam_nights_index
+        return {'statusCode': 200,
+                'body': render_starcam_nights_index(nights),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif (path.startswith(f'/{stage}/starcam/night/') or
+          path.startswith('/starcam/night/')):
+        # PUBLIC — no auth. Per-night results page.
+        # Path: /starcam/night/YYYY-MM-DD
+        import json as _json
+        import re as _re
+        night_str = path.rstrip('/').rsplit('/', 1)[-1]
+        if not _re.fullmatch(r'\d{4}-\d{2}-\d{2}', night_str):
+            return {'statusCode': 400,
+                    'body': '<p>invalid night</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        key_prefix = f'nights/{night_str}/'
+        try:
+            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            obj = s3.get_object(Bucket=STARCAM_BUCKET,
+                                Key=f'{key_prefix}summary.json')
+            summary = _json.loads(obj['Body'].read())
+            # List the night's objects to pick up sum_*.jpg etc.
+            listing = s3.list_objects_v2(Bucket=STARCAM_BUCKET,
+                                         Prefix=key_prefix)
+            urls = {}
+            for item in listing.get('Contents', []) or []:
+                name = item['Key'].split('/')[-1]
+                urls[name] = get_presigned_url(
+                    item['Key'], bucket=STARCAM_BUCKET)
+        except s3.exceptions.NoSuchKey:
+            return {'statusCode': 404,
+                    'body': f'<p>no data for {night_str}</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        except Exception as e:
+            return {'statusCode': 500,
+                    'body': f'<p>error: {e}</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        from routes.camera import render_starcam_night_results
+        return {'statusCode': 200,
+                'body': render_starcam_night_results(night_str, summary, urls),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
     elif path == f'/{stage}/starcam' or path == '/starcam':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         # Simplified 2026-05-20 to mirror /skycam: drop the 3-latest-
         # images carousel + "View Full Gallery" button. Advanced player
         # is the primary CTA.
@@ -3692,17 +3761,12 @@ def lambda_handler(event, context):
             </div>
             <h1>Star Camera</h1>
             <div class="links">
-              <a href="/starcam/timelapse" class="link primary">▶ Advanced player</a>
+              <a href="/starcam/nights" class="link primary">🌌 Nights</a>
+              <a href="/starcam/timelapse" class="link">▶ Advanced player</a>
               <a href="/starcam/videos" class="link">Videos</a>
             </div>'''
 
     elif path.startswith(f'/{stage}/starcam/gallery') or path.startswith('/starcam/gallery'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
         week_param = query_params.get('week', '')
@@ -3776,12 +3840,6 @@ def lambda_handler(event, context):
             )
 
     elif path == f'/{stage}/starcam/timelapse' or path == '/starcam/timelapse':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         from routes.gardencam import _init_theme, render_timelapse_index
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -3791,12 +3849,6 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path == f'/{stage}/starcam/timelapse-day' or path == '/starcam/timelapse-day':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         from routes.gardencam import render_timelapse_day_fragment
         qs = event.get('queryStringParameters') or {}
         date = (qs.get('date') or '').strip()
@@ -3808,12 +3860,6 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path == f'/{stage}/starcam/player' or path == '/starcam/player':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         from routes.gardencam import _init_theme, render_skycam_player
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -3847,12 +3893,6 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif path.startswith(f'/{stage}/starcam/videos') or path.startswith('/starcam/videos'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
 
         s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
         videos = []
@@ -3880,12 +3920,6 @@ def lambda_handler(event, context):
                                    videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
 
     elif path.startswith(f'/{stage}/starcam/play') or path.startswith('/starcam/play'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
@@ -3904,12 +3938,6 @@ def lambda_handler(event, context):
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
 
     elif path.startswith(f'/{stage}/starcam/fullres') or path.startswith('/starcam/fullres'):
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="Star Camera"'}
-            }
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
