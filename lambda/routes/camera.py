@@ -1443,8 +1443,21 @@ def render_starcam_night_results(night_str, summary, urls):
             f'<img src="{urls["brightness.png"]}" '
             f'alt="brightness vs time" style="width:100%;max-width:960px;">')
 
+    # Hero image: the darkest hour's derotated stack (sum_HH.jpg), with the
+    # all-night derot as fallback for nights that don't have a darkest_hour.
     derot_img = ""
-    if urls.get("all-night-derot.jpg"):
+    dark_hh = summary.get("darkest_hour")
+    dark_url = urls.get(f"sum_{dark_hh}.jpg") if dark_hh else None
+    if dark_url:
+        dark_entry = next(
+            (h for h in hours if h["hh"] == dark_hh), None)
+        mean = dark_entry.get("mean_brightness") if dark_entry else None
+        mean_str = f" · mean {mean:.3f}" if mean is not None else ""
+        derot_img = (
+            f'<h2>Darkest hour — {dark_hh}:00 UTC{mean_str}</h2>'
+            f'<img src="{dark_url}" alt="darkest hour stack" '
+            f'style="width:100%;max-width:960px;background:#000;">')
+    elif urls.get("all-night-derot.jpg"):
         derot_img = (
             f'<h2>All-night derotation</h2>'
             f'<img src="{urls["all-night-derot.jpg"]}" '
@@ -1455,18 +1468,25 @@ def render_starcam_night_results(night_str, summary, urls):
     for h in hours:
         hh = h["hh"]
         thumb_url = urls.get(f"sum_{hh}.jpg")
-        thumb = (f'<img src="{thumb_url}" alt="sum_{hh}" '
-                 f'style="width:100%;border-radius:8px;background:#000;">'
-                 if thumb_url else '<div style="height:120px;'
-                 'background:#161616;border-radius:8px;"></div>')
+        if thumb_url:
+            thumb = (f'<a href="{thumb_url}" target="_blank">'
+                     f'<img src="{thumb_url}" alt="sum_{hh}" '
+                     f'style="width:100%;border-radius:8px;background:#000;'
+                     f'display:block;"></a>')
+        else:
+            thumb = ('<div style="height:120px;background:#161616;'
+                     'border-radius:8px;"></div>')
         mean = h.get("mean_brightness")
         mean_str = f"{mean:.2f}" if mean is not None else "—"
         status = h.get("status", "")
         status_colour = ("#34C759" if status == "ok"
                          else "#FF9500" if status == "skipped-bright"
                          else "#8E8E93")
+        border = ('border:1px solid #34C759;' if hh == dark_hh
+                  else 'border:1px solid #161616;')
         hour_cards.append(
-            f'<div style="background:#161616;border-radius:12px;padding:10px;">'
+            f'<div style="background:#161616;border-radius:12px;padding:10px;'
+            f'{border}">'
             f'{thumb}'
             f'<div style="display:flex;justify-content:space-between;'
             f'align-items:center;margin-top:6px;">'
