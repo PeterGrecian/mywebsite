@@ -3658,8 +3658,12 @@ def lambda_handler(event, context):
         else:
             html += '<p>No image specified.</p>'
 
-    elif (path == f'/{stage}/starcam/nights' or path == '/starcam/nights'):
+    elif (path in (f'/{stage}/starcam/nights', '/starcam/nights',
+                   f'/{stage}/starcam/nights/all', '/starcam/nights/all')):
         # PUBLIC — calendar index of published nights.
+        # /starcam/nights      = dashboard (hero + last 3 weeks + 'More')
+        # /starcam/nights/all  = full history calendar
+        is_dashboard = not path.endswith('/all')
         import json as _json
         try:
             s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
@@ -3686,13 +3690,24 @@ def lambda_handler(event, context):
                     except Exception:
                         continue
             nights.sort(key=lambda n: n['night'], reverse=True)
+            hero_url = None
+            hero_night = None
+            if is_dashboard:
+                # Hero plot lives at the bucket root (not under a date).
+                hero_url = get_presigned_url(
+                    'nights/brightness.png', bucket=STARCAM_BUCKET)
+                hero_night = nights[0]['night'] if nights else None
         except Exception as e:
             return {'statusCode': 500,
                     'body': f'<p>error: {e}</p>',
                     'headers': {'Content-Type': 'text/html'}}
         from routes.camera import render_starcam_nights_index
+        kwargs = {}
+        if is_dashboard:
+            kwargs = {'weeks_limit': 3, 'hero_url': hero_url,
+                      'hero_night': hero_night}
         return {'statusCode': 200,
-                'body': render_starcam_nights_index(nights),
+                'body': render_starcam_nights_index(nights, **kwargs),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif (path.startswith(f'/{stage}/starcam/night/') or

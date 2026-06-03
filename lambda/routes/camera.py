@@ -681,7 +681,6 @@ VERDICT_GLYPH = {
     "clear":   ("☀",  "#34C759", "Clear"),
     "cloudy":  ("☁",  "#8E8E93", "Cloudy"),
     "rain":    ("🌧",  "#007AFF", "Rain"),
-    "moon":    ("🌕",  "#FF9500", "Moon / twilight"),
     "no-data": ("·",   "#8E8E93", "No data"),
 }
 
@@ -1283,11 +1282,17 @@ def _moon_up_str(year: int, month: int, day: int) -> str | None:
 
 
 
-def render_starcam_nights_index(nights):
+def render_starcam_nights_index(nights, *, weeks_limit=None, hero_url=None,
+                                hero_night=None):
     """Calendar overview at /starcam/nights.
 
     nights: list of dicts {night, verdict, hours_ok, hours_total, pole_spread_px}
             sorted newest-first.
+    weeks_limit: if set, only render the last N weeks (current week + N-1
+                 prior). None = all history.
+    hero_url:   presigned URL for the multi-night overlay brightness plot.
+                If provided, renders as the dashboard hero above the calendar.
+    hero_night: ISO date of the latest night (for the hero caption + link).
     """
     from datetime import date as _date, timedelta as _td
 
@@ -1295,12 +1300,15 @@ def render_starcam_nights_index(nights):
     today = _date.today()
     # Anchor: Monday of the current week.
     monday_this_week = today - _td(days=today.weekday())
-    # Earliest week: Monday of the week containing the oldest night (or
-    # this week if no data yet).
-    oldest_iso = min(by_iso) if by_iso else today.isoformat()
-    oldest = _date.fromisoformat(oldest_iso)
-    monday_oldest = oldest - _td(days=oldest.weekday())
-    n_weeks = ((monday_this_week - monday_oldest).days // 7) + 1
+    if weeks_limit is not None:
+        n_weeks = weeks_limit
+    else:
+        # Earliest week: Monday of the week containing the oldest night (or
+        # this week if no data yet).
+        oldest_iso = min(by_iso) if by_iso else today.isoformat()
+        oldest = _date.fromisoformat(oldest_iso)
+        monday_oldest = oldest - _td(days=oldest.weekday())
+        n_weeks = ((monday_this_week - monday_oldest).days // 7) + 1
 
     rows = []
     last_month = None
@@ -1370,6 +1378,29 @@ def render_starcam_nights_index(nights):
     legend += (' · <span style="font-family:monospace;color:#8E8E93;">22-03</span>'
                ' moon-up hours (UTC, dark window 20-04)')
 
+    hero_html = ''
+    if hero_url:
+        caption = (f'Latest: <a href="/starcam/night/{hero_night}">{hero_night}</a>'
+                   if hero_night else 'Latest nights')
+        hero_html = (
+            f'<a href="/starcam/night/{hero_night}" '
+            f'style="display:block;margin:0.6rem 0 1.2rem;">'
+            f'<img src="{hero_url}" alt="recent nights brightness" '
+            f'style="width:100%;max-width:960px;border-radius:8px;'
+            f'background:#fff;"></a>'
+            f'<div style="color:#8E8E93;font-size:0.85rem;margin:-0.6rem 0 1.2rem;">'
+            f'{caption}</div>'
+        ) if hero_night else (
+            f'<img src="{hero_url}" alt="recent nights brightness" '
+            f'style="width:100%;max-width:960px;border-radius:8px;'
+            f'background:#fff;margin:0.6rem 0 1.2rem;">'
+        )
+
+    more_html = ''
+    if weeks_limit is not None:
+        more_html = ('<div style="margin-top:1rem;">'
+                     '<a href="/starcam/nights/all">More nights →</a></div>')
+
     return f'''<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -1386,8 +1417,10 @@ def render_starcam_nights_index(nights):
 </head><body>
 <div class="nav"><a href="/starcam">← Star Camera</a> · <a href="/contents">Home</a></div>
 <h1 style="margin:0.6rem 0;font-size:1.4rem;">Nights</h1>
+{hero_html}
 <div class="legend">{legend}</div>
 {"".join(months_html) or "<p style='color:#8E8E93;'>No nights published yet.</p>"}
+{more_html}
 </body></html>'''
 
 
