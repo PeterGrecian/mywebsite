@@ -1,6 +1,6 @@
 [
   {"path": "cv", "title": "CV / Curriculum Vitae", "description": "professional experience and skills", "color": "pastel-lavender", "sort_order": 1, "visible": false},
-  {"path": "starcam", "title": "Star Camera", "description": "zenith timelapse — every 20 minutes", "color": "pastel-blue", "sort_order": 2, "visible": true, "auth_required": true},
+  {"path": "starcam", "title": "Star Camera", "description": "", "color": "pastel-blue", "sort_order": 2, "visible": true},
   {"path": "skycam", "title": "Sky Camera", "description": "sky timelapse — daily and hourly renders", "color": "pastel-blue", "sort_order": 3, "visible": true},
   {"path": "springcam", "title": "Spring Camera", "description": "spring timelapse — every 20 minutes", "color": "pastel-green", "sort_order": 4, "visible": true},
   {"path": "stereo", "title": "Stereo Viewer", "description": "WebXR stereo image and video viewer for Quest 2", "color": "pastel-lavender", "sort_order": 5, "visible": true},

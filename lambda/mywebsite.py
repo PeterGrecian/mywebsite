@@ -3658,11 +3658,12 @@ def lambda_handler(event, context):
         else:
             html += '<p>No image specified.</p>'
 
-    elif (path in (f'/{stage}/starcam/nights', '/starcam/nights',
+    elif (path in (f'/{stage}/starcam', '/starcam',
+                   f'/{stage}/starcam/nights', '/starcam/nights',
                    f'/{stage}/starcam/nights/all', '/starcam/nights/all')):
         # PUBLIC — calendar index of published nights.
-        # /starcam/nights      = dashboard (hero + last 3 weeks + 'More')
-        # /starcam/nights/all  = full history calendar
+        # /starcam, /starcam/nights = dashboard (hero + last 3 weeks + 'More')
+        # /starcam/nights/all       = full history calendar
         is_dashboard = not path.endswith('/all')
         import json as _json
         try:
@@ -3747,39 +3748,6 @@ def lambda_handler(event, context):
         return {'statusCode': 200,
                 'body': render_starcam_night_results(night_str, summary, urls),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif path == f'/{stage}/starcam' or path == '/starcam':
-        # Simplified 2026-05-20 to mirror /skycam: drop the 3-latest-
-        # images carousel + "View Full Gallery" button. Advanced player
-        # is the primary CTA.
-        html += f'''{THEME_CSS_JS}
-            <title>Star Camera</title>
-            <style>
-                body {{ font-family: var(--font); text-align: center; margin: 1rem;
-                    background: var(--bg); color: var(--text); }}
-                h1 {{ margin: 0.6rem 0; font-size: 1.4rem; }}
-                .links {{ display: flex; flex-wrap: wrap; gap: 0.4rem;
-                    justify-content: center; align-items: center;
-                    max-width: 900px; margin: 0.4rem auto; }}
-                .link {{ display: inline-block; padding: 0.35rem 0.9rem;
-                    background: var(--card-bg); color: var(--accent);
-                    text-decoration: none; border-radius: 8px;
-                    border: 1px solid var(--divider); font-size: 0.9rem;
-                    transition: opacity 0.2s; }}
-                .link:hover {{ opacity: 0.8; }}
-                .link.primary {{ background: var(--accent); color: white;
-                    font-weight: 600; padding: 0.45rem 1.1rem; }}
-            </style>
-            <div style="text-align: center; margin-bottom: 0.6rem;">
-              <a href="/contents" style="color: var(--accent); text-decoration: none;
-                font-size: 0.85rem;">Home</a>
-            </div>
-            <h1>Star Camera</h1>
-            <div class="links">
-              <a href="/starcam/nights" class="link primary">🌌 Nights</a>
-              <a href="/starcam/timelapse" class="link">▶ Advanced player</a>
-              <a href="/starcam/videos" class="link">Videos</a>
-            </div>'''
 
     elif path.startswith(f'/{stage}/starcam/gallery') or path.startswith('/starcam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}

@@ -1415,8 +1415,8 @@ def render_starcam_nights_index(nights, *, weeks_limit=None, hero_url=None,
   .legend {{ color: #8E8E93; font-size: 0.85rem; margin: 0.4rem 0 1rem; }}
 </style>
 </head><body>
-<div class="nav"><a href="/starcam">← Star Camera</a> · <a href="/contents">Home</a></div>
-<h1 style="margin:0.6rem 0;font-size:1.4rem;">Nights</h1>
+<div class="nav"><a href="/contents">← Home</a></div>
+<h1 style="margin:0.6rem 0;font-size:1.4rem;">Star Camera</h1>
 {hero_html}
 <div class="legend">{legend}</div>
 {"".join(months_html) or "<p style='color:#8E8E93;'>No nights published yet.</p>"}
@@ -1443,11 +1443,11 @@ def render_starcam_night_results(night_str, summary, urls):
             f'<img src="{urls["brightness.png"]}" '
             f'alt="brightness vs time" style="width:100%;max-width:960px;">')
 
-    # Hero image: the darkest hour's derotated stack (sum_HH.jpg), with the
-    # all-night derot as fallback for nights that don't have a darkest_hour.
+    # Hero image: the darkest hour's per-hour derotation (derot_HH.jpg),
+    # falling back to all-night-derot.jpg for nights without per-hour derots.
     derot_img = ""
     dark_hh = summary.get("darkest_hour")
-    dark_url = urls.get(f"sum_{dark_hh}.jpg") if dark_hh else None
+    dark_url = urls.get(f"derot_{dark_hh}.jpg") if dark_hh else None
     if dark_url:
         dark_entry = next(
             (h for h in hours if h["hh"] == dark_hh), None)
@@ -1467,10 +1467,10 @@ def render_starcam_night_results(night_str, summary, urls):
     hour_cards = []
     for h in hours:
         hh = h["hh"]
-        thumb_url = urls.get(f"sum_{hh}.jpg")
+        thumb_url = urls.get(f"derot_{hh}.jpg")
         if thumb_url:
             thumb = (f'<a href="{thumb_url}" target="_blank">'
-                     f'<img src="{thumb_url}" alt="sum_{hh}" '
+                     f'<img src="{thumb_url}" alt="derot_{hh}" '
                      f'style="width:100%;border-radius:8px;background:#000;'
                      f'display:block;"></a>')
         else:
