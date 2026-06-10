@@ -3658,6 +3658,33 @@ def lambda_handler(event, context):
         else:
             html += '<p>No image specified.</p>'
 
+    elif path == f'/{stage}/astro' or path == '/astro':
+        from routes.astro import render_astro_hub
+        return {
+            'statusCode': 200,
+            'body': render_astro_hub(theme_css_js=THEME_CSS_JS),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif path == f'/{stage}/astro/starcam' or path == '/astro/starcam':
+        return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
+
+    elif path == f'/{stage}/astro/astrocam' or path == '/astro/astrocam':
+        from routes.astro import render_astro_stub
+        return {
+            'statusCode': 200,
+            'body': render_astro_stub(theme_css_js=THEME_CSS_JS, title='Astro Camera'),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif path == f'/{stage}/astro/eclipticam' or path == '/astro/eclipticam':
+        from routes.astro import render_astro_stub
+        return {
+            'statusCode': 200,
+            'body': render_astro_stub(theme_css_js=THEME_CSS_JS, title='Ecliptic Camera'),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
     elif (path in (f'/{stage}/starcam', '/starcam',
                    f'/{stage}/starcam/nights', '/starcam/nights',
                    f'/{stage}/starcam/nights/all', '/starcam/nights/all')):
