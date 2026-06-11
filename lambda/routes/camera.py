@@ -1469,7 +1469,7 @@ def render_starcam_night_results(night_str, summary, urls):
         hh = h["hh"]
         thumb_url = urls.get(f"derot_{hh}.jpg")
         if thumb_url:
-            thumb = (f'<a href="{thumb_url}" target="_blank">'
+            thumb = (f'<a href="{thumb_url}">'
                      f'<img src="{thumb_url}" alt="derot_{hh}" '
                      f'style="width:100%;border-radius:8px;background:#000;'
                      f'display:block;"></a>')
@@ -1543,7 +1543,7 @@ def render_starcam_night_results(night_str, summary, urls):
 <h2>Brightness vs time</h2>
 {brightness_img}
 {derot_img}
-<h2>Per-hour stacks</h2>
+<h2>Per-hour stacks <span style="color:#8E8E93;font-weight:400;font-size:0.85rem;">(hour · mean brightness)</span></h2>
 <div class="hour-grid">{''.join(hour_cards)}</div>
 </body></html>'''
 

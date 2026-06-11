@@ -124,6 +124,29 @@ resource "aws_iam_role_policy" "s3_starcam" {
   })
 }
 
+# Unified astro deliverables bucket (unify-cameras): <camera>/nights/<date>/
+resource "aws_iam_role_policy" "s3_astro" {
+  name = "s3-astro"
+  role = aws_iam_role.mywebsite_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::astro-berrylands-eu-west-1",
+          "arn:aws:s3:::astro-berrylands-eu-west-1/*"
+        ]
+      }
+    ]
+  })
+}
+
 # SSM Parameter Store access
 resource "aws_iam_role_policy" "ssm_parameters" {
   name = "ssm-parameters"

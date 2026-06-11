@@ -7,6 +7,7 @@ from io import BytesIO
 from datetime import datetime, timezone, timedelta
 import json
 import math
+import re
 
 try:
     import boto3
@@ -17,6 +18,8 @@ except ImportError:
 GARDENCAM_BUCKET = "gardencam-berrylands-eu-west-1"
 GARDENCAM_REGION = "eu-west-1"
 STARCAM_BUCKET = "starcam-berrylands-eu-west-1"
+# Unified astro deliverables (unify-cameras): <camera>/nights/<date>/...
+ASTRO_BUCKET = "astro-berrylands-eu-west-1"
 GARDENCAM_PARAMETER_NAME = "/berrylands/gardencam/password"
 GARDENCAM_PASSWORD = None
 GARDENCAM_EARLIEST_IMAGE = "2026-01-19"  # First image: garden_20260119_185439.jpg
@@ -3669,21 +3672,72 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/astro/starcam' or path == '/astro/starcam':
         return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
 
-    elif path == f'/{stage}/astro/astrocam' or path == '/astro/astrocam':
-        from routes.astro import render_astro_stub
+    elif re.search(r'/astro/(astrocam|eclipticam)(/night/\d{4}-\d{2}-\d{2})?/?$',
+                   path):
+        # PUBLIC — live nightly deliverables (unify-cameras pipeline).
+        # /astro/<cam>                    -> dashboard (latest night)
+        # /astro/<cam>/night/YYYY-MM-DD  -> that night
+        import json as _json
+        m = re.search(
+            r'/astro/(astrocam|eclipticam)(?:/night/(\d{4}-\d{2}-\d{2}))?/?$',
+            path)
+        camera, night = m.group(1), m.group(2)
+        is_dashboard = night is None
+        titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera'}
+        subcams = {'astrocam': [None], 'eclipticam': ['v3w', 'v1']}[camera]
+        sub_labels = {'v3w': 'IMX708 Wide (v3w)', 'v1': 'OV5647 (v1)'}
+        try:
+            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            paginator = s3.get_paginator('list_objects_v2')
+            nights = []
+            for page_resp in paginator.paginate(
+                    Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/',
+                    Delimiter='/'):
+                for cp in page_resp.get('CommonPrefixes') or []:
+                    nights.append(cp['Prefix'].split('/')[-2])
+            nights.sort(reverse=True)
+            if is_dashboard:
+                if not nights:
+                    from routes.astro import render_astro_stub
+                    return {
+                        'statusCode': 200,
+                        'body': render_astro_stub(
+                            theme_css_js=THEME_CSS_JS, title=titles[camera]),
+                        'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+                night = nights[0]
+            # One listing for the night, then route names to subcam sections.
+            listing = s3.list_objects_v2(
+                Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/{night}/')
+            names = {item['Key'].split('/')[-1]: item['Key']
+                     for item in listing.get('Contents', []) or []}
+            sections = []
+            for sub in subcams:
+                stem = f'{sub}_' if sub else ''
+                summary = None
+                if f'{stem}summary.json' in names:
+                    obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                        Key=names[f'{stem}summary.json'])
+                    summary = _json.loads(obj['Body'].read())
+                urls = {}
+                for base in ('derot.jpg', 'max.jpg', 'brightness.png'):
+                    if f'{stem}{base}' in names:
+                        urls[base] = get_presigned_url(
+                            names[f'{stem}{base}'], bucket=ASTRO_BUCKET)
+                if summary or urls:
+                    sections.append({'label': sub_labels.get(sub),
+                                     'summary': summary, 'urls': urls})
+        except Exception as e:
+            return {'statusCode': 500,
+                    'body': f'<p>error: {e}</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        from routes.astro import render_astro_camera_page
         return {
             'statusCode': 200,
-            'body': render_astro_stub(theme_css_js=THEME_CSS_JS, title='Astro Camera'),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif path == f'/{stage}/astro/eclipticam' or path == '/astro/eclipticam':
-        from routes.astro import render_astro_stub
-        return {
-            'statusCode': 200,
-            'body': render_astro_stub(theme_css_js=THEME_CSS_JS, title='Ecliptic Camera'),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
+            'body': render_astro_camera_page(
+                theme_css_js=THEME_CSS_JS, title=titles[camera],
+                camera=camera, night=night, sections=sections,
+                nights=nights, is_dashboard=is_dashboard),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif (path in (f'/{stage}/starcam', '/starcam',
                    f'/{stage}/starcam/nights', '/starcam/nights',
