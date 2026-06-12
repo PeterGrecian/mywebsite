@@ -3682,7 +3682,7 @@ def lambda_handler(event, context):
             r'/astro/(astrocam|eclipticam)(?:/night/(\d{4}-\d{2}-\d{2}))?/?$',
             path)
         camera, night = m.group(1), m.group(2)
-        is_dashboard = night is None
+        is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
         titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera'}
         subcams = {'astrocam': [None], 'eclipticam': ['v3w', 'v1']}[camera]
         sub_labels = {'v3w': 'IMX708 Wide (v3w)', 'v1': 'OV5647 (v1)'}
@@ -3696,7 +3696,8 @@ def lambda_handler(event, context):
                 for cp in page_resp.get('CommonPrefixes') or []:
                     nights.append(cp['Prefix'].split('/')[-2])
             nights.sort(reverse=True)
-            if is_dashboard:
+
+            if is_calendar:
                 if not nights:
                     from routes.astro import render_astro_stub
                     return {
@@ -3704,7 +3705,41 @@ def lambda_handler(event, context):
                         'body': render_astro_stub(
                             theme_css_js=THEME_CSS_JS, title=titles[camera]),
                         'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-                night = nights[0]
+                # Build calendar cards: per-night thumbnail (preferred:
+                # v3w_max.jpg for eclipticam, max.jpg for astrocam) +
+                # summary.json for "X of Y frames stacked" line.
+                primary_sub = subcams[0]  # eclipticam -> 'v3w', astrocam -> None
+                stem = f'{primary_sub}_' if primary_sub else ''
+                nights_meta = []
+                for n in nights:
+                    thumb_url = None
+                    summary = None
+                    listing_n = s3.list_objects_v2(
+                        Bucket=ASTRO_BUCKET,
+                        Prefix=f'{camera}/nights/{n}/')
+                    names_n = {it['Key'].split('/')[-1]: it['Key']
+                               for it in listing_n.get('Contents', []) or []}
+                    if f'{stem}max.jpg' in names_n:
+                        thumb_url = get_presigned_url(
+                            names_n[f'{stem}max.jpg'], bucket=ASTRO_BUCKET)
+                    if f'{stem}summary.json' in names_n:
+                        try:
+                            obj = s3.get_object(
+                                Bucket=ASTRO_BUCKET,
+                                Key=names_n[f'{stem}summary.json'])
+                            summary = _json.loads(obj['Body'].read())
+                        except Exception:
+                            pass
+                    nights_meta.append({'night': n, 'thumb_url': thumb_url,
+                                        'summary': summary})
+                from routes.astro import render_astro_camera_calendar
+                return {
+                    'statusCode': 200,
+                    'body': render_astro_camera_calendar(
+                        theme_css_js=THEME_CSS_JS, title=titles[camera],
+                        camera=camera, nights_with_meta=nights_meta),
+                    'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
             # One listing for the night, then route names to subcam sections.
             listing = s3.list_objects_v2(
                 Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/{night}/')
@@ -3719,7 +3754,8 @@ def lambda_handler(event, context):
                                         Key=names[f'{stem}summary.json'])
                     summary = _json.loads(obj['Body'].read())
                 urls = {}
-                for base in ('derot.jpg', 'max.jpg', 'brightness.png'):
+                for base in ('sweep.mp4', 'derot.jpg', 'max.jpg',
+                             'brightness.png'):
                     if f'{stem}{base}' in names:
                         urls[base] = get_presigned_url(
                             names[f'{stem}{base}'], bucket=ASTRO_BUCKET)
@@ -3736,7 +3772,7 @@ def lambda_handler(event, context):
             'body': render_astro_camera_page(
                 theme_css_js=THEME_CSS_JS, title=titles[camera],
                 camera=camera, night=night, sections=sections,
-                nights=nights, is_dashboard=is_dashboard),
+                nights=nights, is_dashboard=False),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif (path in (f'/{stage}/starcam', '/starcam',

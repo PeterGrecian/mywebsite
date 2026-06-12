@@ -132,6 +132,16 @@ def _section(sec):
     heading = f'<h2>{label}</h2>' if label else ""
 
     imgs = []
+    # Hero: the sliding-window colour video (window-stack-sweep --rgb).
+    # Renders inline with native controls; playable in every modern browser.
+    sweep_url = urls.get("sweep.mp4")
+    if sweep_url:
+        imgs.append(
+            f'<video controls preload="metadata" playsinline '
+            f'poster="{urls.get("max.jpg", "")}"><source src="{sweep_url}" '
+            f'type="video/mp4">Your browser cannot play this clip.</video>'
+            f'<div class="caption">colour sweep — 10 min stack sliding 1 min '
+            f'per frame, 60 fps; story of the night in 5 seconds</div>')
     for key, cap in (("derot.jpg", "pole-derotated stack (darkest window)"),
                      ("max.jpg", "max stack — star trails"),
                      ("brightness.png", "per-frame brightness (log&#8322;)")):
@@ -160,6 +170,75 @@ def _section(sec):
     stats_html = f'<div class="stats">{"".join(stats)}</div>' if stats else ""
 
     return f'{heading}{stats_html}{"".join(imgs)}'
+
+
+def render_astro_camera_calendar(*, theme_css_js, title, camera,
+                                 nights_with_meta):
+    """Calendar of nights for a camera, newest first.
+
+    nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
+                               "summary": dict|None}
+    Each card links to /astro/<camera>/night/<night>.
+    Mirrors /starcam's per-night index in spirit but smaller scope.
+    """
+    if not nights_with_meta:
+        cards_html = '<p class="empty">No nights published yet.</p>'
+    else:
+        cards = []
+        for n in nights_with_meta:
+            night = n["night"]
+            thumb = n.get("thumb_url") or ""
+            s = n.get("summary") or {}
+            n_stacked = s.get("n_stacked")
+            n_frames = s.get("n_frames")
+            stats = (f'{n_stacked} of {n_frames} frames stacked'
+                     if n_stacked is not None and n_frames is not None
+                     else "")
+            poster = (f'<img src="{thumb}" alt="{night}" loading="lazy">'
+                      if thumb else
+                      '<div class="no-thumb">no preview</div>')
+            cards.append(
+                f'<a class="night-card" href="/astro/{camera}/night/{night}">'
+                f'<div class="night-thumb">{poster}</div>'
+                f'<div class="night-meta"><div class="night-date">{night}</div>'
+                f'<div class="night-stats">{stats}</div></div></a>')
+        cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1100px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .night-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }}
+    .night-card {{ display: block; background: var(--card-bg); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; }}
+    .night-card:hover {{ opacity: 0.85; }}
+    .night-thumb {{ aspect-ratio: 2304 / 1064; background: #000; overflow: hidden; }}
+    .night-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+    .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
+    .night-meta {{ padding: 0.6rem 0.8rem; }}
+    .night-date {{ font-weight: 600; }}
+    .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.15rem; }}
+    .empty {{ text-align: center; color: var(--text-secondary); }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{title}</h1>
+    <div class="subtitle">night-by-night colour sweeps and stacks</div>
+    {cards_html}
+    <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
 
 
 def render_astro_camera_page(*, theme_css_js, title, camera, night,
@@ -196,7 +275,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .nights {{ text-align: center; margin-bottom: 1.25rem; }}
     .nights a {{ display: inline-block; margin: 0.15rem 0.3rem; padding: 0.2rem 0.55rem; font-size: 0.8rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; }}
     .nights a.cur {{ color: var(--text); background: var(--divider, #2C2C2E); }}
-    img {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; }}
+    img, video {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
     .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
     .stat {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; }}
