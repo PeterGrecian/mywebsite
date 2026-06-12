@@ -181,14 +181,26 @@ def _section(sec):
 
 
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
-                                 nights_with_meta):
+                                 nights_with_meta,
+                                 combined_brightness_url=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
                                "summary": dict|None}
+    combined_brightness_url: presigned URL of the multi-night overlay
+        plot (or None — section is hidden if absent).
     Each card links to /astro/<camera>/night/<night>.
     Mirrors /starcam's per-night index in spirit but smaller scope.
     """
+    combined_html = ""
+    if combined_brightness_url:
+        combined_html = (
+            f'<a href="{combined_brightness_url}">'
+            f'<img class="combined" src="{combined_brightness_url}" '
+            f'alt="per-night brightness curves overlaid"></a>'
+            f'<div class="caption">per-night brightness curves '
+            f'(log&#8322; stops above pedestal vs BST clock)</div>')
+
     if not nights_with_meta:
         cards_html = '<p class="empty">No nights published yet.</p>'
     else:
@@ -233,6 +245,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-meta {{ padding: 0.6rem 0.8rem; }}
     .night-date {{ font-weight: 600; }}
     .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.15rem; }}
+    .combined {{ width: 100%; height: auto; border-radius: 12px; background: #fff; display: block; margin-bottom: 0.3rem; }}
+    .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
@@ -242,6 +256,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
   <div class="container">
     <h1>{title}</h1>
     <div class="subtitle">night-by-night colour sweeps and stacks</div>
+    {combined_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>

@@ -3738,12 +3738,25 @@ def lambda_handler(event, context):
                             pass
                     nights_meta.append({'night': n, 'thumb_url': thumb_url,
                                         'summary': summary})
+                # Multi-night combined brightness curve sits at the
+                # camera prefix root, refreshed each night by
+                # combined-brightness during publish-night-cam.
+                stem = f'{primary_sub}_' if primary_sub else ''
+                combined_key = f'{camera}/{stem}brightness-combined.png'
+                combined_url = None
+                try:
+                    s3.head_object(Bucket=ASTRO_BUCKET, Key=combined_key)
+                    combined_url = get_presigned_url(
+                        combined_key, bucket=ASTRO_BUCKET)
+                except Exception:
+                    pass
                 from routes.astro import render_astro_camera_calendar
                 return {
                     'statusCode': 200,
                     'body': render_astro_camera_calendar(
                         theme_css_js=THEME_CSS_JS, title=titles[camera],
-                        camera=camera, nights_with_meta=nights_meta),
+                        camera=camera, nights_with_meta=nights_meta,
+                        combined_brightness_url=combined_url),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
             # One listing for the night, then route names to subcam sections.
