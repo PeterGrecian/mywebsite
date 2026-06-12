@@ -146,7 +146,7 @@ def _section(sec):
         url = urls.get(key)
         if url:
             imgs.append(
-                f'<video controls preload="metadata" playsinline '
+                f'<video controls loop preload="metadata" playsinline '
                 f'poster="{poster}"><source src="{url}" type="video/mp4">'
                 f'Your browser cannot play this clip.</video>'
                 f'<div class="caption">{cap}</div>')
