@@ -132,16 +132,24 @@ def _section(sec):
     heading = f'<h2>{label}</h2>' if label else ""
 
     imgs = []
-    # Hero: the sliding-window colour video (window-stack-sweep --rgb).
-    # Renders inline with native controls; playable in every modern browser.
-    sweep_url = urls.get("sweep.mp4")
-    if sweep_url:
-        imgs.append(
-            f'<video controls preload="metadata" playsinline '
-            f'poster="{urls.get("max.jpg", "")}"><source src="{sweep_url}" '
-            f'type="video/mp4">Your browser cannot play this clip.</video>'
-            f'<div class="caption">colour sweep — 10 min stack sliding 1 min '
-            f'per frame, 60 fps; story of the night in 5 seconds</div>')
+    # Hero: the sliding-window colour video; mono sibling below for the
+    # science-leaning view. Both are window-stack-sweep outputs sharing
+    # the same time burn-in and autodetected window.
+    poster = urls.get("max.jpg", "")
+    for key, cap in (
+        ("sweep-colour.mp4",
+         "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
+         "story of the night in 5 seconds"),
+        ("sweep-mono.mp4",
+         "monochrome sweep — same window, greyscale (science view)"),
+    ):
+        url = urls.get(key)
+        if url:
+            imgs.append(
+                f'<video controls preload="metadata" playsinline '
+                f'poster="{poster}"><source src="{url}" type="video/mp4">'
+                f'Your browser cannot play this clip.</video>'
+                f'<div class="caption">{cap}</div>')
     for key, cap in (("derot.jpg", "pole-derotated stack (darkest window)"),
                      ("max.jpg", "max stack — star trails"),
                      ("brightness.png", "per-frame brightness (log&#8322;)")):

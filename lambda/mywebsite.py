@@ -3754,8 +3754,8 @@ def lambda_handler(event, context):
                                         Key=names[f'{stem}summary.json'])
                     summary = _json.loads(obj['Body'].read())
                 urls = {}
-                for base in ('sweep.mp4', 'derot.jpg', 'max.jpg',
-                             'brightness.png'):
+                for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
+                             'derot.jpg', 'max.jpg', 'brightness.png'):
                     if f'{stem}{base}' in names:
                         urls[base] = get_presigned_url(
                             names[f'{stem}{base}'], bucket=ASTRO_BUCKET)
