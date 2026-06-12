@@ -217,10 +217,16 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             poster = (f'<img src="{thumb}" alt="{night}" loading="lazy">'
                       if thumb else
                       '<div class="no-thumb">no preview</div>')
+            verdict = (s.get("verdict") or "").lower()
+            verdict_badge = ""
+            if verdict in ("clear", "cloudy", "no-data"):
+                verdict_badge = (
+                    f'<span class="verdict verdict-{verdict}">{verdict}</span>')
             cards.append(
                 f'<a class="night-card" href="/astro/{camera}/night/{night}">'
                 f'<div class="night-thumb">{poster}</div>'
-                f'<div class="night-meta"><div class="night-date">{night}</div>'
+                f'<div class="night-meta"><div class="night-date">{night}'
+                f'{verdict_badge}</div>'
                 f'<div class="night-stats">{stats}</div></div></a>')
         cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
 
@@ -245,6 +251,10 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-meta {{ padding: 0.6rem 0.8rem; }}
     .night-date {{ font-weight: 600; }}
     .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.15rem; }}
+    .verdict {{ display: inline-block; margin-left: 0.5rem; padding: 0.05rem 0.4rem; font-size: 0.7rem; font-weight: 500; border-radius: 6px; vertical-align: middle; text-transform: lowercase; }}
+    .verdict-clear {{ background: #1f3a1f; color: #6fcf6a; }}
+    .verdict-cloudy {{ background: #3a2f1f; color: #d6a04a; }}
+    .verdict-no-data {{ background: var(--divider, #2C2C2E); color: var(--text-secondary); }}
     .combined {{ width: 100%; height: auto; border-radius: 12px; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
