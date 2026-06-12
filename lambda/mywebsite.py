@@ -3719,9 +3719,15 @@ def lambda_handler(event, context):
                         Prefix=f'{camera}/nights/{n}/')
                     names_n = {it['Key'].split('/')[-1]: it['Key']
                                for it in listing_n.get('Contents', []) or []}
-                    if f'{stem}max.jpg' in names_n:
-                        thumb_url = get_presigned_url(
-                            names_n[f'{stem}max.jpg'], bucket=ASTRO_BUCKET)
+                    # Prefer the colour-sweep mid-frame thumb (a single
+                    # 10-min stack from the heart of the dark window).
+                    # Fall back to the all-night max for legacy nights
+                    # without a sweep.
+                    for thumb_key in (f'{stem}thumb.jpg', f'{stem}max.jpg'):
+                        if thumb_key in names_n:
+                            thumb_url = get_presigned_url(
+                                names_n[thumb_key], bucket=ASTRO_BUCKET)
+                            break
                     if f'{stem}summary.json' in names_n:
                         try:
                             obj = s3.get_object(
