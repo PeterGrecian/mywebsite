@@ -142,6 +142,10 @@ def _section(sec):
          "story of the night in 5 seconds"),
         ("sweep-mono.mp4",
          "monochrome sweep — same window, greyscale (science view)"),
+        ("sweep-diff.mp4",
+         "difference sweep — max(frame − window mean); the sky floor, "
+         "hot pixels, and cloud-glow cancel, leaving only trails and "
+         "transients"),
     ):
         url = urls.get(key)
         if url:
