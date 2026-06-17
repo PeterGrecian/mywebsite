@@ -1371,7 +1371,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   .top {{ display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }}
   .top a {{ color: var(--accent); text-decoration: none; }}
   .filename {{ color: var(--text-secondary); font-size: 0.9rem; }}
-  video {{ width: 100%; max-width: 1200px; display: block; margin: 0 auto; background: #000; border-radius: 8px; }}
+  video {{ width: 100%; max-width: 1200px; display: block; margin: 0 auto; background: #000; }}
   .controls {{ max-width: 1200px; margin: 0.75rem auto; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: center; }}
   button, .btn {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
   button:hover {{ opacity: 0.8; }}
