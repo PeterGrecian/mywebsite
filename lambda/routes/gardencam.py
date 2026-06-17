@@ -1472,8 +1472,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">space</td><td>play / pause</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>play backward · play forward (transport)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">p P</td><td>pace slower · faster (¼× ½× 1× 2× 4×)</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">m</td><td>cycle loop mode</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">&lt; &gt;</td><td>pace slower · faster (¼× ½× 1× 2× 4×)</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">u</td><td>cycle loop mode</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source (cycle)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">0 1 2</td><td>zoom: fit · 1× · 2× (zooms toward the mouse)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">3 4</td><td>brightness down · up (hold to ramp)</td></tr>
@@ -1920,14 +1920,15 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     else if (e.code === "ArrowLeft")  {{ stepFrame(-1); }}
     else if (e.code === "ArrowRight") {{ stepFrame(+1); }}
     // Transport (per design/splay-and-player-conventions.md):
-    //   , play backward · . play forward
-    //   p pace slower   · P pace faster
-    //   m cycle loop mode (was 'l'; freed for stills mode in Splay)
+    //   ,  play backward · . play forward
+    //   <  pace slower   · > pace faster (shift-,/shift-.)
+    //   u  cycle loop mode (free in both runtimes; Splay's m/p/l
+    //      stay on hot-pixel-mask, pixel-probe, list-mode).
     else if (e.key === ",") playReverse();
     else if (e.key === ".") playForward();
-    else if (e.key === "p") nudgeSpeed(-1);
-    else if (e.key === "P") nudgeSpeed(+1);
-    else if (e.key === "m" || e.key === "M") cycleLoopMode();
+    else if (e.key === "<") nudgeSpeed(-1);
+    else if (e.key === ">") nudgeSpeed(+1);
+    else if (e.key === "u" || e.key === "U") cycleLoopMode();
     else if (e.key === "[") setActiveClipIn(v.currentTime);
     else if (e.key === "]") setActiveClipOut(v.currentTime);
     else if (e.key === "+" || e.key === "=") addClipAtPlayhead();
