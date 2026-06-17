@@ -3705,7 +3705,14 @@ def lambda_handler(event, context):
                 return {'statusCode': 404,
                         'body': '<p>no mp4s for this night yet</p>',
                         'headers': {'Content-Type': 'text/html'}}
+            # The underlying render_skycam_player relies on CSS variables
+            # (--bg, --text, --accent, --divider) injected via _init_theme.
+            # Without this the HUD text disappears (text colour unset →
+            # black on dark overlay) and the timeline bar vanishes
+            # (background unset → transparent on white body).
+            from routes.gardencam import _init_theme
             from routes.astro import render_astro_player
+            _init_theme(THEME_CSS_JS)
             page = render_astro_player(camera=camera, night=night,
                                        sources=urls)
             return {'statusCode': 200, 'body': page,
