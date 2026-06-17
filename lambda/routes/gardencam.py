@@ -1367,21 +1367,23 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
 {_THEME_CSS_JS}
 <title>Sky Camera — {title}</title>
 <style>
-  body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
-  .top {{ display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }}
+  body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 0.4rem; }}
+  .top {{ display: flex; gap: 1rem; align-items: center; margin-bottom: 0.4rem; }}
   .top a {{ color: var(--accent); text-decoration: none; }}
   .filename {{ color: var(--text-secondary); font-size: 0.9rem; }}
   video {{ width: 100%; max-width: 1200px; display: block; margin: 0 auto; background: #000; }}
-  .controls {{ max-width: 1200px; margin: 0.75rem auto; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: center; }}
+  .controls {{ max-width: 1200px; margin: 0.4rem auto; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: center; }}
+  .controls.compact {{ gap: 0.25rem; margin: 0.3rem auto; }}
+  .controls.compact button {{ font-size: 0.8rem; padding: 0.2rem 0.55rem; }}
   button, .btn {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
   button:hover {{ opacity: 0.8; }}
   button.active {{ background: var(--accent); color: white; }}
-  .scrub {{ max-width: 1200px; margin: 0.5rem auto; position: relative; height: 40px; }}
-  .bar {{ position: absolute; top: 16px; left: 0; right: 0; height: 8px; background: var(--divider); border-radius: 4px; cursor: pointer; }}
-  .play-region {{ position: absolute; top: 16px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; pointer-events: none; }}
-  .clip-band {{ position: absolute; height: 8px; background: var(--accent); opacity: 0.18; border-radius: 4px; }}
+  .scrub {{ max-width: 1200px; margin: 0.25rem auto; position: relative; height: 30px; }}
+  .bar {{ position: absolute; top: 11px; left: 0; right: 0; height: 8px; background: var(--divider); border-radius: 4px; cursor: pointer; }}
+  .play-region {{ position: absolute; top: 11px; height: 8px; background: var(--accent); opacity: 0.4; border-radius: 4px; pointer-events: none; }}
+  .clip-band {{ position: absolute; top: 11px; height: 8px; background: var(--accent); opacity: 0.18; border-radius: 4px; }}
   .clip-band.active {{ opacity: 0.55; }}
-  .clip-mark {{ position: absolute; width: 2px; height: 24px; background: var(--accent); opacity: 0.4; }}
+  .clip-mark {{ position: absolute; top: 3px; width: 2px; height: 24px; background: var(--accent); opacity: 0.4; }}
   .clip-mark.active {{ opacity: 1; }}
   .scrub {{ touch-action: none; }}
   select.ctl, .menu {{ font: inherit; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; }}
@@ -1390,8 +1392,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   .menu-pop.open {{ display: block; }}
   .menu-pop button {{ display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 0.5rem 0.8rem; color: var(--text); border-radius: 0; }}
   .menu-pop button:hover {{ background: var(--divider); }}
-  .head {{ position: absolute; top: 12px; width: 4px; height: 16px; background: var(--text); border-radius: 2px; transform: translateX(-2px); pointer-events: none; }}
-  .marker {{ position: absolute; top: 8px; width: 2px; height: 24px; background: var(--accent); pointer-events: none; }}
+  .head {{ position: absolute; top: 7px; width: 4px; height: 16px; background: var(--text); border-radius: 2px; transform: translateX(-2px); pointer-events: none; }}
+  .marker {{ position: absolute; top: 3px; width: 2px; height: 24px; background: var(--accent); pointer-events: none; }}
   .marker::after {{ content: attr(data-label); position: absolute; top: -16px; left: -8px; font-size: 0.7rem; color: var(--accent); }}
   .time {{ font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 0.9rem; min-width: 9rem; text-align: center; }}
   .help {{ max-width: 1200px; margin: 0.5rem auto; color: var(--text-secondary); font-size: 0.8rem; text-align: center; }}
@@ -2146,12 +2148,18 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     v.load();
   }}
 
+  // Compact label for the source picker: strip .mp4, strip a leading
+  // "sweep-" if present (since the prefix is the same across siblings).
+  function compactLabel(s) {{
+    return s.replace(/\.mp4$/i, "").replace(/^sweep-/, "");
+  }}
   if (SOURCES.length > 1) {{
     const picker = document.getElementById("sourcePicker");
     picker.style.display = "flex";
+    picker.classList.add("compact");
     SOURCES.forEach((s, i) => {{
       const b = document.createElement("button");
-      b.textContent = (i + 1) + ". " + s.label;
+      b.textContent = compactLabel(s.label);
       if (i === 0) b.classList.add("active");
       b.onclick = () => swap(i);
       picker.appendChild(b);
