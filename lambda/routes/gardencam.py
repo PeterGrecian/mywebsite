@@ -1402,7 +1402,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     <span class="filename" id="filename">{title}</span>
   </div>
   <div class="controls" id="sourcePicker" style="display:none;"></div>
-  <div style="position:relative; max-width:1200px; margin:0 auto;">
+  <div style="position:relative; max-width:1200px; margin:0 auto; overflow:hidden;">
     <video id="v" src="{video_url}" preload="auto" playsinline
            x-webkit-airplay="allow"></video>
     <div id="spinner" style="display:none; position:absolute; top:50%; left:50%;
@@ -1473,7 +1473,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">p P</td><td>pace slower · faster (¼× ½× 1× 2× 4×)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">m</td><td>cycle loop mode</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source (cycle)</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">1–9</td><td>jump to source N</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">0 1 2</td><td>zoom: fit · 1× · 2× (zooms toward the mouse)</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">3 4</td><td>brightness down · up (hold to ramp)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">[ ]</td><td>set in / out of active clip</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">+ −</td><td>add clip at playhead · delete clip containing playhead</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">F</td><td>fullscreen</td></tr>
@@ -1792,19 +1793,41 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   }};
 
   // Timeline: click to seek; drag the bar to scrub.
+  // Throttled via rAF — pointermove fires hundreds of times/sec on a
+  // fast trackpad, and every currentTime= triggers a fresh decode.
+  // We coalesce to at most one seek per animation frame, using
+  // fastSeek() where the browser offers it (Firefox; Chrome ignores
+  // harmlessly) so the seek lands on the nearest keyframe during drag.
   let scrubbing = false;
-  function seekFromEvent(e) {{
+  let pendingX = null, rafSeek = null;
+  function applyPendingSeek() {{
+    rafSeek = null;
+    if (pendingX == null) return;
     const r = bar.getBoundingClientRect();
-    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
-    v.currentTime = (x / r.width) * dur();
+    const t = (pendingX / r.width) * dur();
+    pendingX = null;
+    if (typeof v.fastSeek === "function") v.fastSeek(t);
+    else v.currentTime = t;
     repaint();
   }}
+  function queueSeek(e) {{
+    const r = bar.getBoundingClientRect();
+    pendingX = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    if (rafSeek == null) rafSeek = requestAnimationFrame(applyPendingSeek);
+  }}
   bar.addEventListener("pointerdown", e => {{
-    scrubbing = true; bar.setPointerCapture(e.pointerId); seekFromEvent(e);
+    scrubbing = true; bar.setPointerCapture(e.pointerId); queueSeek(e);
   }});
-  bar.addEventListener("pointermove", e => {{ if (scrubbing) seekFromEvent(e); }});
+  bar.addEventListener("pointermove", e => {{ if (scrubbing) queueSeek(e); }});
   bar.addEventListener("pointerup",   e => {{
     scrubbing = false; try {{ bar.releasePointerCapture(e.pointerId); }} catch(_){{}}
+    // Final precise seek (not fastSeek) so the landing position is exact.
+    if (pendingX != null) {{
+      const r = bar.getBoundingClientRect();
+      v.currentTime = (pendingX / r.width) * dur();
+      pendingX = null; if (rafSeek != null) {{ cancelAnimationFrame(rafSeek); rafSeek = null; }}
+      repaint();
+    }}
   }});
   bar.addEventListener("pointercancel", () => {{ scrubbing = false; }});
 
@@ -1839,6 +1862,46 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     }}
   }}
 
+  // Zoom + brightness (Splay-aligned): 0 fit, 1 = 1:1, 2 = 2×.
+  // 3 darker, 4 brighter (held = ramp). Zoom origin = mouse position
+  // when the key is pressed; falls back to centre if pointer hasn't
+  // entered the video yet.
+  let mouseX = null, mouseY = null;  // last pointer pos over the video, in CSS px
+  v.addEventListener("pointermove", e => {{
+    const r = v.getBoundingClientRect();
+    mouseX = e.clientX - r.left; mouseY = e.clientY - r.top;
+  }});
+  v.addEventListener("pointerleave", () => {{ mouseX = mouseY = null; }});
+
+  let zoom = 1.0;       // 1.0 = fit; >1 = magnified
+  let panX = 0, panY = 0;  // CSS translate in px (negative = pan up/left)
+  let bright = 1.0;     // CSS filter: brightness multiplier
+  function applyTransform() {{
+    v.style.transform = `translate(${{panX}}px, ${{panY}}px) scale(${{zoom}})`;
+    v.style.transformOrigin = "0 0";
+    v.style.filter = bright === 1.0 ? "" : `brightness(${{bright}})`;
+  }}
+  function setZoom(target, ox, oy) {{
+    // target: "fit" | 1 | 2 — scale relative to fit. (CSS already
+    // displays video at "fit" size; 1 here means "1×fit" not 1px=1px.
+    // True 1:1 would need knowing the native size; defer.)
+    const r = v.getBoundingClientRect();
+    if (ox == null) {{ ox = r.width / 2; oy = r.height / 2; }}
+    // Convert old viewport-relative origin to content space, then keep
+    // that content point under (ox, oy) after the new zoom.
+    const cx = (ox - panX) / zoom;
+    const cy = (oy - panY) / zoom;
+    if (target === "fit") {{ zoom = 1.0; panX = 0; panY = 0; }}
+    else {{ zoom = target; panX = ox - cx * zoom; panY = oy - cy * zoom; }}
+    applyTransform();
+  }}
+  function nudgeBright(delta) {{
+    // Multiplicative steps so held-key ramp feels linear in stops.
+    const factor = delta > 0 ? 1.15 : 1 / 1.15;
+    bright = Math.max(0.05, Math.min(20.0, bright * factor));
+    applyTransform();
+  }}
+
   document.addEventListener("keydown", e => {{
     if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
     if (e.key === "Escape") {{ setHelp(false); return; }}
@@ -1861,7 +1924,13 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     else if (e.key === "-" || e.key === "_") delClipContainingPlayhead();
     else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
     else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
-    else if (e.key >= "1" && e.key <= "9") {{ const i = parseInt(e.key, 10) - 1; if (i < SOURCES.length) swap(i); }}
+    // Zoom + brightness (Splay convention, source jump dropped):
+    //   0 fit · 1 = 1× (= fit) · 2 = 2× zoom · 3 darker · 4 brighter
+    else if (e.key === "0") setZoom("fit", mouseX, mouseY);
+    else if (e.key === "1") setZoom(1.0, mouseX, mouseY);
+    else if (e.key === "2") setZoom(2.0, mouseX, mouseY);
+    else if (e.key === "3") nudgeBright(-1);
+    else if (e.key === "4") nudgeBright(+1);
     else if (e.key === "f" || e.key === "F") document.getElementById("fs").click();
   }});
 
