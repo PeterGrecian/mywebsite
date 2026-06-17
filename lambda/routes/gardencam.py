@@ -1795,13 +1795,21 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   }};
 
   // Timeline: click to seek; drag the bar to scrub.
-  // Throttled via rAF — pointermove fires hundreds of times/sec on a
-  // fast trackpad, and every currentTime= triggers a fresh decode.
-  // We coalesce to at most one seek per animation frame, using
-  // fastSeek() where the browser offers it (Firefox; Chrome ignores
-  // harmlessly) so the seek lands on the nearest keyframe during drag.
+  // Two-layer pattern:
+  //  - Visual head moves IMMEDIATELY on every pointermove (sync — the
+  //    user sees the scrub even before the video catches up).
+  //  - Actual seek is rAF-throttled (pointermove fires hundreds of
+  //    times/sec; each currentTime= triggers a fresh decode). Use
+  //    fastSeek() during drag if available (Firefox; Chrome ignores).
   let scrubbing = false;
   let pendingX = null, rafSeek = null;
+  function scrubHeadTo(x, w) {{
+    // Move the head and time readout to reflect the in-flight scrub
+    // position without waiting for the video to actually seek.
+    const t = (x / w) * dur();
+    head.style.left = (x / w * 100).toFixed(3) + "%";
+    if (timeEl) timeEl.textContent = `${{t.toFixed(3)}} / ${{dur().toFixed(3)}}`;
+  }}
   function applyPendingSeek() {{
     rafSeek = null;
     if (pendingX == null) return;
@@ -1810,11 +1818,11 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     pendingX = null;
     if (typeof v.fastSeek === "function") v.fastSeek(t);
     else v.currentTime = t;
-    repaint();
   }}
   function queueSeek(e) {{
     const r = bar.getBoundingClientRect();
     pendingX = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    scrubHeadTo(pendingX, r.width);   // immediate visual feedback
     if (rafSeek == null) rafSeek = requestAnimationFrame(applyPendingSeek);
   }}
   bar.addEventListener("pointerdown", e => {{
@@ -1984,6 +1992,26 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       enforceLoopAtEnd();
     }}
   }});
+  // Continuous head paint while playing. `timeupdate` only fires
+  // ~4 Hz, which makes the playhead jump visibly between updates.
+  // Use rVFC per-decoded-frame where available, falling back to
+  // rAF. Schedules itself; halts when paused.
+  let paintRafId = null;
+  function paintTick() {{
+    if (!playing) {{ paintRafId = null; return; }}
+    repaint();
+    if (hasRVFC) v.requestVideoFrameCallback(() => paintTick());
+    else paintRafId = requestAnimationFrame(paintTick);
+  }}
+  v.addEventListener("playing", () => {{
+    if (paintRafId == null && playing) {{
+      if (hasRVFC) v.requestVideoFrameCallback(() => paintTick());
+      else paintRafId = requestAnimationFrame(paintTick);
+    }}
+  }});
+  v.addEventListener("pause", () => {{
+    if (paintRafId != null) {{ cancelAnimationFrame(paintRafId); paintRafId = null; }}
+  }});
   // Browser fires `ended` and pauses the <video> on natural EOF. If
   // timeupdate didn't catch the wrap first (it can lag), the video
   // sits paused with `playing` still true — the play glyph stays as
@@ -2151,7 +2179,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   // Compact label for the source picker: strip .mp4, strip a leading
   // "sweep-" if present (since the prefix is the same across siblings).
   function compactLabel(s) {{
-    return s.replace(/\.mp4$/i, "").replace(/^sweep-/, "");
+    return s.replace(/\\.mp4$/i, "").replace(/^sweep-/, "");
   }}
   if (SOURCES.length > 1) {{
     const picker = document.getElementById("sourcePicker");
