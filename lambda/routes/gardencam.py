@@ -1886,26 +1886,39 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   }}
 
   // Enforce the out-marker / loop mode during native forward play.
+  function enforceLoopAtEnd() {{
+    if (loopMode === "pingpong" || loopMode === "all-pingpong") {{
+      if (loopMode === "all-pingpong" && CLIPS.length > 1) {{
+        if (activeClip < CLIPS.length - 1) {{ jumpToClip(activeClip + 1); }}
+        else {{ v.currentTime = hi(); pause(); playReverse(); }}
+      }} else {{
+        v.currentTime = hi(); pause(); playReverse();
+      }}
+    }}
+    else if (loopMode === "fwd-loop") {{
+      v.currentTime = lo();
+      if (v.paused) v.play().catch(() => {{}});
+    }}
+    else if (loopMode === "all-loop") {{
+      const next = (activeClip + 1) % Math.max(1, CLIPS.length);
+      if (CLIPS.length > 0) jumpToClip(next);
+      else {{ v.currentTime = lo();
+              if (v.paused) v.play().catch(() => {{}}); }}
+    }}
+    else {{ pause(); v.currentTime = hi(); }}
+  }}
   v.addEventListener("timeupdate", () => {{
     repaint();
     if (playing && dir > 0 && v.currentTime >= hi() - 0.01) {{
-      if (loopMode === "pingpong" || loopMode === "all-pingpong") {{
-        if (loopMode === "all-pingpong" && CLIPS.length > 1) {{
-          // Advance to next clip, or flip direction at the last.
-          if (activeClip < CLIPS.length - 1) {{ jumpToClip(activeClip + 1); }}
-          else {{ v.currentTime = hi(); pause(); playReverse(); }}
-        }} else {{
-          v.currentTime = hi(); pause(); playReverse();
-        }}
-      }}
-      else if (loopMode === "fwd-loop") {{ v.currentTime = lo(); }}
-      else if (loopMode === "all-loop") {{
-        const next = (activeClip + 1) % Math.max(1, CLIPS.length);
-        if (CLIPS.length > 0) jumpToClip(next);
-        else {{ v.currentTime = lo(); }}
-      }}
-      else {{ pause(); v.currentTime = hi(); }}
+      enforceLoopAtEnd();
     }}
+  }});
+  // Browser fires `ended` and pauses the <video> on natural EOF. If
+  // timeupdate didn't catch the wrap first (it can lag), the video
+  // sits paused with `playing` still true — the play glyph stays as
+  // pause and nothing happens. Run the same loop logic from `ended`.
+  v.addEventListener("ended", () => {{
+    if (playing && dir > 0) enforceLoopAtEnd();
   }});
 
   // ---- Stats / world time / fullscreen / pip / airplay / dl ----
