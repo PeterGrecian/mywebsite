@@ -3672,6 +3672,49 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/astro/starcam' or path == '/astro/starcam':
         return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
 
+    elif re.search(
+            r'/astro/(astrocam|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+            path):
+        # PUBLIC — advanced multi-source player for one night's deliverables
+        # + experiments. Reuses skycam's render_skycam_player (per project
+        # memory astro-website-player: shared player pattern). Lists every
+        # mp4 under <camera>/nights/<night>/ and every mp4 under the
+        # experiments/ subdir; presigns each; first is what loads, ↑/↓
+        # cycles. Frame-step, clip in/out, speed, loop, share-URL.
+        m = re.search(
+            r'/astro/(astrocam|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+            path)
+        camera, night = m.group(1), m.group(2)
+        try:
+            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            listing = s3.list_objects_v2(
+                Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/{night}/')
+            mp4_keys = []
+            for item in listing.get('Contents', []) or []:
+                k = item['Key']
+                if not k.endswith('.mp4'):
+                    continue
+                mp4_keys.append(k)
+            # Order: night-root deliverables first (they're the "story of
+            # the night"), then experiments alphabetically.
+            mp4_keys.sort(
+                key=lambda k: (1 if '/experiments/' in k else 0, k))
+            urls = [get_presigned_url(k, bucket=ASTRO_BUCKET)
+                    for k in mp4_keys]
+            if not urls:
+                return {'statusCode': 404,
+                        'body': '<p>no mp4s for this night yet</p>',
+                        'headers': {'Content-Type': 'text/html'}}
+            from routes.astro import render_astro_player
+            page = render_astro_player(camera=camera, night=night,
+                                       sources=urls)
+            return {'statusCode': 200, 'body': page,
+                    'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+        except Exception as e:
+            return {'statusCode': 500,
+                    'body': f'<p>error: {e}</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+
     elif re.search(r'/astro/(astrocam|eclipticam)(/night/\d{4}-\d{2}-\d{2})?/?$',
                    path):
         # PUBLIC — live nightly deliverables (unify-cameras pipeline).

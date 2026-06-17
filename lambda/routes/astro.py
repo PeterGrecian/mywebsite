@@ -278,6 +278,24 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
 </html>'''
 
 
+def render_astro_player(*, camera, night, sources):
+    """Advanced multi-source player for one night's astro outputs.
+
+    sources: list of presigned URLs (deliverables + experiments). The
+    first source loads on open; ↑/↓ or 1-9 cycle. Labels in the
+    source picker are derived from the URL filename by the underlying
+    player (e.g. 'sweep-colour.mp4', 'mci-colour-60.mp4').
+
+    Delegates to render_skycam_player from routes.gardencam — same
+    code, same affordances (scrub, frame-step, clip in/out, speed,
+    loop, share-URL, fullscreen, PIP, AirPlay, Cast). Per the
+    astro-website-player project memory we reuse skycam patterns
+    rather than build parallel ones.
+    """
+    from .gardencam import render_skycam_player
+    return render_skycam_player(key=None, srcs=sources)
+
+
 def render_astro_camera_page(*, theme_css_js, title, camera, night,
                              sections, nights, is_dashboard):
     """Camera dashboard / per-night page.
@@ -292,6 +310,11 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     nights_nav = (f'<div class="nights">{"".join(nav_links)}</div>'
                   if nav_links else "")
     subtitle = ("latest night" if is_dashboard else "night") + f" &middot; {night}"
+    player_link = (
+        f'<div class="player-link">'
+        f'<a href="/astro/{camera}/night/{night}/player">'
+        f'⚙ advanced player &mdash; frame-step, clip, compare</a>'
+        f'</div>')
 
     body = "".join(_section(sec) for sec in sections) or \
         '<p class="empty">No published data for this night.</p>'
@@ -312,6 +335,9 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .nights {{ text-align: center; margin-bottom: 1.25rem; }}
     .nights a {{ display: inline-block; margin: 0.15rem 0.3rem; padding: 0.2rem 0.55rem; font-size: 0.8rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; }}
     .nights a.cur {{ color: var(--text); background: var(--divider, #2C2C2E); }}
+    .player-link {{ text-align: center; margin: 0.5rem 0 1.25rem; }}
+    .player-link a {{ display: inline-block; padding: 0.4rem 0.9rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; font-size: 0.85rem; }}
+    .player-link a:hover {{ opacity: 0.85; }}
     img, video {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
     .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
@@ -328,6 +354,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     <h1>{title}</h1>
     <div class="subtitle">{subtitle}</div>
     {nights_nav}
+    {player_link}
     {body}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
