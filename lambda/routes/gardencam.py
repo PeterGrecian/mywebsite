@@ -1426,8 +1426,8 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     <button id="play" title="play / pause" style="min-width:3rem;">▶</button>
     <span class="time" id="time">0.000 / 0.000</span>
     <select id="loopSel" class="ctl" title="loop mode">
-      <option value="fwd-once" selected>→</option>
-      <option value="fwd-loop">↻</option>
+      <option value="fwd-once">→</option>
+      <option value="fwd-loop" selected>↻</option>
       <option value="pingpong">↔</option>
       <option value="rev-once">←</option>
       <option value="rev-loop">↺</option>
@@ -1556,8 +1556,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   let dir = 1;       // +1 fwd, -1 reverse
   let speed = 1.0;
   // loopMode: 'fwd-once' | 'fwd-loop' | 'pingpong' | 'rev-once' | 'rev-loop'
+  // Default per design/splay-and-player-conventions.md = loop.
   //         | 'all-loop' | 'all-pingpong'
-  let loopMode = "fwd-once";
+  let loopMode = "fwd-loop";
   let rafId = null;
   let lastTs = null;
 
