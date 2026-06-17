@@ -1468,13 +1468,14 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       <h2 style="color:var(--accent); margin-top:0;">Keyboard shortcuts</h2>
       <table style="width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;">
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">space</td><td>play / pause</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>play backward · play forward (transport)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>speed down / up</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">p P</td><td>pace slower · faster (¼× ½× 1× 2× 4×)</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">m</td><td>cycle loop mode</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source (cycle)</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">1–9</td><td>jump to source N</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">[ ]</td><td>set in / out of active clip</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">+ −</td><td>add clip at playhead · delete clip containing playhead</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">L</td><td>cycle loop mode</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">1–9</td><td>jump to source N</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">F</td><td>fullscreen</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">H / Esc</td><td>this help / close</td></tr>
       </table>
@@ -1710,6 +1711,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   speedSel.onchange = () => {{
     speed = parseFloat(speedSel.value);
     if (playing && dir > 0) v.playbackRate = speed;
+    speedSel.blur();  // return focus to body so keybindings fire
   }};
 
   const loopSel = document.getElementById("loopSel");
@@ -1721,6 +1723,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       if (want === 1 && dir < 0) playForward();
       else if (want === -1 && dir > 0) playReverse();
     }}
+    loopSel.blur();  // return focus to body so keybindings fire
   }};
 
   // Clip operations.
@@ -1755,6 +1758,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   document.getElementById("clipDel").onclick = delClipContainingPlayhead;
   document.getElementById("clipsSel").onchange = (e) => {{
     setActiveClip(parseInt(e.target.value, 10));
+    e.target.blur();  // return focus to body so keybindings fire
   }};
 
   function cycleLoopMode() {{
@@ -1841,13 +1845,19 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     if (e.code === "Space") {{ e.preventDefault(); toggle(); }}
     else if (e.code === "ArrowLeft")  {{ stepFrame(-1); }}
     else if (e.code === "ArrowRight") {{ stepFrame(+1); }}
-    else if (e.key === ",") nudgeSpeed(-1);
-    else if (e.key === ".") nudgeSpeed(+1);
+    // Transport (per design/splay-and-player-conventions.md):
+    //   , play backward · . play forward
+    //   p pace slower   · P pace faster
+    //   m cycle loop mode (was 'l'; freed for stills mode in Splay)
+    else if (e.key === ",") playReverse();
+    else if (e.key === ".") playForward();
+    else if (e.key === "p") nudgeSpeed(-1);
+    else if (e.key === "P") nudgeSpeed(+1);
+    else if (e.key === "m" || e.key === "M") cycleLoopMode();
     else if (e.key === "[") setActiveClipIn(v.currentTime);
     else if (e.key === "]") setActiveClipOut(v.currentTime);
     else if (e.key === "+" || e.key === "=") addClipAtPlayhead();
     else if (e.key === "-" || e.key === "_") delClipContainingPlayhead();
-    else if (e.key === "l" || e.key === "L") cycleLoopMode();
     else if (e.code === "ArrowUp")   {{ e.preventDefault(); swap(curIdx - 1); }}
     else if (e.code === "ArrowDown") {{ e.preventDefault(); swap(curIdx + 1); }}
     else if (e.key >= "1" && e.key <= "9") {{ const i = parseInt(e.key, 10) - 1; if (i < SOURCES.length) swap(i); }}
