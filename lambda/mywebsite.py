@@ -3734,18 +3734,31 @@ def lambda_handler(event, context):
         camera, night = m.group(1), m.group(2)
         is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
         titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera'}
-        subcams = {'astrocam': [None], 'eclipticam': ['v3w', 'v1']}[camera]
-        sub_labels = {'v3w': 'IMX708 Wide (v3w)', 'v1': 'OV5647 (v1)'}
+        # unify-cameras split: each section is now its own top-level S3
+        # camera prefix (eclipticam-v3w / eclipticam-v1) with UN-prefixed
+        # filenames (max.jpg, not v3w_max.jpg). astrocam is a single camera.
+        # Each entry: (s3_camera_prefix, section_label).
+        cam_sections = {
+            'astrocam': [('astrocam', None)],
+            'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
+                           ('eclipticam-v1', 'OV5647 (v1)')],
+        }[camera]
+        # The camera whose nights drive the calendar + thumbnails (the
+        # night camera for eclipticam).
+        primary_cam = cam_sections[0][0]
         try:
             s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
             paginator = s3.get_paginator('list_objects_v2')
-            nights = []
-            for page_resp in paginator.paginate(
-                    Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/',
-                    Delimiter='/'):
-                for cp in page_resp.get('CommonPrefixes') or []:
-                    nights.append(cp['Prefix'].split('/')[-2])
-            nights.sort(reverse=True)
+            # Union of nights across all section cameras (v1 may publish
+            # nights v3w didn't, and vice versa).
+            night_set = set()
+            for s3_cam, _label in cam_sections:
+                for page_resp in paginator.paginate(
+                        Bucket=ASTRO_BUCKET, Prefix=f'{s3_cam}/nights/',
+                        Delimiter='/'):
+                    for cp in page_resp.get('CommonPrefixes') or []:
+                        night_set.add(cp['Prefix'].split('/')[-2])
+            nights = sorted(night_set, reverse=True)
 
             if is_calendar:
                 if not nights:
@@ -3755,44 +3768,42 @@ def lambda_handler(event, context):
                         'body': render_astro_stub(
                             theme_css_js=THEME_CSS_JS, title=titles[camera]),
                         'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-                # Build calendar cards: per-night thumbnail (preferred:
-                # v3w_max.jpg for eclipticam, max.jpg for astrocam) +
-                # summary.json for "X of Y frames stacked" line.
-                primary_sub = subcams[0]  # eclipticam -> 'v3w', astrocam -> None
-                stem = f'{primary_sub}_' if primary_sub else ''
+                # Build calendar cards from the primary (night) camera:
+                # per-night thumbnail (thumb.jpg, falling back to max.jpg)
+                # + summary.json for the "X of Y frames stacked" line.
+                # Filenames are un-prefixed post-split.
                 nights_meta = []
                 for n in nights:
                     thumb_url = None
                     summary = None
                     listing_n = s3.list_objects_v2(
                         Bucket=ASTRO_BUCKET,
-                        Prefix=f'{camera}/nights/{n}/')
+                        Prefix=f'{primary_cam}/nights/{n}/')
                     names_n = {it['Key'].split('/')[-1]: it['Key']
                                for it in listing_n.get('Contents', []) or []}
                     # Prefer the colour-sweep mid-frame thumb (a single
                     # 10-min stack from the heart of the dark window).
                     # Fall back to the all-night max for legacy nights
                     # without a sweep.
-                    for thumb_key in (f'{stem}thumb.jpg', f'{stem}max.jpg'):
+                    for thumb_key in ('thumb.jpg', 'max.jpg'):
                         if thumb_key in names_n:
                             thumb_url = get_presigned_url(
                                 names_n[thumb_key], bucket=ASTRO_BUCKET)
                             break
-                    if f'{stem}summary.json' in names_n:
+                    if 'summary.json' in names_n:
                         try:
                             obj = s3.get_object(
                                 Bucket=ASTRO_BUCKET,
-                                Key=names_n[f'{stem}summary.json'])
+                                Key=names_n['summary.json'])
                             summary = _json.loads(obj['Body'].read())
                         except Exception:
                             pass
                     nights_meta.append({'night': n, 'thumb_url': thumb_url,
                                         'summary': summary})
                 # Multi-night combined brightness curve sits at the
-                # camera prefix root, refreshed each night by
-                # combined-brightness during publish-night-cam.
-                stem = f'{primary_sub}_' if primary_sub else ''
-                combined_key = f'{camera}/{stem}brightness-combined.png'
+                # primary camera's prefix root (un-prefixed filename),
+                # refreshed daily by combined-brightness.
+                combined_key = f'{primary_cam}/brightness-combined.png'
                 combined_url = None
                 try:
                     s3.head_object(Bucket=ASTRO_BUCKET, Key=combined_key)
@@ -3809,28 +3820,29 @@ def lambda_handler(event, context):
                         combined_brightness_url=combined_url),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-            # One listing for the night, then route names to subcam sections.
-            listing = s3.list_objects_v2(
-                Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/{night}/')
-            names = {item['Key'].split('/')[-1]: item['Key']
-                     for item in listing.get('Contents', []) or []}
+            # One section per camera prefix; each has its own listing with
+            # un-prefixed filenames (post unify-cameras split).
             sections = []
-            for sub in subcams:
-                stem = f'{sub}_' if sub else ''
+            for s3_cam, label in cam_sections:
+                listing = s3.list_objects_v2(
+                    Bucket=ASTRO_BUCKET,
+                    Prefix=f'{s3_cam}/nights/{night}/')
+                names = {item['Key'].split('/')[-1]: item['Key']
+                         for item in listing.get('Contents', []) or []}
                 summary = None
-                if f'{stem}summary.json' in names:
+                if 'summary.json' in names:
                     obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                        Key=names[f'{stem}summary.json'])
+                                        Key=names['summary.json'])
                     summary = _json.loads(obj['Body'].read())
                 urls = {}
                 for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
                              'sweep-diff.mp4',
                              'derot.jpg', 'max.jpg', 'brightness.png'):
-                    if f'{stem}{base}' in names:
+                    if base in names:
                         urls[base] = get_presigned_url(
-                            names[f'{stem}{base}'], bucket=ASTRO_BUCKET)
+                            names[base], bucket=ASTRO_BUCKET)
                 if summary or urls:
-                    sections.append({'label': sub_labels.get(sub),
+                    sections.append({'label': label,
                                      'summary': summary, 'urls': urls})
         except Exception as e:
             return {'statusCode': 500,
