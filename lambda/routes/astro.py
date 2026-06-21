@@ -132,25 +132,22 @@ def _section(sec):
     heading = f'<h2>{label}</h2>' if label else ""
 
     imgs = []
-    # Hero: the sliding-window colour video; mono sibling below for the
-    # science-leaning view. Both are window-stack-sweep outputs sharing
-    # the same time burn-in and autodetected window.
-    # Poster = the mid-night frame of the colour sweep (thumb.jpg), so
-    # the player preview is a frame FROM the clip rather than the
-    # unrelated star-trail max-stack. Fall back to max.jpg for older
-    # nights that predate thumb.jpg.
-    poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
-    for key, cap in (
-        ("sweep-colour.mp4",
+    # Each sweep gets its OWN poster (poster-<name>.jpg, the mid-frame of
+    # that clip) so the preview is a frame from the video itself. Fall
+    # back to the shared thumb.jpg, then max.jpg, for older nights that
+    # predate per-video posters.
+    shared_poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
+    for key, poster_key, cap in (
+        ("sweep-colour.mp4", "poster-colour.jpg",
          "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
          "story of the night in 5 seconds"),
-        ("sweep-mono.mp4",
+        ("sweep-mono.mp4", "poster-mono.jpg",
          "monochrome sweep — same window, greyscale (science view)"),
-        ("sweep-diff.mp4",
+        ("sweep-diff.mp4", "poster-diff.jpg",
          "difference sweep — max(frame) − window mean; the sky floor, "
          "hot pixels, and cloud-glow cancel, leaving only trails and "
          "transients"),
-        ("sweep-detrans.mp4",
+        ("sweep-detrans.mp4", "poster-detrans.jpg",
          "detrans sweep — each 10 min window undistorted (k1,k2) and "
          "de-translated by the sky velocity, registering the 60 s "
          "streaks into one sharp high-SNR streak; stars stay tight as "
@@ -158,6 +155,7 @@ def _section(sec):
     ):
         url = urls.get(key)
         if url:
+            poster = urls.get(poster_key) or shared_poster
             imgs.append(
                 f'<video controls loop preload="metadata" playsinline '
                 f'poster="{poster}"><source src="{url}" type="video/mp4">'
