@@ -3837,8 +3837,10 @@ def lambda_handler(event, context):
                 urls = {}
                 for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
                              'sweep-diff.mp4', 'sweep-detrans.mp4',
+                             'sweep-detrans-deep.mp4',
                              'poster-colour.jpg', 'poster-mono.jpg',
                              'poster-diff.jpg', 'poster-detrans.jpg',
+                             'poster-detrans-deep.jpg',
                              'derot.jpg', 'max.jpg', 'brightness.png',
                              'thumb.jpg'):
                     if base in names:

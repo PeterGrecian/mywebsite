@@ -152,6 +152,10 @@ def _section(sec):
          "de-translated by the sky velocity, registering the 60 s "
          "streaks into one sharp high-SNR streak; stars stay tight as "
          "the night drifts past"),
+        ("sweep-detrans-deep.mp4", "poster-detrans-deep.jpg",
+         "detrans deep — registered frames averaged then background-"
+         "subtracted (max SNR); pulls the faintest stars onto a clean "
+         "dark sky, per 10 min window through the night"),
     ):
         url = urls.get(key)
         if url:
