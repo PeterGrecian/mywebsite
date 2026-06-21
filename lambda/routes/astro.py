@@ -135,7 +135,11 @@ def _section(sec):
     # Hero: the sliding-window colour video; mono sibling below for the
     # science-leaning view. Both are window-stack-sweep outputs sharing
     # the same time burn-in and autodetected window.
-    poster = urls.get("max.jpg", "")
+    # Poster = the mid-night frame of the colour sweep (thumb.jpg), so
+    # the player preview is a frame FROM the clip rather than the
+    # unrelated star-trail max-stack. Fall back to max.jpg for older
+    # nights that predate thumb.jpg.
+    poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
     for key, cap in (
         ("sweep-colour.mp4",
          "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
@@ -143,7 +147,7 @@ def _section(sec):
         ("sweep-mono.mp4",
          "monochrome sweep — same window, greyscale (science view)"),
         ("sweep-diff.mp4",
-         "difference sweep — max(frame − window mean); the sky floor, "
+         "difference sweep — max(frame) − window mean; the sky floor, "
          "hot pixels, and cloud-glow cancel, leaving only trails and "
          "transients"),
     ):
