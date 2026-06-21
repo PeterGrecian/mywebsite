@@ -150,6 +150,11 @@ def _section(sec):
          "difference sweep — max(frame) − window mean; the sky floor, "
          "hot pixels, and cloud-glow cancel, leaving only trails and "
          "transients"),
+        ("sweep-detrans.mp4",
+         "detrans sweep — each 10 min window undistorted (k1,k2) and "
+         "de-translated by the sky velocity, registering the 60 s "
+         "streaks into one sharp high-SNR streak; stars stay tight as "
+         "the night drifts past"),
     ):
         url = urls.get(key)
         if url:

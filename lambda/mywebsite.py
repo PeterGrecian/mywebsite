@@ -3836,7 +3836,7 @@ def lambda_handler(event, context):
                     summary = _json.loads(obj['Body'].read())
                 urls = {}
                 for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
-                             'sweep-diff.mp4',
+                             'sweep-diff.mp4', 'sweep-detrans.mp4',
                              'derot.jpg', 'max.jpg', 'brightness.png',
                              'thumb.jpg'):
                     if base in names:
