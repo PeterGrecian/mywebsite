@@ -5,6 +5,7 @@ __pycache__/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+.wrangler/
 favicon.png64
 lambda/gitinfo.html
 lambda/build_info.py
