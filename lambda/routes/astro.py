@@ -3,12 +3,6 @@
 
 CAMERAS = [
     {
-        "path": "/starcam",
-        "title": "Star Camera",
-        "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
-        "status": "live",
-    },
-    {
         "path": "/astro/astrocam",
         "title": "Astro Camera",
         "desc": "Pi 4 + Camera Module v2 (IMX219). Nightly star-trail and pole-derotated stacks with hot/cold pixel masking.",
@@ -18,6 +12,12 @@ CAMERAS = [
         "path": "/astro/eclipticam",
         "title": "Ecliptic Camera",
         "desc": "Two-camera Pi (OV5647 v1 + IMX708 Wide) — day and night astro along the ecliptic.",
+        "status": "live",
+    },
+    {
+        "path": "/starcam",
+        "title": "Star Camera (historical)",
+        "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
         "status": "live",
     },
 ]
