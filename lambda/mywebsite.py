@@ -3811,13 +3811,26 @@ def lambda_handler(event, context):
                         combined_key, bucket=ASTRO_BUCKET)
                 except Exception:
                     pass
+                # Accumulated moon net: the reference-night max-stack with
+                # every marked moon thread, at the primary camera's prefix
+                # root, refreshed daily by moon-overlay. Absent on cameras
+                # without a net (e.g. eclipticam-v1) -> stays None.
+                moon_net_key = f'{primary_cam}/moon-net.png'
+                moon_net_url = None
+                try:
+                    s3.head_object(Bucket=ASTRO_BUCKET, Key=moon_net_key)
+                    moon_net_url = get_presigned_url(
+                        moon_net_key, bucket=ASTRO_BUCKET)
+                except Exception:
+                    pass
                 from routes.astro import render_astro_camera_calendar
                 return {
                     'statusCode': 200,
                     'body': render_astro_camera_calendar(
                         theme_css_js=THEME_CSS_JS, title=titles[camera],
                         camera=camera, nights_with_meta=nights_meta,
-                        combined_brightness_url=combined_url),
+                        combined_brightness_url=combined_url,
+                        moon_net_url=moon_net_url),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
             # One section per camera prefix; each has its own listing with

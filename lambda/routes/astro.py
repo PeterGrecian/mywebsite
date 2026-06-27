@@ -197,13 +197,16 @@ def _section(sec):
 
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
-                                 combined_brightness_url=None):
+                                 combined_brightness_url=None,
+                                 moon_net_url=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
                                "summary": dict|None}
     combined_brightness_url: presigned URL of the multi-night overlay
         plot (or None — section is hidden if absent).
+    moon_net_url: presigned URL of the accumulated moon-net image
+        (or None — section is hidden if absent).
     Each card links to /astro/<camera>/night/<night>.
     Mirrors /starcam's per-night index in spirit but smaller scope.
     """
@@ -215,6 +218,17 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'alt="per-night brightness curves overlaid"></a>'
             f'<div class="caption">per-night brightness curves '
             f'(log&#8322; stops above pedestal vs BST clock)</div>')
+
+    moon_net_html = ""
+    if moon_net_url:
+        moon_net_html = (
+            f'<a href="{moon_net_url}">'
+            f'<img class="moon-net" src="{moon_net_url}" '
+            f'alt="accumulated moon tracks across the fixed field"></a>'
+            f'<div class="caption">moon net &mdash; each clear night the '
+            f'moon traces a different known-position track across the fixed '
+            f'sensor; the threads accumulate into a self-scanning '
+            f'astrometric net</div>')
 
     if not nights_with_meta:
         cards_html = '<p class="empty">No nights published yet.</p>'
@@ -271,6 +285,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .verdict-cloudy {{ background: #3a2f1f; color: #d6a04a; }}
     .verdict-no-data {{ background: var(--divider, #2C2C2E); color: var(--text-secondary); }}
     .combined {{ width: 100%; height: auto; border-radius: 12px; background: #fff; display: block; margin-bottom: 0.3rem; }}
+    .moon-net {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
@@ -282,6 +297,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     <h1>{title}</h1>
     <div class="subtitle">night-by-night colour sweeps and stacks</div>
     {combined_html}
+    {moon_net_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
