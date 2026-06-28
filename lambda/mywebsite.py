@@ -1682,6 +1682,40 @@ def get_pi_fleet_status():
         return []
 
 
+def get_astro_storage_data():
+    """Fetch (capacity, inventory) for /astro/storage from DynamoDB.
+
+    capacity:  items from astro-host-capacity (one per host x filesystem).
+    inventory: items from astro-storage-inventory (one per night x location).
+    Both scanned whole — the tables are tiny (handful of hosts, tens of
+    nights). Returns ([], []) on any error so the page still renders.
+    """
+    if not BOTO3_AVAILABLE:
+        return [], []
+
+    def _scan(name):
+        dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+        table = dynamodb.Table(name)
+        resp = table.scan()
+        items = resp.get('Items', [])
+        while 'LastEvaluatedKey' in resp:
+            resp = table.scan(ExclusiveStartKey=resp['LastEvaluatedKey'])
+            items.extend(resp.get('Items', []))
+        return items
+
+    try:
+        capacity = _scan('astro-host-capacity')
+    except Exception as e:
+        print(f"Error fetching astro-host-capacity: {e}")
+        capacity = []
+    try:
+        inventory = _scan('astro-storage-inventory')
+    except Exception as e:
+        print(f"Error fetching astro-storage-inventory: {e}")
+        inventory = []
+    return capacity, inventory
+
+
 def format_uptime(seconds):
     """Format uptime in a human-readable way."""
     if not seconds:
@@ -3666,6 +3700,20 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'body': render_astro_hub(theme_css_js=THEME_CSS_JS),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif path == f'/{stage}/astro/storage' or path == '/astro/storage':
+        # PUBLIC storage status — capacity bars, data inventory & location,
+        # archive-tier state. Reads astro-host-capacity + astro-storage-
+        # inventory (backfilled from whereisallthedata.csv). See
+        # astro/design/storage-status-and-inventory.md.
+        from routes.astro import render_astro_storage
+        capacity, inventory = get_astro_storage_data()
+        return {
+            'statusCode': 200,
+            'body': render_astro_storage(theme_css_js=THEME_CSS_JS,
+                                         capacity=capacity, inventory=inventory),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 

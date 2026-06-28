@@ -44,6 +44,9 @@ resource "aws_iam_role_policy" "dynamodb_read" {
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/gardencam-video-metadata",
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/mywebsite-contents",
           "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/hits",
+          "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/astro-storage-inventory",
+          "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/astro-storage-inventory/index/*",
+          "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/astro-host-capacity",
         ]
       }
     ]

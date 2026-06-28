@@ -61,6 +61,7 @@ def render_astro_hub(*, theme_css_js):
     <div class="subtitle">scientific astronomy cameras — measurements, not timelapses</div>
 {cards}
     <div class="footer">
+      <a href="/astro/storage">Storage status</a> &middot;
       <a href="/contents">Home</a>
     </div>
   </div>
@@ -299,6 +300,177 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     {combined_html}
     {moon_net_html}
     {cards_html}
+    <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def _gib(n):
+    """Human GiB/TiB from an int byte count."""
+    n = int(n or 0)
+    if n >= 1 << 40:
+        return f"{n / (1 << 40):.1f} TB"
+    if n >= 1 << 30:
+        return f"{n / (1 << 30):.0f} GB"
+    if n >= 1 << 20:
+        return f"{n / (1 << 20):.0f} MB"
+    return f"{n} B"
+
+
+def render_astro_storage(*, theme_css_js, capacity, inventory):
+    """Storage status page: capacity bars + data inventory + archive tier.
+
+    capacity:  [{host, fs, size_gb, used_gb, avail_gb, pct, updated_at}]
+    inventory: [{night, loc, camera, host, path, storage_class, online,
+                 bytes:{...}, notes}]
+    Both come straight from DynamoDB (numbers are Decimal — coerce to int).
+    """
+    def _i(v):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+
+    # --- Capacity bars, worst (fullest) first ---------------------------
+    cap = sorted(capacity, key=lambda c: _i(c.get("pct")), reverse=True)
+    cap_rows = []
+    for c in cap:
+        pct = _i(c.get("pct"))
+        colour = ("var(--error, #FF3B30)" if pct >= 90 else
+                  "var(--warning, #FF9500)" if pct >= 75 else
+                  "var(--accent, #007AFF)")
+        cap_rows.append(
+            f'<div class="cap">'
+            f'<div class="cap-head"><span class="cap-host">{c.get("host","?")}'
+            f' <span class="cap-fs">{c.get("fs","")}</span></span>'
+            f'<span class="cap-num">{_i(c.get("used_gb"))} / {_i(c.get("size_gb"))} GB '
+            f'&middot; {pct}%</span></div>'
+            f'<div class="bar"><div class="bar-fill" style="width:{min(pct,100)}%;'
+            f'background:{colour}"></div></div></div>')
+    cap_html = "".join(cap_rows) or '<p class="empty">No capacity data.</p>'
+
+    # --- Inventory grouped by night, newest first -----------------------
+    SC_LABEL = {"local": "local", "usb-stick": "USB stick",
+                "deep-archive": "Deep Archive"}
+    by_night = {}
+    for it in inventory:
+        by_night.setdefault(it.get("night", "?"), []).append(it)
+
+    # archive-tier tallies
+    n_local = sum(1 for it in inventory if it.get("storage_class") == "local")
+    n_stick = sum(1 for it in inventory if it.get("storage_class") == "usb-stick")
+    n_cold = sum(1 for it in inventory if it.get("storage_class") == "deep-archive")
+    nights_set = set(by_night)
+    cold_nights = {it["night"] for it in inventory
+                   if it.get("storage_class") == "deep-archive"}
+    at_risk = sorted(
+        n for n in nights_set
+        if n not in cold_nights and any(
+            it.get("storage_class") == "local" for it in by_night[n]))
+
+    inv_rows = []
+    for night in sorted(by_night, reverse=True):
+        locs = by_night[night]
+        cells = []
+        # drift flag: >1 local copy whose sizes differ
+        local_sizes = [sum(_i(v) for v in (it.get("bytes") or {}).values())
+                       for it in locs if it.get("storage_class") == "local"]
+        drift = len(local_sizes) > 1 and len(set(local_sizes)) > 1
+        has_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
+        for it in sorted(locs, key=lambda x: x.get("storage_class", "")):
+            sc = it.get("storage_class", "local")
+            total = sum(_i(v) for v in (it.get("bytes") or {}).values())
+            cells.append(
+                f'<div class="loc loc-{sc}">'
+                f'<span class="loc-where">{it.get("host","?")}'
+                f'<span class="loc-path">{it.get("path","")}</span></span>'
+                f'<span class="loc-tags"><span class="sc sc-{sc}">'
+                f'{SC_LABEL.get(sc, sc)}</span> {_gib(total)}</span></div>')
+        flags = ""
+        if drift:
+            flags += '<span class="flag flag-drift">size drift</span>'
+        if not has_cold and any(it.get("storage_class") == "local" for it in locs):
+            flags += '<span class="flag flag-risk">no cold copy</span>'
+        cam = locs[0].get("camera", "?")
+        inv_rows.append(
+            f'<div class="night-row"><div class="night-hd">'
+            f'<span class="nr-night">{night}</span>'
+            f'<span class="nr-cam">{cam}</span>{flags}</div>'
+            f'{"".join(cells)}</div>')
+    inv_html = "".join(inv_rows) or '<p class="empty">No inventory.</p>'
+
+    risk_html = ""
+    if at_risk:
+        risk_html = (
+            f'<div class="risk-note">⚠ {len(at_risk)} night(s) are '
+            f'<b>local-only with no Deep Archive copy</b> — do not free local '
+            f'storage for these until archived: {", ".join(at_risk)}</div>')
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro — Storage</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 900px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    h2 {{ font-size: 1.05rem; margin: 1.75rem 0 0.6rem; color: var(--text-secondary); }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .cap {{ margin-bottom: 0.8rem; }}
+    .cap-head {{ display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; margin-bottom: 0.25rem; }}
+    .cap-host {{ font-weight: 600; }}
+    .cap-fs {{ color: var(--text-secondary); font-weight: 400; font-size: 0.75rem; }}
+    .cap-num {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .bar {{ height: 10px; background: var(--divider, #2C2C2E); border-radius: 6px; overflow: hidden; }}
+    .bar-fill {{ height: 100%; border-radius: 6px; }}
+    .tiers {{ display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin: 0.5rem 0 0.5rem; }}
+    .tier {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; min-width: 90px; }}
+    .tier-v {{ font-size: 1.1rem; font-weight: 600; }}
+    .tier-l {{ font-size: 0.7rem; color: var(--text-secondary); }}
+    .risk-note {{ background: #3a1f1f; color: #ff9a90; border-radius: 12px; padding: 0.7rem 0.9rem; font-size: 0.82rem; margin: 0.75rem 0; }}
+    .night-row {{ background: var(--card-bg); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; }}
+    .night-hd {{ display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }}
+    .nr-night {{ font-weight: 600; }}
+    .nr-cam {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .loc {{ display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; padding: 0.15rem 0; border-top: 1px solid var(--divider, #2C2C2E); }}
+    .loc-where {{ color: var(--text); }}
+    .loc-path {{ color: var(--text-secondary); font-size: 0.72rem; margin-left: 0.4rem; word-break: break-all; }}
+    .loc-tags {{ color: var(--text-secondary); white-space: nowrap; }}
+    .sc {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; margin-right: 0.3rem; }}
+    .sc-local {{ background: #1f3a1f; color: #6fcf6a; }}
+    .sc-usb-stick {{ background: #2f2f3a; color: #9a9aff; }}
+    .sc-deep-archive {{ background: #1f2f3a; color: #6ab0ff; }}
+    .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
+    .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
+    .flag-risk {{ background: #3a1f1f; color: #ff9a90; }}
+    .empty {{ text-align: center; color: var(--text-secondary); }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Storage</h1>
+    <div class="subtitle">where the astro data lives — capacity, location, and archive tier</div>
+
+    <h2>Capacity</h2>
+    {cap_html}
+
+    <h2>Archive tier</h2>
+    <div class="tiers">
+      <div class="tier"><div class="tier-v">{n_local}</div><div class="tier-l">local copies</div></div>
+      <div class="tier"><div class="tier-v">{n_stick}</div><div class="tier-l">USB stick</div></div>
+      <div class="tier"><div class="tier-v">{n_cold}</div><div class="tier-l">Deep Archive</div></div>
+    </div>
+    {risk_html}
+
+    <h2>Inventory by night</h2>
+    {inv_html}
+
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
