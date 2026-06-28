@@ -3749,57 +3749,99 @@ def lambda_handler(event, context):
         try:
             s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
             paginator = s3.get_paginator('list_objects_v2')
-            # Union of nights across all section cameras (v1 may publish
-            # nights v3w didn't, and vice versa).
-            night_set = set()
-            for s3_cam, _label in cam_sections:
-                for page_resp in paginator.paginate(
-                        Bucket=ASTRO_BUCKET, Prefix=f'{s3_cam}/nights/',
-                        Delimiter='/'):
-                    for cp in page_resp.get('CommonPrefixes') or []:
-                        night_set.add(cp['Prefix'].split('/')[-2])
-            nights = sorted(night_set, reverse=True)
+
+            def list_all_nights():
+                # Union of nights across all section cameras (v1 may publish
+                # nights v3w didn't, and vice versa). This is the O(N) listing
+                # the calendar used to do on every request; deferred so the
+                # manifest fast path skips it entirely.
+                night_set = set()
+                for s3_cam, _label in cam_sections:
+                    for page_resp in paginator.paginate(
+                            Bucket=ASTRO_BUCKET, Prefix=f'{s3_cam}/nights/',
+                            Delimiter='/'):
+                        for cp in page_resp.get('CommonPrefixes') or []:
+                            night_set.add(cp['Prefix'].split('/')[-2])
+                return sorted(night_set, reverse=True)
+
+            nights = None  # populated lazily below (manifest path needs none)
 
             if is_calendar:
-                if not nights:
-                    from routes.astro import render_astro_stub
-                    return {
-                        'statusCode': 200,
-                        'body': render_astro_stub(
-                            theme_css_js=THEME_CSS_JS, title=titles[camera]),
-                        'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-                # Build calendar cards from the primary (night) camera:
-                # per-night thumbnail (thumb.jpg, falling back to max.jpg)
-                # + summary.json for the "X of Y frames stacked" line.
-                # Filenames are un-prefixed post-split.
-                nights_meta = []
-                for n in nights:
-                    thumb_url = None
-                    summary = None
-                    listing_n = s3.list_objects_v2(
-                        Bucket=ASTRO_BUCKET,
-                        Prefix=f'{primary_cam}/nights/{n}/')
-                    names_n = {it['Key'].split('/')[-1]: it['Key']
-                               for it in listing_n.get('Contents', []) or []}
-                    # Prefer the colour-sweep mid-frame thumb (a single
-                    # 10-min stack from the heart of the dark window).
-                    # Fall back to the all-night max for legacy nights
-                    # without a sweep.
-                    for thumb_key in ('thumb.jpg', 'max.jpg'):
-                        if thumb_key in names_n:
-                            thumb_url = get_presigned_url(
-                                names_n[thumb_key], bucket=ASTRO_BUCKET)
-                            break
-                    if 'summary.json' in names_n:
-                        try:
-                            obj = s3.get_object(
-                                Bucket=ASTRO_BUCKET,
-                                Key=names_n['summary.json'])
-                            summary = _json.loads(obj['Body'].read())
-                        except Exception:
-                            pass
-                    nights_meta.append({'night': n, 'thumb_url': thumb_url,
-                                        'summary': summary})
+                # Fast path: a precomputed manifest at <camera>/index.json
+                # (written nightly by astro's build-calendar-index) lets us
+                # render the whole calendar from ONE S3 object — no per-night
+                # list/get/presign, which used to make this page slower every
+                # night. The manifest is keyed by the PUBLIC camera name and
+                # already merges the v3w+v1 union for eclipticam. Falls back
+                # to the per-night build below if it isn't published yet.
+                manifest = None
+                try:
+                    obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                        Key=f'{camera}/index.json')
+                    manifest = _json.loads(obj['Body'].read())
+                except Exception:
+                    manifest = None
+
+                if manifest is not None:
+                    nights_meta = []
+                    for entry in manifest.get('nights', []):
+                        tk = entry.get('thumb_key')
+                        thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
+                                     if tk else None)
+                        nights_meta.append({
+                            'night': entry.get('night'),
+                            'thumb_url': thumb_url,
+                            'summary': {
+                                'n_frames': entry.get('n_frames'),
+                                'n_stacked': entry.get('n_stacked'),
+                                'verdict': entry.get('verdict'),
+                            }})
+                    nights = [m['night'] for m in nights_meta]
+
+                if manifest is None:
+                    nights = list_all_nights()
+                    if not nights:
+                        from routes.astro import render_astro_stub
+                        return {
+                            'statusCode': 200,
+                            'body': render_astro_stub(
+                                theme_css_js=THEME_CSS_JS,
+                                title=titles[camera]),
+                            'headers': {
+                                'Content-Type': 'text/html; charset=utf-8'}}
+                    # Slow fallback (pre-manifest): build calendar cards from
+                    # the primary (night) camera per night — thumbnail
+                    # (thumb.jpg, falling back to max.jpg) + summary.json for
+                    # the "X of Y frames stacked" line. Filenames are
+                    # un-prefixed post-split.
+                    nights_meta = []
+                    for n in nights:
+                        thumb_url = None
+                        summary = None
+                        listing_n = s3.list_objects_v2(
+                            Bucket=ASTRO_BUCKET,
+                            Prefix=f'{primary_cam}/nights/{n}/')
+                        names_n = {it['Key'].split('/')[-1]: it['Key']
+                                   for it in listing_n.get('Contents', []) or []}
+                        # Prefer the colour-sweep mid-frame thumb (a single
+                        # 10-min stack from the heart of the dark window).
+                        # Fall back to the all-night max for legacy nights
+                        # without a sweep.
+                        for thumb_key in ('thumb.jpg', 'max.jpg'):
+                            if thumb_key in names_n:
+                                thumb_url = get_presigned_url(
+                                    names_n[thumb_key], bucket=ASTRO_BUCKET)
+                                break
+                        if 'summary.json' in names_n:
+                            try:
+                                obj = s3.get_object(
+                                    Bucket=ASTRO_BUCKET,
+                                    Key=names_n['summary.json'])
+                                summary = _json.loads(obj['Body'].read())
+                            except Exception:
+                                pass
+                        nights_meta.append({'night': n, 'thumb_url': thumb_url,
+                                            'summary': summary})
                 # Multi-night combined brightness curve sits at the
                 # primary camera's prefix root (un-prefixed filename),
                 # refreshed daily by combined-brightness.
@@ -3832,6 +3874,17 @@ def lambda_handler(event, context):
                         combined_brightness_url=combined_url,
                         moon_net_url=moon_net_url),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+            # Nights nav strip (nights[:14]). Prefer the precomputed manifest
+            # so a per-night page also skips the O(N) listing; fall back to
+            # listing if no manifest is published yet.
+            try:
+                idx_obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                        Key=f'{camera}/index.json')
+                manifest = _json.loads(idx_obj['Body'].read())
+                nights = [e.get('night') for e in manifest.get('nights', [])]
+            except Exception:
+                nights = list_all_nights()
 
             # One section per camera prefix; each has its own listing with
             # un-prefixed filenames (post unify-cameras split).
