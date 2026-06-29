@@ -332,23 +332,38 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
         except (TypeError, ValueError):
             return 0
 
-    # --- Capacity bars, worst (fullest) first ---------------------------
-    cap = sorted(capacity, key=lambda c: _i(c.get("pct")), reverse=True)
+    # --- Capacity bars, on a common ABSOLUTE scale --------------------------
+    # Each disk's bar width is its total size against a shared full-scale axis
+    # (default 1 TB = full width), so disks are visually comparable and you can
+    # see at a glance what will fit where. The filled portion is used space;
+    # the empty remainder of the bar is free space on that disk.
+    cap = sorted(capacity, key=lambda c: _i(c.get("size_gb")), reverse=True)
+    # Full-scale axis: at least 1 TB, or the biggest disk if larger.
+    scale_gb = max([1024] + [_i(c.get("size_gb")) for c in cap])
     cap_rows = []
     for c in cap:
+        size = _i(c.get("size_gb"))
+        used = _i(c.get("used_gb"))
+        avail = _i(c.get("avail_gb"))
         pct = _i(c.get("pct"))
         colour = ("var(--error, #FF3B30)" if pct >= 90 else
                   "var(--warning, #FF9500)" if pct >= 75 else
                   "var(--accent, #007AFF)")
+        track_pct = 100.0 * size / scale_gb          # disk size vs axis
+        used_pct = (100.0 * used / size) if size else 0  # used within the disk
         cap_rows.append(
             f'<div class="cap">'
             f'<div class="cap-head"><span class="cap-host">{c.get("host","?")}'
             f' <span class="cap-fs">{c.get("fs","")}</span></span>'
-            f'<span class="cap-num">{_i(c.get("used_gb"))} / {_i(c.get("size_gb"))} GB '
-            f'&middot; {pct}%</span></div>'
-            f'<div class="bar"><div class="bar-fill" style="width:{min(pct,100)}%;'
-            f'background:{colour}"></div></div></div>')
-    cap_html = "".join(cap_rows) or '<p class="empty">No capacity data.</p>'
+            f'<span class="cap-num">{used} used &middot; '
+            f'<b>{avail} GB free</b> &middot; {size} GB &middot; {pct}%</span></div>'
+            f'<div class="axis"><div class="bar" style="width:{track_pct:.1f}%">'
+            f'<div class="bar-fill" style="width:{used_pct:.1f}%;'
+            f'background:{colour}"></div></div></div></div>')
+    axis_tb = scale_gb / 1024
+    cap_html = (
+        f'<div class="axis-label">scale: full width = {axis_tb:.0f} TB</div>'
+        + ("".join(cap_rows) or '<p class="empty">No capacity data.</p>'))
 
     # --- Inventory grouped by night, newest first -----------------------
     SC_LABEL = {"local": "local", "usb-stick": "USB stick",
@@ -400,6 +415,43 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
             f'{"".join(cells)}</div>')
     inv_html = "".join(inv_rows) or '<p class="empty">No inventory.</p>'
 
+    # --- Calendar table: night -> where stored + shrunk? --------------------
+    # "Shrunk" = squashed format present (raw_sum8 / binned_sum2 bytes), per
+    # COLD_STORAGE.md — the ~0.17x reduced per-frame products that replace raw.
+    SHRUNK_KEYS = ("raw_sum8", "binned_sum2")
+    def _yes(b):
+        return '<span class="yes">✓</span>' if b else '<span class="no">·</span>'
+    cal_rows = []
+    for night in sorted(by_night, reverse=True):
+        locs = by_night[night]
+        cam = locs[0].get("camera", "?")
+        on_local = any(it.get("storage_class") == "local" for it in locs)
+        on_stick = any(it.get("storage_class") == "usb-stick" for it in locs)
+        on_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
+        # hosts holding a live (local) copy
+        hosts = sorted({it.get("host", "?") for it in locs
+                        if it.get("storage_class") == "local"})
+        shrunk = any(k in (it.get("bytes") or {})
+                     for it in locs for k in SHRUNK_KEYS)
+        biggest = max((sum(_i(v) for v in (it.get("bytes") or {}).values())
+                       for it in locs), default=0)
+        cal_rows.append(
+            f'<tr><td class="c-night">{night}</td>'
+            f'<td class="c-cam">{cam}</td>'
+            f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
+            f'<td class="c-ctr">{_yes(on_local)}</td>'
+            f'<td class="c-ctr">{_yes(on_stick)}</td>'
+            f'<td class="c-ctr">{_yes(on_cold)}</td>'
+            f'<td class="c-ctr">{_yes(shrunk)}</td>'
+            f'<td class="c-sz">{_gib(biggest)}</td></tr>')
+    cal_html = (
+        '<table class="cal"><thead><tr>'
+        '<th>night</th><th>cam</th><th>local host(s)</th>'
+        '<th>local</th><th>USB</th><th>cold</th><th>shrunk</th><th>size</th>'
+        '</tr></thead><tbody>' + ("".join(cal_rows) or
+        '<tr><td colspan="8" class="empty">No inventory.</td></tr>')
+        + '</tbody></table>')
+
     risk_html = ""
     if at_risk:
         risk_html = (
@@ -425,8 +477,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     .cap-host {{ font-weight: 600; }}
     .cap-fs {{ color: var(--text-secondary); font-weight: 400; font-size: 0.75rem; }}
     .cap-num {{ color: var(--text-secondary); font-size: 0.8rem; }}
-    .bar {{ height: 10px; background: var(--divider, #2C2C2E); border-radius: 6px; overflow: hidden; }}
-    .bar-fill {{ height: 100%; border-radius: 6px; }}
+    .axis-label {{ color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 0.4rem; }}
+    .axis {{ width: 100%; height: 14px; }}
+    .bar {{ height: 14px; background: var(--divider, #2C2C2E); border-radius: 4px; overflow: hidden; min-width: 2px; }}
+    .bar-fill {{ height: 100%; border-radius: 4px 0 0 4px; }}
     .tiers {{ display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin: 0.5rem 0 0.5rem; }}
     .tier {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; min-width: 90px; }}
     .tier-v {{ font-size: 1.1rem; font-weight: 600; }}
@@ -447,6 +501,15 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
     .flag-risk {{ background: #3a1f1f; color: #ff9a90; }}
+    .cal {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; }}
+    .cal th {{ text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .cal td {{ padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .c-night {{ font-weight: 600; white-space: nowrap; }}
+    .c-cam {{ color: var(--text-secondary); }}
+    .c-ctr {{ text-align: center; }}
+    .c-sz {{ text-align: right; color: var(--text-secondary); white-space: nowrap; }}
+    .yes {{ color: #6fcf6a; font-weight: 600; }}
+    .no {{ color: var(--text-secondary); }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
@@ -468,7 +531,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     </div>
     {risk_html}
 
-    <h2>Inventory by night</h2>
+    <h2>Calendar</h2>
+    {cal_html}
+
+    <h2>Inventory detail</h2>
     {inv_html}
 
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
