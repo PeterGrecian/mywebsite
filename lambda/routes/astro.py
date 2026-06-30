@@ -453,14 +453,18 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         week_nights.setdefault(wk, []).append(
             (night, _night_bytes(locs), _night_verdict(locs)))
 
+    # Keeper = clearest CLEAR night each week. A week is only eligible to
+    # have its keeper chosen by verdict once ANY night that week has a
+    # verdict; weeks with no verdict info at all fall back to biggest (so
+    # the column is still useful before the reporter records verdicts).
     keepers = set()
-    have_verdict = any(v for nights in week_nights.values()
-                       for _, _, v in nights)
     for wk, nights in week_nights.items():
         clear = [n for n in nights if n[2] == "clear"]
-        pool = clear if clear else (nights if not have_verdict else [])
-        if pool:
-            keepers.add(max(pool, key=lambda n: n[1])[0])  # biggest in pool
+        if clear:
+            keepers.add(max(clear, key=lambda n: n[1])[0])
+        elif not any(n[2] for n in nights):   # no verdict known this week
+            keepers.add(max(nights, key=lambda n: n[1])[0])
+        # else: week has verdicts but none clear -> NO keeper
 
     # --- Calendar table: night -> where stored + shrunk + keeper -----------
     # "Shrunk" = squashed format present (raw_sum8 / binned_sum2 bytes), per
