@@ -3703,17 +3703,22 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path == f'/{stage}/astro/storage' or path == '/astro/storage':
+    elif re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', path):
         # PUBLIC storage status — capacity bars, data inventory & location,
         # archive-tier state. Reads astro-host-capacity + astro-storage-
-        # inventory (backfilled from whereisallthedata.csv). See
+        # inventory (backfilled from whereisallthedata.csv). The calendar
+        # splits by month: /astro/storage shows the latest month, and
+        # /astro/storage/YYYY-MM shows that month. See
         # astro/design/storage-status-and-inventory.md.
+        m = re.search(r'/astro/storage/(\d{4}-\d{2})', path)
+        month = m.group(1) if m else None
         from routes.astro import render_astro_storage
         capacity, inventory = get_astro_storage_data()
         return {
             'statusCode': 200,
             'body': render_astro_storage(theme_css_js=THEME_CSS_JS,
-                                         capacity=capacity, inventory=inventory),
+                                         capacity=capacity, inventory=inventory,
+                                         month=month),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 

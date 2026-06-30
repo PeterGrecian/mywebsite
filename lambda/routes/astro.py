@@ -318,14 +318,19 @@ def _gib(n):
     return f"{n} B"
 
 
-def render_astro_storage(*, theme_css_js, capacity, inventory):
+def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     """Storage status page: capacity bars + data inventory + archive tier.
 
     capacity:  [{host, fs, size_gb, used_gb, avail_gb, pct, updated_at}]
     inventory: [{night, loc, camera, host, path, storage_class, online,
-                 bytes:{...}, notes}]
+                 bytes:{...}, verdict?, updated_at?, ...}]
     Both come straight from DynamoDB (numbers are Decimal — coerce to int).
+
+    month: 'YYYY-MM' to show only that month's calendar/detail, or None for
+    the latest month. Capacity/tiers/keepers are global on every page.
     """
+    import datetime as _dt
+
     def _i(v):
         try:
             return int(v)
@@ -372,6 +377,13 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     for it in inventory:
         by_night.setdefault(it.get("night", "?"), []).append(it)
 
+    # month paging: calendar + detail show one month; default to the latest.
+    months = sorted({n[:7] for n in by_night if len(n) >= 7}, reverse=True)
+    cur_month = month if month in months else (months[0] if months else None)
+    month_nights = sorted((n for n in by_night
+                           if cur_month and n.startswith(cur_month)),
+                          reverse=True)
+
     # archive-tier tallies
     n_local = sum(1 for it in inventory if it.get("storage_class") == "local")
     n_stick = sum(1 for it in inventory if it.get("storage_class") == "usb-stick")
@@ -385,7 +397,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
             it.get("storage_class") == "local" for it in by_night[n]))
 
     inv_rows = []
-    for night in sorted(by_night, reverse=True):
+    for night in month_nights:
         locs = by_night[night]
         cells = []
         # drift flag: >1 local copy whose sizes differ
@@ -415,26 +427,63 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
             f'{"".join(cells)}</div>')
     inv_html = "".join(inv_rows) or '<p class="empty">No inventory.</p>'
 
-    # --- Calendar table: night -> where stored + shrunk? --------------------
+    # --- Keeper computation: clearest CLEAR night per ISO week --------------
+    # Retention policy (project-deep-archive-backlog): the clearest clear
+    # night of each ISO week is a "keeper" (kept raw + → Glacier); the rest
+    # are "squashable". verdict comes from inventory rows when present; weeks
+    # with no clear night get no keeper. Falls back to biggest night/week
+    # when verdict is absent (until the reporter records it).
+    def _night_verdict(locs):
+        for it in locs:
+            v = (it.get("verdict") or "").lower()
+            if v:
+                return v
+        return ""
+
+    def _night_bytes(locs):
+        return max((sum(_i(v) for v in (it.get("bytes") or {}).values())
+                    for it in locs), default=0)
+
+    week_nights = {}  # isoweek -> [(night, bytes, verdict)]
+    for night, locs in by_night.items():
+        try:
+            wk = _dt.date.fromisoformat(night).isocalendar()[:2]  # (year, week)
+        except ValueError:
+            continue
+        week_nights.setdefault(wk, []).append(
+            (night, _night_bytes(locs), _night_verdict(locs)))
+
+    keepers = set()
+    have_verdict = any(v for nights in week_nights.values()
+                       for _, _, v in nights)
+    for wk, nights in week_nights.items():
+        clear = [n for n in nights if n[2] == "clear"]
+        pool = clear if clear else (nights if not have_verdict else [])
+        if pool:
+            keepers.add(max(pool, key=lambda n: n[1])[0])  # biggest in pool
+
+    # --- Calendar table: night -> where stored + shrunk + keeper -----------
     # "Shrunk" = squashed format present (raw_sum8 / binned_sum2 bytes), per
     # COLD_STORAGE.md — the ~0.17x reduced per-frame products that replace raw.
     SHRUNK_KEYS = ("raw_sum8", "binned_sum2")
     def _yes(b):
         return '<span class="yes">✓</span>' if b else '<span class="no">·</span>'
+
     cal_rows = []
-    for night in sorted(by_night, reverse=True):
+    for night in month_nights:
         locs = by_night[night]
         cam = locs[0].get("camera", "?")
         on_local = any(it.get("storage_class") == "local" for it in locs)
         on_stick = any(it.get("storage_class") == "usb-stick" for it in locs)
         on_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
-        # hosts holding a live (local) copy
         hosts = sorted({it.get("host", "?") for it in locs
                         if it.get("storage_class") == "local"})
         shrunk = any(k in (it.get("bytes") or {})
                      for it in locs for k in SHRUNK_KEYS)
-        biggest = max((sum(_i(v) for v in (it.get("bytes") or {}).values())
-                       for it in locs), default=0)
+        biggest = _night_bytes(locs)
+        keep = night in keepers
+        keep_cell = ('<span class="keep">★ keeper</span>' if keep
+                     else '<span class="squash">squashable</span>')
         cal_rows.append(
             f'<tr><td class="c-night">{night}</td>'
             f'<td class="c-cam">{cam}</td>'
@@ -443,14 +492,34 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
             f'<td class="c-ctr">{_yes(on_stick)}</td>'
             f'<td class="c-ctr">{_yes(on_cold)}</td>'
             f'<td class="c-ctr">{_yes(shrunk)}</td>'
+            f'<td class="c-keep">{keep_cell}</td>'
             f'<td class="c-sz">{_gib(biggest)}</td></tr>')
     cal_html = (
         '<table class="cal"><thead><tr>'
         '<th>night</th><th>cam</th><th>local host(s)</th>'
-        '<th>local</th><th>USB</th><th>cold</th><th>shrunk</th><th>size</th>'
+        '<th>local</th><th>USB</th><th>cold</th><th>shrunk</th>'
+        '<th>retention</th><th>size</th>'
         '</tr></thead><tbody>' + ("".join(cal_rows) or
-        '<tr><td colspan="8" class="empty">No inventory.</td></tr>')
+        '<tr><td colspan="9" class="empty">No inventory this month.</td></tr>')
         + '</tbody></table>')
+
+    # month nav
+    month_links = []
+    for mo in months:
+        cls = ' class="cur"' if mo == cur_month else ""
+        month_links.append(f'<a{cls} href="/astro/storage/{mo}">{mo}</a>')
+    month_nav = (f'<div class="months">{"".join(month_links)}</div>'
+                 if month_links else "")
+
+    # last-updated: newest updated_at across inventory + capacity
+    ts = [_i(it.get("updated_at")) for it in inventory] + \
+         [_i(c.get("updated_at")) for c in capacity]
+    ts = [t for t in ts if t > 0]
+    if ts:
+        updated_str = _dt.datetime.fromtimestamp(
+            max(ts), _dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    else:
+        updated_str = "unknown"
 
     risk_html = ""
     if at_risk:
@@ -501,13 +570,20 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
     .flag-risk {{ background: #3a1f1f; color: #ff9a90; }}
-    .cal {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; }}
-    .cal th {{ text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
-    .cal td {{ padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .cal {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
+    .cal th {{ text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 0.64rem; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .cal td {{ padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .c-night {{ font-weight: 600; white-space: nowrap; }}
     .c-cam {{ color: var(--text-secondary); }}
     .c-ctr {{ text-align: center; }}
+    .c-keep {{ white-space: nowrap; }}
     .c-sz {{ text-align: right; color: var(--text-secondary); white-space: nowrap; }}
+    .keep {{ color: #f0c040; font-weight: 600; }}
+    .squash {{ color: var(--text-secondary); }}
+    .months {{ text-align: center; margin-bottom: 0.6rem; }}
+    .months a {{ display: inline-block; margin: 0.1rem 0.25rem; padding: 0.15rem 0.5rem; font-size: 0.75rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; }}
+    .months a.cur {{ color: var(--text); background: var(--divider, #2C2C2E); }}
+    .updated {{ text-align: center; color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 1rem; }}
     .yes {{ color: #6fcf6a; font-weight: 600; }}
     .no {{ color: var(--text-secondary); }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
@@ -519,6 +595,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
   <div class="container">
     <h1>Storage</h1>
     <div class="subtitle">where the astro data lives — capacity, location, and archive tier</div>
+    <div class="updated">last updated {updated_str}</div>
 
     <h2>Capacity</h2>
     {cap_html}
@@ -531,10 +608,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory):
     </div>
     {risk_html}
 
-    <h2>Calendar</h2>
+    <h2>Calendar — {cur_month or "—"}</h2>
+    {month_nav}
     {cal_html}
 
-    <h2>Inventory detail</h2>
+    <h2>Inventory detail — {cur_month or "—"}</h2>
     {inv_html}
 
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
