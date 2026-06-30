@@ -51,6 +51,9 @@ def render_contents_page(*, theme_css_js):
       .link-ellipse:hover {{ opacity: 0.8; }}
       .link-ellipse .description {{ display: block; font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-secondary); font-weight: normal; }}
       .hero-img {{ width: 100%; max-width: 500px; border-radius: 12px; margin-bottom: 1.5rem; object-fit: cover; max-height: 200px; }}
+      .identity-footer {{ display: flex; gap: 1.5rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
+      .identity-footer a {{ color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }}
+      .identity-footer a:hover {{ color: var(--accent); }}
       @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }} }}
     </style>
     {theme_css_js}
@@ -60,5 +63,9 @@ def render_contents_page(*, theme_css_js):
     <h1>Peter Grecian</h1>
     <div class="links-container">
 {links_html}    </div>
+    <div class="identity-footer">
+      <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.youtube.com/channel/UCXbk1ItK5B8RAqhUPNTX7zw" target="_blank" rel="noopener">Beautiful Clouds (YouTube)</a>
+    </div>
   </body>
 </html>'''
