@@ -356,10 +356,12 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
                   "var(--accent, #007AFF)")
         track_pct = 100.0 * size / scale_gb          # disk size vs axis
         used_pct = (100.0 * used / size) if size else 0  # used within the disk
+        removable = ' <span class="removable">⏏ removable</span>' \
+            if c.get("removable") else ""
         cap_rows.append(
             f'<div class="cap">'
             f'<div class="cap-head"><span class="cap-host">{c.get("host","?")}'
-            f' <span class="cap-fs">{c.get("fs","")}</span></span>'
+            f' <span class="cap-fs">{c.get("fs","")}</span>{removable}</span>'
             f'<span class="cap-num">{used} used &middot; '
             f'<b>{avail} GB free</b> &middot; {size} GB &middot; {pct}%</span></div>'
             f'<div class="axis"><div class="bar" style="width:{track_pct:.1f}%">'
@@ -549,6 +551,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .cap-head {{ display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; margin-bottom: 0.25rem; }}
     .cap-host {{ font-weight: 600; }}
     .cap-fs {{ color: var(--text-secondary); font-weight: 400; font-size: 0.75rem; }}
+    .removable {{ font-size: 0.65rem; color: var(--accent); background: var(--card-bg); border-radius: 6px; padding: 0.05rem 0.35rem; }}
     .cap-num {{ color: var(--text-secondary); font-size: 0.8rem; }}
     .axis-label {{ color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 0.4rem; }}
     .axis {{ width: 100%; height: 14px; }}
@@ -685,7 +688,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .player-link {{ text-align: center; margin: 0.5rem 0 1.25rem; }}
     .player-link a {{ display: inline-block; padding: 0.4rem 0.9rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; font-size: 0.85rem; }}
     .player-link a:hover {{ opacity: 0.85; }}
-    img, video {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; }}
+    img, video {{ width: 100%; height: auto; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
     .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
     .stat {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; }}
