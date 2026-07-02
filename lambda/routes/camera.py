@@ -1298,8 +1298,13 @@ def render_starcam_nights_index(nights, *, weeks_limit=None, hero_url=None,
 
     by_iso = {n["night"]: n for n in nights}
     today = _date.today()
-    # Anchor: Monday of the current week.
-    monday_this_week = today - _td(days=today.weekday())
+    # Anchor on the most recent night, not today: a decommissioned camera
+    # (starcam, last night 2026-06-04) shouldn't render a run of empty weeks
+    # up to today. For a live camera the newest night is ~today anyway.
+    newest_iso = max(by_iso) if by_iso else today.isoformat()
+    anchor = min(_date.fromisoformat(newest_iso), today)
+    # Anchor: Monday of the anchor's week.
+    monday_this_week = anchor - _td(days=anchor.weekday())
     if weeks_limit is not None:
         n_weeks = weeks_limit
     else:
