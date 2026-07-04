@@ -3906,18 +3906,19 @@ def lambda_handler(event, context):
                         combined_key, bucket=ASTRO_BUCKET)
                 except Exception:
                     pass
-                # Accumulated moon net: the reference-night max-stack with
-                # every marked moon thread, at the primary camera's prefix
-                # root, refreshed daily by moon-overlay. Absent on cameras
-                # without a net (e.g. eclipticam-v1) -> stays None.
-                moon_net_key = f'{primary_cam}/moon-net.png'
-                moon_net_url = None
-                try:
-                    s3.head_object(Bucket=ASTRO_BUCKET, Key=moon_net_key)
-                    moon_net_url = get_presigned_url(
-                        moon_net_key, bucket=ASTRO_BUCKET)
-                except Exception:
-                    pass
+                # Accumulated moon/sun nets: the reference-night max-stack with
+                # every marked thread, at the primary camera's prefix root,
+                # refreshed by moon-overlay. Each is absent on cameras without
+                # that net -> stays None (section hidden).
+                def _net_url(name):
+                    key = f'{primary_cam}/{name}.png'
+                    try:
+                        s3.head_object(Bucket=ASTRO_BUCKET, Key=key)
+                        return get_presigned_url(key, bucket=ASTRO_BUCKET)
+                    except Exception:
+                        return None
+                moon_net_url = _net_url('moon-net')
+                sun_net_url = _net_url('sun-net')
                 from routes.astro import render_astro_camera_calendar
                 return {
                     'statusCode': 200,
@@ -3925,7 +3926,8 @@ def lambda_handler(event, context):
                         theme_css_js=THEME_CSS_JS, title=titles[camera],
                         camera=camera, nights_with_meta=nights_meta,
                         combined_brightness_url=combined_url,
-                        moon_net_url=moon_net_url),
+                        moon_net_url=moon_net_url,
+                        sun_net_url=sun_net_url),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
             # Nights nav strip (nights[:14]). Prefer the precomputed manifest

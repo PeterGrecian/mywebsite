@@ -46,7 +46,7 @@ def render_astro_hub(*, theme_css_js):
     .container {{ max-width: 800px; margin: 0 auto; }}
     h1 {{ text-align: center; font-size: 1.6rem; margin: 1.5rem 0 0.3rem; }}
     .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
-    .cam-card {{ display: block; background: var(--card-bg); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; text-decoration: none; color: inherit; }}
+    .cam-card {{ display: block; background: var(--card-bg); padding: 1rem; margin-bottom: 0.75rem; text-decoration: none; color: inherit; }}
     .cam-card:hover {{ opacity: 0.85; }}
     .cam-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); }}
     .cam-desc {{ font-size: 0.85rem; color: var(--text-secondary); margin: 0.4rem 0 0; line-height: 1.5; }}
@@ -87,7 +87,7 @@ def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None):
     .container {{ max-width: 900px; margin: 2rem auto; text-align: center; }}
     h1 {{ font-size: 1.6rem; margin-bottom: 0.25rem; }}
     .tag {{ color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1.5rem; }}
-    .sample {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; }}
+    .sample {{ width: 100%; height: auto; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem; }}
     .nav {{ margin-top: 2rem; font-size: 0.85rem; }}
     .nav a {{ color: var(--accent); text-decoration: none; }}
@@ -199,7 +199,8 @@ def _section(sec):
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
                                  combined_brightness_url=None,
-                                 moon_net_url=None):
+                                 moon_net_url=None,
+                                 sun_net_url=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -207,6 +208,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     combined_brightness_url: presigned URL of the multi-night overlay
         plot (or None — section is hidden if absent).
     moon_net_url: presigned URL of the accumulated moon-net image
+        (or None — section is hidden if absent).
+    sun_net_url: presigned URL of the accumulated sun-net image
         (or None — section is hidden if absent).
     Each card links to /astro/<camera>/night/<night>.
     Mirrors /starcam's per-night index in spirit but smaller scope.
@@ -230,6 +233,17 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'moon traces a different known-position track across the fixed '
             f'sensor; the threads accumulate into a self-scanning '
             f'astrometric net</div>')
+
+    sun_net_html = ""
+    if sun_net_url:
+        sun_net_html = (
+            f'<a href="{sun_net_url}">'
+            f'<img class="sun-net" src="{sun_net_url}" '
+            f'alt="accumulated sun tracks across the fixed field"></a>'
+            f'<div class="caption">sun net &mdash; daytime solar tracks '
+            f'(ND-filtered) across the same fixed sensor; a wide-baseline '
+            f'companion to the moon net for pinning pointing &amp; '
+            f'distortion</div>')
 
     if not nights_with_meta:
         cards_html = '<p class="empty">No nights published yet.</p>'
@@ -273,7 +287,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
     .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
     .night-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }}
-    .night-card {{ display: block; background: var(--card-bg); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; }}
+    .night-card {{ display: block; background: var(--card-bg); overflow: hidden; text-decoration: none; color: inherit; }}
     .night-card:hover {{ opacity: 0.85; }}
     .night-thumb {{ aspect-ratio: 2304 / 1064; background: #000; overflow: hidden; }}
     .night-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
@@ -285,8 +299,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .verdict-clear {{ background: #1f3a1f; color: #6fcf6a; }}
     .verdict-cloudy {{ background: #3a2f1f; color: #d6a04a; }}
     .verdict-no-data {{ background: var(--divider, #2C2C2E); color: var(--text-secondary); }}
-    .combined {{ width: 100%; height: auto; border-radius: 12px; background: #fff; display: block; margin-bottom: 0.3rem; }}
-    .moon-net {{ width: 100%; height: auto; border-radius: 12px; background: #000; display: block; margin-bottom: 0.3rem; }}
+    .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
+    .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
@@ -299,6 +313,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     <div class="subtitle">night-by-night colour sweeps and stacks</div>
     {combined_html}
     {moon_net_html}
+    {sun_net_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
