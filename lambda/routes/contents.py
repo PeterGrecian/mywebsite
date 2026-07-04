@@ -51,9 +51,9 @@ def render_contents_page(*, theme_css_js):
       .link-ellipse:hover {{ opacity: 0.8; }}
       .link-ellipse .description {{ display: block; font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-secondary); font-weight: normal; }}
       .hero-img {{ width: 100%; max-width: 500px; border-radius: 12px; margin-bottom: 1.5rem; object-fit: cover; max-height: 200px; }}
-      .identity-footer {{ display: flex; gap: 1.5rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
-      .identity-footer a {{ color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }}
-      .identity-footer a:hover {{ color: var(--accent); }}
+      .identity-nav {{ display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }}
+      .identity-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 1rem; font-weight: 500; transition: opacity 0.2s; }}
+      .identity-nav a:hover {{ opacity: 0.8; }}
       @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }} }}
     </style>
     {theme_css_js}
@@ -61,11 +61,11 @@ def render_contents_page(*, theme_css_js):
   <body>
     <img class="hero-img" src="https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/PXL_20260113_100124014.jpg" alt="Waterloo station">
     <h1>Peter Grecian</h1>
-    <div class="links-container">
-{links_html}    </div>
-    <div class="identity-footer">
+    <div class="identity-nav">
       <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.youtube.com/channel/UCXbk1ItK5B8RAqhUPNTX7zw" target="_blank" rel="noopener">Beautiful Clouds (YouTube)</a>
     </div>
+    <div class="links-container">
+{links_html}    </div>
   </body>
 </html>'''
