@@ -558,6 +558,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         biggest = _night_bytes(locs)
         keep = night in keepers
         keep_cell = ('<span class="keep">★ keeper</span>' if keep
+                     else '<span class="squash">squashed</span>' if shrunk
                      else '<span class="squash">squashable</span>')
         cal_rows.append(
             f'<tr><td class="c-night">{night}</td>'
@@ -579,7 +580,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         '<tr><td colspan="10" class="empty">No inventory this month.</td></tr>')
         + '</tbody></table>'
         '<div class="axis-label">local = number of local copies '
-        '(Ns = N shrunk copies)</div>')
+        '(Ns = N shrunk copies) &middot; retention: ★ keeper = clearest '
+        'clear night of its ISO week, kept at full resolution; '
+        'squashable = may be reduced to the sum8+sum2 products '
+        '(≈0.17× the bytes); squashed = already reduced</div>')
 
     # month nav
     month_links = []
