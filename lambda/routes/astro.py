@@ -345,12 +345,52 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     the latest month. Capacity/tiers/keepers are global on every page.
     """
     import datetime as _dt
+    import re as _re
 
     def _i(v):
         try:
             return int(v)
         except (TypeError, ValueError):
             return 0
+
+    # skycam is not astro data — never show it here (the reporter stopped
+    # emitting it 2026-07-05, but rows linger until each host has pruned).
+    inventory = [it for it in inventory if it.get("camera") != "skycam"]
+
+    def _tilde(p):
+        """Display-only: /home/<user>/... -> ~/..."""
+        return _re.sub(r"^/home/[^/]+/", "~/", str(p or ""))
+
+    # Data-format legend for the starcam CSV/cold rows, whose `bytes` map
+    # carries per-product keys instead of a scanner `fmt`. Dims/cadence are
+    # starcam's (OV5647, raw ~3 s cadence measured from frame timestamps;
+    # sum8 = 8 summed raws, sum2 = 2 summed 2x2-binned — see COLD_STORAGE.md).
+    PRODUCT_DESC = {
+        "raw_bayer": "raw mosaic 2592×1944 fits.fz ≈3 s",
+        "binned": "bin2 1296×972 fits.fz ≈3 s",
+        "raw_sum8": "sum8 mosaic 2592×1944 ≈24 s",
+        "binned_sum2": "sum2 bin2 1296×972 ≈6 s",
+    }
+
+    def _fmt_desc(it):
+        """Human format line for one location row: the scanner's `fmt`
+        (file type, dims, resolution class, frame count, cadence) when
+        present, else the per-product breakdown from the bytes keys."""
+        f = it.get("fmt") or {}
+        if f:
+            parts = [str(f.get("ext", "")).lstrip(".")]
+            dims = f.get("dims") or []
+            if len(dims) == 2:
+                parts.append(f"{_i(dims[0])}×{_i(dims[1])}")
+            if f.get("res_class"):
+                parts.append(str(f["res_class"]))
+            if f.get("n_frames"):
+                parts.append(f"{_i(f['n_frames'])} frames")
+            if f.get("cadence_s"):
+                parts.append(f"≈{_i(f['cadence_s'])} s/frame")
+            return " · ".join(p for p in parts if p)
+        b = it.get("bytes") or {}
+        return " + ".join(PRODUCT_DESC[k] for k in PRODUCT_DESC if _i(b.get(k)))
 
     # --- Capacity bars, on a common ABSOLUTE scale --------------------------
     # Each disk's bar width is its total size against a shared full-scale axis
@@ -405,13 +445,6 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     n_local = sum(1 for it in inventory if it.get("storage_class") == "local")
     n_stick = sum(1 for it in inventory if it.get("storage_class") == "usb-stick")
     n_cold = sum(1 for it in inventory if it.get("storage_class") == "deep-archive")
-    nights_set = set(by_night)
-    cold_nights = {it["night"] for it in inventory
-                   if it.get("storage_class") == "deep-archive"}
-    at_risk = sorted(
-        n for n in nights_set
-        if n not in cold_nights and any(
-            it.get("storage_class") == "local" for it in by_night[n]))
 
     inv_rows = []
     for night in month_nights:
@@ -421,21 +454,24 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         local_sizes = [sum(_i(v) for v in (it.get("bytes") or {}).values())
                        for it in locs if it.get("storage_class") == "local"]
         drift = len(local_sizes) > 1 and len(set(local_sizes)) > 1
-        has_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
         for it in sorted(locs, key=lambda x: x.get("storage_class", "")):
             sc = it.get("storage_class", "local")
             total = sum(_i(v) for v in (it.get("bytes") or {}).values())
+            fmt_bits = [b for b in (_fmt_desc(it), it.get("notes")) if b]
+            fmt_html = (f'<div class="loc-fmt">{" — ".join(fmt_bits)}</div>'
+                        if fmt_bits else "")
             cells.append(
                 f'<div class="loc loc-{sc}">'
                 f'<span class="loc-where">{it.get("host","?")}'
-                f'<span class="loc-path">{it.get("path","")}</span></span>'
+                f'<span class="loc-path">{_tilde(it.get("path",""))}</span></span>'
                 f'<span class="loc-tags"><span class="sc sc-{sc}">'
-                f'{SC_LABEL.get(sc, sc)}</span> {_gib(total)}</span></div>')
+                f'{SC_LABEL.get(sc, sc)}</span> {_gib(total)}</span></div>'
+                f'{fmt_html}')
+        # A missing Deep Archive copy is NOT flagged: cold archiving is
+        # still under development, so its absence is expected, not a hazard.
         flags = ""
         if drift:
             flags += '<span class="flag flag-drift">size drift</span>'
-        if not has_cold and any(it.get("storage_class") == "local" for it in locs):
-            flags += '<span class="flag flag-risk">no cold copy</span>'
         cam = locs[0].get("camera", "?")
         inv_rows.append(
             f'<div class="night-row"><div class="night-hd">'
@@ -500,7 +536,17 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         hosts = sorted({it.get("host", "?") for it in locs
                         if it.get("storage_class") == "local"})
         shrunk = any(k in (it.get("bytes") or {})
-                     for it in locs for k in SHRUNK_KEYS)
+                     for it in locs for k in SHRUNK_KEYS) or \
+            any(it.get("shrunk") for it in locs)
+        # resolution class: from the first location with scanner fmt info
+        res = ""
+        for it in locs:
+            f = it.get("fmt") or {}
+            if f.get("res_class"):
+                res = str(f["res_class"])
+                break
+            if not res and len(f.get("dims") or []) == 2:
+                res = f'{_i(f["dims"][0])}×{_i(f["dims"][1])}'
         biggest = _night_bytes(locs)
         keep = night in keepers
         keep_cell = ('<span class="keep">★ keeper</span>' if keep
@@ -508,6 +554,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         cal_rows.append(
             f'<tr><td class="c-night">{night}</td>'
             f'<td class="c-cam">{cam}</td>'
+            f'<td class="c-cam">{res or "&mdash;"}</td>'
             f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
             f'<td class="c-ctr">{_yes(on_local)}</td>'
             f'<td class="c-ctr">{_yes(on_stick)}</td>'
@@ -517,11 +564,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             f'<td class="c-sz">{_gib(biggest)}</td></tr>')
     cal_html = (
         '<table class="cal"><thead><tr>'
-        '<th>night</th><th>cam</th><th>local host(s)</th>'
+        '<th>night</th><th>cam</th><th>res</th><th>local host(s)</th>'
         '<th>local</th><th>USB</th><th>cold</th><th>shrunk</th>'
         '<th>retention</th><th>size</th>'
         '</tr></thead><tbody>' + ("".join(cal_rows) or
-        '<tr><td colspan="9" class="empty">No inventory this month.</td></tr>')
+        '<tr><td colspan="10" class="empty">No inventory this month.</td></tr>')
         + '</tbody></table>')
 
     # month nav
@@ -542,12 +589,6 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     else:
         updated_str = "unknown"
 
-    risk_html = ""
-    if at_risk:
-        risk_html = (
-            f'<div class="risk-note">⚠ {len(at_risk)} night(s) are '
-            f'<b>local-only with no Deep Archive copy</b> — do not free local '
-            f'storage for these until archived: {", ".join(at_risk)}</div>')
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -576,7 +617,6 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .tier {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; min-width: 90px; }}
     .tier-v {{ font-size: 1.1rem; font-weight: 600; }}
     .tier-l {{ font-size: 0.7rem; color: var(--text-secondary); }}
-    .risk-note {{ background: #3a1f1f; color: #ff9a90; border-radius: 12px; padding: 0.7rem 0.9rem; font-size: 0.82rem; margin: 0.75rem 0; }}
     .night-row {{ background: var(--card-bg); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; }}
     .night-hd {{ display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }}
     .nr-night {{ font-weight: 600; }}
@@ -585,13 +625,13 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .loc-where {{ color: var(--text); }}
     .loc-path {{ color: var(--text-secondary); font-size: 0.72rem; margin-left: 0.4rem; word-break: break-all; }}
     .loc-tags {{ color: var(--text-secondary); white-space: nowrap; }}
+    .loc-fmt {{ color: var(--text-secondary); font-size: 0.7rem; padding: 0.05rem 0 0.2rem; }}
     .sc {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; margin-right: 0.3rem; }}
     .sc-local {{ background: #1f3a1f; color: #6fcf6a; }}
     .sc-usb-stick {{ background: #2f2f3a; color: #9a9aff; }}
     .sc-deep-archive {{ background: #1f2f3a; color: #6ab0ff; }}
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
-    .flag-risk {{ background: #3a1f1f; color: #ff9a90; }}
     .cal {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
     .cal th {{ text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 0.64rem; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .cal td {{ padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
@@ -628,7 +668,6 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
       <div class="tier"><div class="tier-v">{n_stick}</div><div class="tier-l">USB stick</div></div>
       <div class="tier"><div class="tier-v">{n_cold}</div><div class="tier-l">Deep Archive</div></div>
     </div>
-    {risk_html}
 
     <h2>Calendar — {cur_month or "—"}</h2>
     {month_nav}
