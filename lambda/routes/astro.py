@@ -372,6 +372,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         "binned_sum2": "sum2 bin2 1296×972 ≈6 s",
     }
 
+    def _res_label(rc):
+        # 'full implied' for raw at native res; rows written by reporters
+        # older than 2026-07-05 still carry the long label.
+        return {"full mosaic": "mosaic"}.get(str(rc), str(rc))
+
     def _fmt_desc(it):
         """Human format line for one location row: the scanner's `fmt`
         (file type, dims, resolution class, frame count, cadence) when
@@ -383,7 +388,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             if len(dims) == 2:
                 parts.append(f"{_i(dims[0])}×{_i(dims[1])}")
             if f.get("res_class"):
-                parts.append(str(f["res_class"]))
+                parts.append(_res_label(f["res_class"]))
             if f.get("n_frames"):
                 parts.append(f"{_i(f['n_frames'])} frames")
             if f.get("cadence_s"):
@@ -573,7 +578,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         for it in locs:
             f = it.get("fmt") or {}
             if f.get("res_class"):
-                res = str(f["res_class"])
+                res = _res_label(f["res_class"])
                 break
             if not res and len(f.get("dims") or []) == 2:
                 res = f'{_i(f["dims"][0])}×{_i(f["dims"][1])}'
@@ -586,7 +591,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         cal_rows.append(
             f'<tr><td class="c-night">{night}</td>'
             f'<td class="c-cam">{_cam_label(cam, kind)}</td>'
-            f'<td class="c-cam">{res or "&mdash;"}</td>'
+            f'<td class="c-res">{res or "&mdash;"}</td>'
             f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
             f'<td class="c-ctr">{local_cell}</td>'
             f'<td class="c-ctr">{_yes(on_stick)}</td>'
@@ -674,6 +679,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .cal td {{ padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .c-night {{ font-weight: 600; white-space: nowrap; }}
     .c-cam {{ color: var(--text-secondary); }}
+    .c-res {{ color: var(--text-secondary); white-space: nowrap; }}
     .c-ctr {{ text-align: center; }}
     .c-keep {{ white-space: nowrap; }}
     .c-sz {{ text-align: right; color: var(--text-secondary); white-space: nowrap; }}
