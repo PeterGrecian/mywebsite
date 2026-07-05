@@ -353,9 +353,14 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         except (TypeError, ValueError):
             return 0
 
-    # skycam is not astro data — never show it here (the reporter stopped
-    # emitting it 2026-07-05, but rows linger until each host has pruned).
-    inventory = [it for it in inventory if it.get("camera") != "skycam"]
+    # Not shown here (the reporter stopped emitting these 2026-07-05, but
+    # rows linger until each host has pruned): skycam (not astro data),
+    # day-mode frames and the date-level deliverables (derived/disposable
+    # — they stay on disk but are storage-page noise, peter 2026-07-05).
+    inventory = [it for it in inventory
+                 if it.get("camera") != "skycam"
+                 and it.get("layout") != "mode:day"
+                 and not str(it.get("camera", "")).endswith("-deliverables")]
 
     def _tilde(p):
         """Display-only: /home/<user>/... -> ~/..."""
