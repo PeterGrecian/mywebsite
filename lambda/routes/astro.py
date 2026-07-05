@@ -427,19 +427,35 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         f'<div class="axis-label">scale: full width = {axis_tb:.0f} TB</div>'
         + ("".join(cap_rows) or '<p class="empty">No capacity data.</p>'))
 
-    # --- Inventory grouped by night, newest first -----------------------
+    # --- Inventory grouped by (night, camera), newest first -----------------
+    # Grouping by night alone lumped DIFFERENT cameras' rows together: the
+    # size-drift flag then compared astrocam's night against eclipticam's
+    # and fired on every multi-camera night. Copies only means anything
+    # within one camera's data.
     SC_LABEL = {"local": "local", "usb-stick": "USB stick",
                 "deep-archive": "Deep Archive"}
-    by_night = {}
+
+    def _kind(it):
+        # day vs night capture of the same date are DIFFERENT data, not
+        # copies of each other (eclipticam records mode in the layout).
+        return "day" if it.get("layout") == "mode:day" else "night"
+
+    by_nc = {}
     for it in inventory:
-        by_night.setdefault(it.get("night", "?"), []).append(it)
+        by_nc.setdefault(
+            (it.get("night", "?"), it.get("camera", "?"), _kind(it)),
+            []).append(it)
 
     # month paging: calendar + detail show one month; default to the latest.
-    months = sorted({n[:7] for n in by_night if len(n) >= 7}, reverse=True)
+    months = sorted({k[0][:7] for k in by_nc if len(k[0]) >= 7}, reverse=True)
     cur_month = month if month in months else (months[0] if months else None)
-    month_nights = sorted((n for n in by_night
-                           if cur_month and n.startswith(cur_month)),
-                          reverse=True)
+    # newest night first, cameras alphabetical within a night, day before night
+    month_groups = sorted(
+        sorted(k for k in by_nc if cur_month and k[0].startswith(cur_month)),
+        key=lambda k: k[0], reverse=True)
+
+    def _cam_label(cam, kind):
+        return f"{cam} · day" if kind == "day" else cam
 
     # archive-tier tallies
     n_local = sum(1 for it in inventory if it.get("storage_class") == "local")
@@ -447,13 +463,18 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     n_cold = sum(1 for it in inventory if it.get("storage_class") == "deep-archive")
 
     inv_rows = []
-    for night in month_nights:
-        locs = by_night[night]
+    for night, cam, kind in month_groups:
+        locs = by_nc[(night, cam, kind)]
         cells = []
-        # drift flag: >1 local copy whose sizes differ
+        # drift flag: >1 local copy OF THIS CAMERA's night whose sizes
+        # differ by more than 5% — copies that have genuinely diverged.
+        # Sub-5% differences are typically a few extra derived files on
+        # the processing host, not a bad copy; the per-row sizes still
+        # show them.
         local_sizes = [sum(_i(v) for v in (it.get("bytes") or {}).values())
                        for it in locs if it.get("storage_class") == "local"]
-        drift = len(local_sizes) > 1 and len(set(local_sizes)) > 1
+        drift = (len(local_sizes) > 1 and min(local_sizes) >= 0 and
+                 max(local_sizes) > min(local_sizes) * 1.05)
         for it in sorted(locs, key=lambda x: x.get("storage_class", "")):
             sc = it.get("storage_class", "local")
             total = sum(_i(v) for v in (it.get("bytes") or {}).values())
@@ -472,11 +493,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         flags = ""
         if drift:
             flags += '<span class="flag flag-drift">size drift</span>'
-        cam = locs[0].get("camera", "?")
         inv_rows.append(
             f'<div class="night-row"><div class="night-hd">'
             f'<span class="nr-night">{night}</span>'
-            f'<span class="nr-cam">{cam}</span>{flags}</div>'
+            f'<span class="nr-cam">{_cam_label(cam, kind)}</span>{flags}</div>'
             f'{"".join(cells)}</div>')
     inv_html = "".join(inv_rows) or '<p class="empty">No inventory.</p>'
 
@@ -497,26 +517,29 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         return max((sum(_i(v) for v in (it.get("bytes") or {}).values())
                     for it in locs), default=0)
 
-    week_nights = {}  # isoweek -> [(night, bytes, verdict)]
-    for night, locs in by_night.items():
+    week_nights = {}  # (camera, isoweek) -> [(night, bytes, verdict)]
+    for (night, cam, kind), locs in by_nc.items():
+        if kind == "day":
+            continue   # retention policy is about night-sky data only
         try:
             wk = _dt.date.fromisoformat(night).isocalendar()[:2]  # (year, week)
         except ValueError:
             continue
-        week_nights.setdefault(wk, []).append(
+        week_nights.setdefault((cam, wk), []).append(
             (night, _night_bytes(locs), _night_verdict(locs)))
 
-    # Keeper = clearest CLEAR night each week. A week is only eligible to
-    # have its keeper chosen by verdict once ANY night that week has a
-    # verdict; weeks with no verdict info at all fall back to biggest (so
-    # the column is still useful before the reporter records verdicts).
-    keepers = set()
-    for wk, nights in week_nights.items():
+    # Keeper = clearest CLEAR night each week, PER CAMERA. A week is only
+    # eligible to have its keeper chosen by verdict once ANY of that
+    # camera's nights that week has a verdict; weeks with no verdict info
+    # at all fall back to biggest (so the column is still useful before
+    # the reporter records verdicts).
+    keepers = set()  # of (camera, night)
+    for (cam, wk), nights in week_nights.items():
         clear = [n for n in nights if n[2] == "clear"]
         if clear:
-            keepers.add(max(clear, key=lambda n: n[1])[0])
+            keepers.add((cam, max(clear, key=lambda n: n[1])[0]))
         elif not any(n[2] for n in nights):   # no verdict known this week
-            keepers.add(max(nights, key=lambda n: n[1])[0])
+            keepers.add((cam, max(nights, key=lambda n: n[1])[0]))
         # else: week has verdicts but none clear -> NO keeper
 
     # --- Calendar table: night -> where stored + shrunk + keeper -----------
@@ -531,9 +554,8 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             k in (it.get("bytes") or {}) for k in SHRUNK_KEYS)
 
     cal_rows = []
-    for night in month_nights:
-        locs = by_night[night]
-        cam = locs[0].get("camera", "?")
+    for night, cam, kind in month_groups:
+        locs = by_nc[(night, cam, kind)]
         # local copy counts, full-res and shrunk separately: "2", "1+1s", "2s"
         loc_rows = [it for it in locs if it.get("storage_class") == "local"]
         n_full = sum(1 for it in loc_rows if not _row_shrunk(it))
@@ -556,13 +578,14 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             if not res and len(f.get("dims") or []) == 2:
                 res = f'{_i(f["dims"][0])}×{_i(f["dims"][1])}'
         biggest = _night_bytes(locs)
-        keep = night in keepers
-        keep_cell = ('<span class="keep">★ keeper</span>' if keep
+        keep = (cam, night) in keepers
+        keep_cell = ('<span class="no">&mdash;</span>' if kind == "day"
+                     else '<span class="keep">★ keeper</span>' if keep
                      else '<span class="squash">squashed</span>' if shrunk
                      else '<span class="squash">squashable</span>')
         cal_rows.append(
             f'<tr><td class="c-night">{night}</td>'
-            f'<td class="c-cam">{cam}</td>'
+            f'<td class="c-cam">{_cam_label(cam, kind)}</td>'
             f'<td class="c-cam">{res or "&mdash;"}</td>'
             f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
             f'<td class="c-ctr">{local_cell}</td>'
