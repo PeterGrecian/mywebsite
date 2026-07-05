@@ -526,18 +526,26 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     def _yes(b):
         return '<span class="yes">✓</span>' if b else '<span class="no">·</span>'
 
+    def _row_shrunk(it):
+        return bool(it.get("shrunk")) or any(
+            k in (it.get("bytes") or {}) for k in SHRUNK_KEYS)
+
     cal_rows = []
     for night in month_nights:
         locs = by_night[night]
         cam = locs[0].get("camera", "?")
-        on_local = any(it.get("storage_class") == "local" for it in locs)
+        # local copy counts, full-res and shrunk separately: "2", "1+1s", "2s"
+        loc_rows = [it for it in locs if it.get("storage_class") == "local"]
+        n_full = sum(1 for it in loc_rows if not _row_shrunk(it))
+        n_shr = len(loc_rows) - n_full
+        local_cell = "+".join(
+            ([str(n_full)] if n_full else []) +
+            ([f"{n_shr}s"] if n_shr else [])) or '<span class="no">·</span>'
         on_stick = any(it.get("storage_class") == "usb-stick" for it in locs)
         on_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
         hosts = sorted({it.get("host", "?") for it in locs
                         if it.get("storage_class") == "local"})
-        shrunk = any(k in (it.get("bytes") or {})
-                     for it in locs for k in SHRUNK_KEYS) or \
-            any(it.get("shrunk") for it in locs)
+        shrunk = any(_row_shrunk(it) for it in locs)
         # resolution class: from the first location with scanner fmt info
         res = ""
         for it in locs:
@@ -556,7 +564,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             f'<td class="c-cam">{cam}</td>'
             f'<td class="c-cam">{res or "&mdash;"}</td>'
             f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
-            f'<td class="c-ctr">{_yes(on_local)}</td>'
+            f'<td class="c-ctr">{local_cell}</td>'
             f'<td class="c-ctr">{_yes(on_stick)}</td>'
             f'<td class="c-ctr">{_yes(on_cold)}</td>'
             f'<td class="c-ctr">{_yes(shrunk)}</td>'
@@ -569,7 +577,9 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         '<th>retention</th><th>size</th>'
         '</tr></thead><tbody>' + ("".join(cal_rows) or
         '<tr><td colspan="10" class="empty">No inventory this month.</td></tr>')
-        + '</tbody></table>')
+        + '</tbody></table>'
+        '<div class="axis-label">local = number of local copies '
+        '(Ns = N shrunk copies)</div>')
 
     # month nav
     month_links = []
