@@ -573,12 +573,16 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         hosts = sorted({it.get("host", "?") for it in locs
                         if it.get("storage_class") == "local"})
         shrunk = any(_row_shrunk(it) for it in locs)
-        # resolution class: from the first location with scanner fmt info
+        # resolution class: from the first location with scanner fmt info.
+        # full/half are the demosaiced classes — prefix the file type so
+        # the column says 'jpg full' rather than a bare 'full'.
         res = ""
         for it in locs:
             f = it.get("fmt") or {}
             if f.get("res_class"):
                 res = _res_label(f["res_class"])
+                if res in ("full", "half"):
+                    res = f'{str(f.get("ext", "")).lstrip(".")} {res}'.strip()
                 break
             if not res and len(f.get("dims") or []) == 2:
                 res = f'{_i(f["dims"][0])}×{_i(f["dims"][1])}'
