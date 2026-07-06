@@ -3907,24 +3907,14 @@ def lambda_handler(event, context):
                 except Exception:
                     pass
                 # Accumulated moon/sun nets: the reference-night max-stack with
-                # every marked thread, refreshed by moon-overlay. Absent on
-                # cameras without that net -> stays None (section hidden).
-                # Moon-net comes from the primary (night) camera; sun-net from
-                # the day camera (eclipticam-v1, the ND-filtered sun tracker) —
-                # so for eclipticam they read from different prefixes.
-                def _net_url(prefix, name):
-                    key = f'{prefix}/{name}.png'
-                    try:
-                        s3.head_object(Bucket=ASTRO_BUCKET, Key=key)
-                        return get_presigned_url(key, bucket=ASTRO_BUCKET)
-                    except Exception:
-                        return None
-                # Day/sun camera = a section prefix ending -v1, else primary
-                # (astrocam has no v1 section).
-                sun_cam = next((p for p, _ in cam_sections
-                                if p.endswith('-v1')), primary_cam)
-                moon_net_url = _net_url(primary_cam, 'moon-net')
-                sun_net_url = _net_url(sun_cam, 'sun-net')
+                # Moon-net / sun-net display RETIRED 2026-07-06. The hand-marked
+                # moon/sun nets were scaffolding to bootstrap v3w astrometry,
+                # superseded by Altair-based star-ID (astro
+                # design/retire-moon-marking-v1.md). The pipeline no longer
+                # produces moon-net.png / sun-net.png. The astro template still
+                # guards on these URLs, so None hides both blocks cleanly.
+                moon_net_url = None
+                sun_net_url = None
                 from routes.astro import render_astro_camera_calendar
                 return {
                     'statusCode': 200,
