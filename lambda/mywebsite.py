@@ -165,6 +165,16 @@ if not GARDENCAM_PASSWORD:
 
 SRFCPLUS_COOKIE_PARAM = '/srfcplus/session_cookie'
 
+# glacier-app: private archive contents page. Everything is private by
+# default (glacier-app DESIGN.md) — Basic Auth in front of the whole route.
+GLACIER_PARAMETER_NAME = "/glacier-app/page-password"
+GLACIER_PASSWORD = get_parameter(GLACIER_PARAMETER_NAME)
+GLACIER_BUCKET = "glacier-app-archive"
+GLACIER_REGION = "eu-west-2"
+GLACIER_PREFIX = "users/peter/"
+if not GLACIER_PASSWORD:
+    print(f"WARNING: Could not retrieve {GLACIER_PARAMETER_NAME}. /glacier will be inaccessible.")
+
 TFL_API_KEY = get_parameter(TFL_PARAMETER_NAME)
 if TFL_API_KEY:
     print("TfL API key loaded from Parameter Store (FREE!)")
@@ -2564,6 +2574,49 @@ def lambda_handler(event, context):
         html += render_contents_page()
     elif path == f'/{stage}/site-test' or path == '/site-test':
         html = render_site_test_page()
+    elif path.startswith(f'/{stage}/glacier') or path.startswith('/glacier'):
+        # glacier-app archive contents — private by default, Basic Auth on
+        # every subpath. Page HTML is rendered by glacier-app site/render.py
+        # into the bucket; thumbs redirect to short-lived presigned URLs.
+        if not check_basic_auth(event, GLACIER_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {
+                    'Content-Type': 'text/html',
+                    'WWW-Authenticate': 'Basic realm="Glacier Archive"'
+                }
+            }
+        subpath = path.split('/glacier', 1)[1]
+        s3_glacier = boto3.client('s3', region_name=GLACIER_REGION)
+        if subpath.startswith('/thumbs/'):
+            rel = subpath[len('/thumbs/'):]
+            # users/peter/thumbs/<archive>/<nn>.jpg — refuse traversal
+            if '..' in rel or not rel.endswith('.jpg'):
+                return {'statusCode': 404, 'body': 'not found',
+                        'headers': {'Content-Type': 'text/plain'}}
+            url = s3_glacier.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': GLACIER_BUCKET,
+                        'Key': f'{GLACIER_PREFIX}thumbs/{rel}'},
+                ExpiresIn=300)
+            return {'statusCode': 302,
+                    'headers': {'Location': url,
+                                'Cache-Control': 'private, max-age=290'}}
+        try:
+            page = s3_glacier.get_object(
+                Bucket=GLACIER_BUCKET,
+                Key=f'{GLACIER_PREFIX}site/index.html')['Body'].read()
+            return {'statusCode': 200, 'body': page.decode('utf-8'),
+                    'headers': {'Content-Type': 'text/html',
+                                'Cache-Control': 'private, max-age=300'}}
+        except Exception as e:
+            print(f"glacier page fetch failed: {e}")
+            return {'statusCode': 503,
+                    'body': '<html><body><h1>Glacier page not generated yet'
+                            '</h1><p>Run glacier-app site/render.py.</p>'
+                            '</body></html>',
+                    'headers': {'Content-Type': 'text/html'}}
     elif path.startswith(f'/{stage}/gardencam/capture') or path.startswith('/gardencam/capture'):
         # Capture command endpoint
         if not check_basic_auth(event, GARDENCAM_PASSWORD):

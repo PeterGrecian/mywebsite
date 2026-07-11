@@ -127,6 +127,28 @@ resource "aws_iam_role_policy" "s3_starcam" {
   })
 }
 
+# glacier-app hot surface: the /glacier page + thumb redirects. Read-only,
+# and only the browsable prefixes — the lambda has no business touching
+# archives/ (Deep Archive) or the ledger.
+resource "aws_iam_role_policy" "s3_glacier_app" {
+  name = "s3-glacier-app"
+  role = aws_iam_role.mywebsite_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject"]
+        Resource = [
+          "arn:aws:s3:::glacier-app-archive/users/*/site/*",
+          "arn:aws:s3:::glacier-app-archive/users/*/thumbs/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Unified astro deliverables bucket (unify-cameras): <camera>/nights/<date>/
 resource "aws_iam_role_policy" "s3_astro" {
   name = "s3-astro"
@@ -165,6 +187,15 @@ resource "aws_iam_role_policy" "ssm_parameters" {
           "ssm:GetParameters"
         ]
         Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/berrylands/*"
+      },
+      {
+        # glacier-app /glacier page password (read-only)
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/glacier-app/*"
       },
       {
         Effect = "Allow"
