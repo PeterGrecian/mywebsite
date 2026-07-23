@@ -68,6 +68,21 @@ resource "aws_dynamodb_table" "astro_storage_inventory" {
   }
 }
 
+# calendaralarm standing-alarm rules — source of truth for the recurring
+# meeting rules (successor to rules.yaml). Edited via the /calendaralarm
+# webapp (Basic Auth); read by the pip poller via GET /calendaralarm/api/rules.
+# One item per rule, keyed by a uuid.
+resource "aws_dynamodb_table" "calendaralarm_rules" {
+  name         = "calendaralarm-rules"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}
+
 # Astro per-host disk capacity — one item per (host x filesystem), refreshed
 # by a per-host reporter cron. Drives the capacity bars on /astro/storage.
 resource "aws_dynamodb_table" "astro_host_capacity" {

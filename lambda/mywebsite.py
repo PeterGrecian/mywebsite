@@ -175,6 +175,12 @@ GLACIER_PREFIX = "users/peter/"
 if not GLACIER_PASSWORD:
     print(f"WARNING: Could not retrieve {GLACIER_PARAMETER_NAME}. /glacier will be inaccessible.")
 
+# calendaralarm webapp — Basic Auth in front of the whole /calendaralarm route.
+CALENDARALARM_PARAMETER_NAME = "/calendaralarm/page-password"
+CALENDARALARM_PASSWORD = get_parameter(CALENDARALARM_PARAMETER_NAME)
+if not CALENDARALARM_PASSWORD:
+    print(f"WARNING: Could not retrieve {CALENDARALARM_PARAMETER_NAME}. /calendaralarm will be inaccessible.")
+
 TFL_API_KEY = get_parameter(TFL_PARAMETER_NAME)
 if TFL_API_KEY:
     print("TfL API key loaded from Parameter Store (FREE!)")
@@ -2574,6 +2580,35 @@ def lambda_handler(event, context):
         html += render_contents_page()
     elif path == f'/{stage}/site-test' or path == '/site-test':
         html = render_site_test_page()
+    elif path.startswith(f'/{stage}/calendaralarm') or path.startswith('/calendaralarm'):
+        # calendaralarm — CRUD webapp + JSON API for standing alarm rules.
+        # Basic Auth on every subpath (page + API). The pip poller reads
+        # GET /calendaralarm/api/rules; the page is the human CRUD UI.
+        if not check_basic_auth(event, CALENDARALARM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {
+                    'Content-Type': 'text/html',
+                    'WWW-Authenticate': 'Basic realm="calendaralarm"'
+                }
+            }
+        from routes import calendaralarm as _ca
+        # Strip the optional /{stage} prefix, then the /calendaralarm root.
+        rel = path
+        if rel.startswith(f'/{stage}/calendaralarm'):
+            rel = rel[len(f'/{stage}'):]
+        subpath = rel[len('/calendaralarm'):]  # '' | '/api/rules' | '/api/rules/<id>'
+        method = event.get('requestContext', {}).get('http', {}).get('method') \
+            or event.get('httpMethod', 'GET')
+        if subpath.startswith('/api'):
+            body = event.get('body', '') or ''
+            if event.get('isBase64Encoded', False):
+                body = base64.b64decode(body).decode('utf-8')
+            return _ca.handle_api(method, subpath[len('/api'):], body)
+        # Page (GET); anything non-GET on the page path is not meaningful.
+        return _ca.render_page()
+
     elif path.startswith(f'/{stage}/glacier') or path.startswith('/glacier'):
         # glacier-app archive contents — private by default, Basic Auth on
         # every subpath. Page HTML is rendered by glacier-app site/render.py

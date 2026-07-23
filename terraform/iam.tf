@@ -81,6 +81,34 @@ resource "aws_iam_role_policy" "dynamodb_write" {
   })
 }
 
+# DynamoDB CRUD — calendaralarm rules table only. Its own policy (not folded
+# into dynamodb_write) because it needs DeleteItem, which the log tables must
+# not grant. Scoped to the single table.
+resource "aws_iam_role_policy" "dynamodb_calendaralarm" {
+  name = "dynamodb-calendaralarm"
+  role = aws_iam_role.mywebsite_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          "arn:aws:dynamodb:eu-west-1:${data.aws_caller_identity.current.account_id}:table/calendaralarm-rules",
+        ]
+      }
+    ]
+  })
+}
+
 # S3 access — gardencam bucket
 resource "aws_iam_role_policy" "s3_gardencam" {
   name = "s3-gardencam"
@@ -196,6 +224,15 @@ resource "aws_iam_role_policy" "ssm_parameters" {
           "ssm:GetParameters"
         ]
         Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/glacier-app/*"
+      },
+      {
+        # calendaralarm /calendaralarm page password (read-only)
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/calendaralarm/*"
       },
       {
         Effect = "Allow"
