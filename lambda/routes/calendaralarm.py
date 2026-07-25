@@ -32,7 +32,10 @@ import boto3
 REGION = "eu-west-1"
 TABLE_NAME = "calendaralarm-rules"
 
-VALID_SEVERITIES = ("info", "xinfo", "warn", "critical")
+# 'calendar' is calendaralarm's own tier: xMatters MEDIUM with a distinct,
+# app-configurable phone sound (see alerting/lambda/handler.py _PRESETS). It's
+# the sensible default for a calendar alarm — audible but not the HIGH klaxon.
+VALID_SEVERITIES = ("calendar", "info", "xinfo", "warn", "critical")
 VALID_DAYS = ("Mon-Fri", "Mon,Wed,Fri", "Sat-Sun", "daily")
 
 
@@ -82,7 +85,7 @@ def _validate(data):
     except (ValueError, TypeError):
         return None, "lead_minutes must be a non-negative integer"
 
-    severity = str(data.get("severity", "critical")).strip().lower()
+    severity = str(data.get("severity", "calendar")).strip().lower()
     if severity not in VALID_SEVERITIES:
         return None, f"severity must be one of {VALID_SEVERITIES}"
 
@@ -216,6 +219,7 @@ _PAGE_HTML = """<!doctype html>
   .rule-name { font-weight:600; font-size:1.05rem; }
   .rule-meta { color:var(--label); font-size:.85rem; margin-top:3px; }
   .sev { font-size:.72rem; padding:2px 8px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+  .sev.calendar { background:rgba(0,122,255,.18); color:var(--accent); }
   .sev.critical { background:rgba(255,59,48,.18); color:var(--error); }
   .sev.warn { background:rgba(255,149,0,.18); color:var(--warn); }
   .sev.xinfo, .sev.info { background:rgba(142,142,147,.2); color:var(--label); }
@@ -249,7 +253,7 @@ _PAGE_HTML = """<!doctype html>
 </head>
 <body>
   <h1>calendaralarm</h1>
-  <div class="sub">Standing alarm rules. The pip poller reads these every 5&nbsp;min and pages via xMatters. Severity defaults to <b>critical</b> (HIGH).</div>
+  <div class="sub">Standing alarm rules. The pip poller reads these every 5&nbsp;min and pages via xMatters. Default sound is <b>calendar</b> (xMatters MEDIUM — set its tone in the xMatters phone app); <b>critical</b> is the loud HIGH klaxon reserved for real incidents.</div>
 
   <div id="list"><div class="empty">Loading…</div></div>
   <button id="addBtn" class="primary">+ New alarm</button>
@@ -280,9 +284,10 @@ _PAGE_HTML = """<!doctype html>
           <input name="lead_minutes" type="number" min="0" value="2">
         </div>
         <div>
-          <label class="field">Severity</label>
+          <label class="field">Sound / severity</label>
           <select name="severity">
-            <option value="critical">critical (HIGH)</option>
+            <option value="calendar">calendar (own sound)</option>
+            <option value="critical">critical (HIGH klaxon)</option>
             <option value="warn">warn (MEDIUM)</option>
             <option value="xinfo">xinfo (LOW)</option>
             <option value="info">info (Slack only)</option>
@@ -343,7 +348,7 @@ function openDialog(rule){
   form.days.value = rule ? rule.days : 'Mon-Fri';
   form.at.value = rule ? rule.at : '';
   form.lead_minutes.value = rule ? rule.lead_minutes : 2;
-  form.severity.value = rule ? rule.severity : 'critical';
+  form.severity.value = rule ? rule.severity : 'calendar';
   form.skip_holidays.checked = rule ? !!rule.skip_holidays : true;
   form.enabled.checked = rule ? !!rule.enabled : true;
   dlg.showModal();
