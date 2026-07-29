@@ -524,9 +524,9 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     # not affect which column a row lands in.
     FS_COLUMNS = [
         # col     full label                     host          path prefix              sc
+        ("bs",   "muppet /mnt/bigstore",        "muppet",     "/mnt/bigstore",         "local"),
         ("mup",  "muppet ~ (home)",             "muppet",     "/home",                 "local"),
         ("ecl",  "eclipticam /mnt/ssd",         "eclipticam", None,                    "local"),
-        ("bs",   "muppet /mnt/bigstore",        "muppet",     "/mnt/bigstore",         "local"),
         ("bd",   "muppet /mnt/bigdisk",         "muppet",     "/mnt/bigdisk",          "local"),
         ("bd2",  "muppet /mnt/bigdisk2",        "muppet",     "/mnt/bigdisk2",         "local"),
         ("pd",   "muppet /mnt/photodisk",       "muppet",     "/mnt/photodisk",        "local"),
@@ -563,6 +563,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     col_order = [c for (c, *_r) in FS_COLUMNS]   # every column, in defined order
     col_meta = {c: (label, sc) for (c, label, _h, _p, sc) in FS_COLUMNS}
 
+    # how many rows (cameras) each day has, so the day cell can rowspan them.
+    from collections import Counter as _Counter
+    day_rowcount = _Counter(k[0] for k in month_groups)
+    day_seen = set()   # nights whose day cell has already been emitted
+
     mx_rows = []
     for night, cam, kind in month_groups:
         locs = by_nc[(night, cam, kind)]
@@ -590,11 +595,19 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
         biggest = _night_bytes(locs)
         # night column: just the day-of-month — the month is fixed by the
         # selector/radio above, so 'YYYY-MM-' is redundant. Full date on hover.
+        # The day cell rowspans across all that day's camera rows (emit once).
         day = night[8:10] if len(night) >= 10 else night
+        if night in day_seen:
+            day_cell = ""
+        else:
+            day_seen.add(night)
+            span = day_rowcount[night]
+            rs = f' rowspan="{span}"' if span > 1 else ""
+            day_cell = f'<td class="mx-night"{rs} title="{night}">{day}</td>'
         mx_rows.append(
             f'<tr class="mx-row{lonely}">'
-            f'<td class="mx-night" title="{night}">{day}</td>'
-            f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
+            + day_cell
+            + f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
             f'<td class="mx-n">{n_copies}</td>'
             + "".join(cells)
             + f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
@@ -751,7 +764,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .mx-zb {{ background: color-mix(in srgb, currentColor 10%, transparent); }}
     .mx-toggle a {{ color: var(--accent); text-decoration: none; margin-right: 0.4rem; }}
     .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
-    .mx-night {{ font-weight: 600; white-space: nowrap; }}
+    .mx-night {{ font-weight: 600; white-space: nowrap; vertical-align: middle; text-align: center; border-right: 1px solid var(--divider, #2C2C2E); }}
     .mx-cam {{ color: var(--text-secondary); white-space: nowrap; }}
     .mx-hit {{ text-align: center; font-weight: 600; }}
     .mx-local {{ color: #6fcf6a; }}
