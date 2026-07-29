@@ -3800,13 +3800,15 @@ def lambda_handler(event, context):
         # astro/design/storage-status-and-inventory.md.
         m = re.search(r'/astro/storage/(\d{4}-\d{2})', path)
         month = m.group(1) if m else None
+        qp = event.get('queryStringParameters', {}) or {}
+        show_all = str(qp.get('all', '')).lower() in ('1', 'true', 'yes')
         from routes.astro import render_astro_storage
         capacity, inventory = get_astro_storage_data()
         return {
             'statusCode': 200,
             'body': render_astro_storage(theme_css_js=THEME_CSS_JS,
                                          capacity=capacity, inventory=inventory,
-                                         month=month),
+                                         month=month, show_all=show_all),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 

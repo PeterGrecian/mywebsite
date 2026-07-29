@@ -333,7 +333,8 @@ def _gib(n):
     return f"{n} B"
 
 
-def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
+def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
+                         show_all=False):
     """Storage status page: capacity bars + data inventory + archive tier.
 
     capacity:  [{host, fs, size_gb, used_gb, avail_gb, pct, updated_at}]
@@ -361,6 +362,36 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
                  if it.get("camera") != "skycam"
                  and it.get("layout") != "mode:day"
                  and not str(it.get("camera", "")).endswith("-deliverables")]
+
+    # Camera abbreviations are hardware-versioned (peter 2026-07-29): the grid
+    # is denser and the version is meaningful (av3s + eos coming). Anything not
+    # mapped falls through to its raw name so nothing silently disappears.
+    CAM_ABBR = {
+        "starcam": "sv1",          # star camera v1
+        "astrocam": "av2",         # astro camera v2 (av3s soon)
+        "eclipticam-v3w": "ev3w",  # the main eclipticam
+        "eclipticam-v1": "ev1",    # rare
+        # future, mapped ahead of first data so they render tidily on arrival:
+        "astrocam-v3s": "av3s",
+        "eos": "eos", "canon": "eos", "canon-eos": "eos",
+    }
+
+    def _cam_abbr(cam):
+        c = str(cam or "?")
+        if c in CAM_ABBR:
+            return CAM_ABBR[c]
+        # sweep/derived variants: eclipticam-v3w_sweep-colour -> ev3w-swcolour
+        if "_sweep" in c:
+            base = c.split("_sweep")[0]
+            tail = c.split("_sweep", 1)[1].lstrip("-") or "sweep"
+            return f'{CAM_ABBR.get(base, base)}-sw{tail[:4]}'
+        return c
+
+    # Sweeps/derivatives are hidden by default ("clean" grid = real captures);
+    # ?all=1 reveals them. They live on the per-camera pages regardless.
+    if not show_all:
+        inventory = [it for it in inventory
+                     if "_sweep" not in str(it.get("camera", ""))]
 
     def _tilde(p):
         """Display-only: /home/<user>/... -> ~/..."""
@@ -465,7 +496,8 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         key=lambda k: k[0], reverse=True)
 
     def _cam_label(cam, kind):
-        return f"{cam} · day" if kind == "day" else cam
+        a = _cam_abbr(cam)
+        return f"{a}·day" if kind == "day" else a
 
     # archive-tier tallies
     n_local = sum(1 for it in inventory if it.get("storage_class") == "local")
@@ -514,15 +546,17 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
             return col
         return None  # unmatched — surfaces as an "other" tick
 
-    # only columns actually used this month get shown (keeps it narrow)
-    used_cols = []
+    # Show ALL defined location columns, always (peter 2026-07-29: "we need
+    # more columns for the locations"). With abbreviations the full set fits,
+    # and an always-present column makes a MISSING copy visible — the point of
+    # the grid. Unused-this-month columns get a dim header.
+    used_cols = set()
     for night, cam, kind in month_groups:
         for it in by_nc[(night, cam, kind)]:
             c = _fs_col(it)
-            if c and c not in used_cols:
-                used_cols.append(c)
-    # preserve FS_COLUMNS order, not discovery order
-    col_order = [c for (c, *_r) in FS_COLUMNS if c in used_cols]
+            if c:
+                used_cols.add(c)
+    col_order = [c for (c, *_r) in FS_COLUMNS]   # every column, in defined order
     col_meta = {c: (label, sc) for (c, label, _h, _p, sc) in FS_COLUMNS}
 
     mx_rows = []
@@ -549,16 +583,20 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         # one-copy nights are the fragile ones — flag the row
         lonely = ' mx-lonely' if n_copies <= 1 else ''
         biggest = _night_bytes(locs)
+        # night column: just the day-of-month — the month is fixed by the
+        # selector/radio above, so 'YYYY-MM-' is redundant. Full date on hover.
+        day = night[8:10] if len(night) >= 10 else night
         mx_rows.append(
             f'<tr class="mx-row{lonely}">'
-            f'<td class="mx-night">{night}</td>'
+            f'<td class="mx-night" title="{night}">{day}</td>'
             f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
             + "".join(cells)
             + f'<td class="mx-n">{n_copies}</td>'
             f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
 
     head_cols = "".join(
-        f'<th class="mx-col" title="{col_meta[c][0]}">{c}</th>'
+        f'<th class="mx-col{"" if c in used_cols else " mx-col-empty"}" '
+        f'title="{col_meta[c][0]}">{c}</th>'
         for c in col_order)
     legend = " &middot; ".join(f"<b>{c}</b> {col_meta[c][0]}" for c in col_order)
 
@@ -611,18 +649,26 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
         for dcam in cams_this_month)
     cam_notes_html = (f'<div class="cam-notes">{cam_notes}</div>'
                       if cam_notes else "")
+    # clean/all toggle for sweep derivatives
+    _mo_path = f"/{cur_month}" if cur_month else ""
+    toggle = (f'<a href="/astro/storage{_mo_path}">clean ✓</a> · '
+              f'<a href="/astro/storage{_mo_path}?all=1">+ derivatives</a>'
+              if not show_all else
+              f'<a href="/astro/storage{_mo_path}">clean</a> · '
+              f'<a href="/astro/storage{_mo_path}?all=1">+ derivatives ✓</a>')
     cal_html = (
         '<table class="mx"><thead><tr>'
-        '<th>night</th><th>cam</th>' + head_cols +
+        '<th title="day of month">d</th><th>cam</th>' + head_cols +
         '<th class="mx-col" title="number of filesystems holding this night">#</th>'
         '<th class="mx-col">size</th>'
         '</tr></thead><tbody>' + ("".join(mx_rows) or
         f'<tr><td colspan="{len(col_order)+4}" class="empty">'
         'No inventory this month.</td></tr>')
         + '</tbody></table>'
-        f'<div class="axis-label">{legend}<br>'
-        '# = how many filesystems hold this night · '
-        'a highlighted row has only ONE copy.</div>')
+        f'<div class="axis-label"><span class="mx-toggle">{toggle}</span><br>'
+        f'{legend}<br>'
+        'd = day of month · # = filesystems holding this night '
+        '(dim column = none this month) · orange row = only ONE copy.</div>')
 
     # month nav
     month_links = []
@@ -690,6 +736,8 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .mx th {{ color: var(--text-secondary); font-weight: 500; font-size: 0.66rem; padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
     .mx-col {{ text-align: center; }}
+    .mx-col-empty {{ opacity: 0.35; }}
+    .mx-toggle a {{ color: var(--accent); text-decoration: none; margin-right: 0.4rem; }}
     .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx-night {{ font-weight: 600; white-space: nowrap; }}
     .mx-cam {{ color: var(--text-secondary); white-space: nowrap; }}
