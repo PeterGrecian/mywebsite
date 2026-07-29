@@ -518,15 +518,19 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     #
     # To add a filesystem: append a (col, label, host, path_prefix, sc) row.
     # host/path_prefix/sc of None = wildcard. `title` is the tooltip.
+    # Display order (peter 2026-07-29): live capture hosts first (mup, ecl),
+    # then the consolidated store bs, then the rest. Matching is by
+    # host+prefix+sc (disjoint), so column ORDER here is display-only and does
+    # not affect which column a row lands in.
     FS_COLUMNS = [
         # col     full label                     host          path prefix              sc
-        ("bs",   "muppet /mnt/bigstore",        "muppet",     "/mnt/bigstore",         "local"),
-        ("bd2",  "muppet /mnt/bigdisk2",        "muppet",     "/mnt/bigdisk2",         "local"),
-        ("bd",   "muppet /mnt/bigdisk",         "muppet",     "/mnt/bigdisk",          "local"),
-        ("pd",   "muppet /mnt/photodisk",       "muppet",     "/mnt/photodisk",        "local"),
         ("mup",  "muppet ~ (home)",             "muppet",     "/home",                 "local"),
-        ("pup",  "puppy ~ (home)",              "puppy",      None,                    "local"),
         ("ecl",  "eclipticam /mnt/ssd",         "eclipticam", None,                    "local"),
+        ("bs",   "muppet /mnt/bigstore",        "muppet",     "/mnt/bigstore",         "local"),
+        ("bd",   "muppet /mnt/bigdisk",         "muppet",     "/mnt/bigdisk",          "local"),
+        ("bd2",  "muppet /mnt/bigdisk2",        "muppet",     "/mnt/bigdisk2",         "local"),
+        ("pd",   "muppet /mnt/photodisk",       "muppet",     "/mnt/photodisk",        "local"),
+        ("pup",  "puppy ~ (home)",              "puppy",      None,                    "local"),
         ("ab",   "muppet ASTROBACKUP (USB)",    "muppet",     None,                    "usb-stick"),
         ("s3",   "AWS S3 Deep Archive",         "aws",        None,                    "deep-archive"),
     ]
@@ -572,14 +576,15 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             col_bytes[c] += sum(_i(v) for v in (it.get("bytes") or {}).values())
         n_copies = len(col_bytes)  # how many distinct filesystems hold it
         cells = []
-        for c in col_order:
+        for ci, c in enumerate(col_order):
+            zb = "mx-za" if ci % 2 == 0 else "mx-zb"  # vertical zebra per column
             if c in col_bytes:
                 sc = col_meta[c][1]
                 cells.append(
-                    f'<td class="mx-hit mx-{sc}" '
+                    f'<td class="mx-hit mx-{sc} {zb}" '
                     f'title="{col_meta[c][0]} — {_gib(col_bytes[c])}">✓</td>')
             else:
-                cells.append('<td class="mx-miss">·</td>')
+                cells.append(f'<td class="mx-miss {zb}">·</td>')
         # one-copy nights are the fragile ones — flag the row
         lonely = ' mx-lonely' if n_copies <= 1 else ''
         biggest = _night_bytes(locs)
@@ -595,9 +600,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
 
     head_cols = "".join(
-        f'<th class="mx-col{"" if c in used_cols else " mx-col-empty"}" '
+        f'<th class="mx-col {"mx-za" if ci % 2 == 0 else "mx-zb"}'
+        f'{"" if c in used_cols else " mx-col-empty"}" '
         f'title="{col_meta[c][0]}">{c}</th>'
-        for c in col_order)
+        for ci, c in enumerate(col_order))
     legend = " &middot; ".join(f"<b>{c}</b> {col_meta[c][0]}" for c in col_order)
 
     # --- Per-camera format footnotes ---------------------------------------
@@ -737,6 +743,8 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
     .mx-col {{ text-align: center; }}
     .mx-col-empty {{ opacity: 0.35; }}
+    .mx-za {{ background: rgba(255,255,255,0.03); }}
+    .mx-zb {{ background: rgba(255,255,255,0.07); }}
     .mx-toggle a {{ color: var(--accent); text-decoration: none; margin-right: 0.4rem; }}
     .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx-night {{ font-weight: 600; white-space: nowrap; }}
