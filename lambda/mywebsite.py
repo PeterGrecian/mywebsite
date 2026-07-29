@@ -3812,6 +3812,19 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
+    elif re.search(r'/astro/disks/?$', path):
+        # PUBLIC by-filesystem view — what astro data lives on each disk,
+        # one line per camera with a compressed date-range. Complements
+        # /astro/storage (by-night). Same DynamoDB source.
+        from routes.astro import render_astro_disks
+        capacity, inventory = get_astro_storage_data()
+        return {
+            'statusCode': 200,
+            'body': render_astro_disks(theme_css_js=THEME_CSS_JS,
+                                       capacity=capacity, inventory=inventory),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
     elif path == f'/{stage}/astro/starcam' or path == '/astro/starcam':
         return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
 

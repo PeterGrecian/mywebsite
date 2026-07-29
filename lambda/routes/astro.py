@@ -882,6 +882,145 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
 </html>'''
 
 
+def render_astro_disks(*, theme_css_js, capacity, inventory):
+    """By-filesystem view: what astro data lives on each disk.
+
+    Complements /astro/storage (by-night). Groups the inventory by filesystem
+    and, within a disk, one line per camera with a compressed date-range and
+    night count — e.g. "av2  0608-0727  (46)". Peter 2026-07-29.
+    """
+    import re as _re
+
+    def _i(v):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+
+    # Same filesystem taxonomy as the storage matrix (col, label, host,
+    # path-prefix, sc). Kept in sync by hand; small enough not to factor out.
+    FS = [
+        ("bs",  "muppet /mnt/bigstore",     "muppet",     "/mnt/bigstore",  "local"),
+        ("mup", "muppet ~ (home)",          "muppet",     "/home",          "local"),
+        ("ecl", "eclipticam /mnt/ssd",      "eclipticam", None,             "local"),
+        ("bd",  "muppet /mnt/bigdisk",      "muppet",     "/mnt/bigdisk",   "local"),
+        ("bd2", "muppet /mnt/bigdisk2",     "muppet",     "/mnt/bigdisk2",  "local"),
+        ("pd",  "muppet /mnt/photodisk",    "muppet",     "/mnt/photodisk", "local"),
+        ("pup", "puppy ~ (home)",           "puppy",      None,             "local"),
+        ("ab",  "muppet ASTROBACKUP (USB)", "muppet",     None,             "usb-stick"),
+        ("s3",  "AWS S3 Deep Archive",      "aws",        None,             "deep-archive"),
+    ]
+    CAM_ABBR = {"starcam": "sv1", "astrocam": "av2",
+                "eclipticam-v3w": "ev3w", "eclipticam-v1": "ev1",
+                "astrocam-v3s": "av3s", "eos": "eos"}
+
+    def _cam(c):
+        return CAM_ABBR.get(str(c or "?"), str(c or "?"))
+
+    def _fs_col(it):
+        host = it.get("host", ""); path = str(it.get("path", ""))
+        sc = it.get("storage_class", "local")
+        for col, _l, ch, cp, cs in FS:
+            if ch is not None and host != ch:
+                continue
+            if cs is not None and sc != cs:
+                continue
+            if cp is not None and not path.startswith(cp):
+                continue
+            return col
+        return None
+
+    # fs -> camera -> set(nights) and total bytes
+    data = {}
+    for it in inventory:
+        if str(it.get("camera", "")).endswith("-deliverables"):
+            continue
+        if "_sweep" in str(it.get("camera", "")):
+            continue
+        col = _fs_col(it)
+        if not col:
+            continue
+        cam = _cam(it.get("camera"))
+        night = str(it.get("night", ""))
+        if not _re.match(r"\d{4}-\d{2}-\d{2}", night):
+            continue
+        d = data.setdefault(col, {})
+        e = d.setdefault(cam, {"nights": set(), "bytes": 0})
+        e["nights"].add(night)
+        e["bytes"] += sum(_i(v) for v in (it.get("bytes") or {}).values())
+
+    def _mmdd(n):
+        return n[5:7] + n[8:10]  # 2026-07-11 -> 0711
+
+    # capacity lookup for the disk header (used/size)
+    cap_by = {}
+    for c in capacity:
+        cap_by[(c.get("host"), c.get("fs"))] = c
+    FS_MOUNT = {"bs": "/mnt/bigstore", "bd": "/mnt/bigdisk", "bd2": "/mnt/bigdisk2",
+                "pd": "/mnt/photodisk", "ecl": "/mnt/ssd", "mup": "/", "pup": "/"}
+
+    blocks = []
+    for col, label, _h, _p, _sc in FS:
+        d = data.get(col)
+        if not d:
+            continue
+        # camera lines, sorted by abbrev
+        lines = []
+        for cam in sorted(d):
+            ns = sorted(d[cam]["nights"])
+            rng = (f"{_mmdd(ns[0])}–{_mmdd(ns[-1])}" if len(ns) > 1
+                   else _mmdd(ns[0]))
+            gib = d[cam]["bytes"] / (1024**3)
+            sz = f"{gib:.0f} GB" if gib >= 1 else (f"{gib*1024:.0f} MB" if gib else "")
+            lines.append(
+                f'<div class="dk-cam"><span class="dk-c">{cam}</span>'
+                f'<span class="dk-r">{rng}</span>'
+                f'<span class="dk-n">({len(ns)})</span>'
+                f'<span class="dk-sz">{sz}</span></div>')
+        blocks.append(
+            f'<div class="dk"><div class="dk-hd">'
+            f'<span class="dk-col">{col}</span>'
+            f'<span class="dk-label">{label}</span></div>'
+            f'{"".join(lines)}</div>')
+    disks_html = "".join(blocks) or '<p class="empty">No inventory.</p>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro — Disks</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 900px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .dk {{ background: var(--card-bg); border-radius: 12px; padding: 0.6rem 0.9rem; margin-bottom: 0.6rem; }}
+    .dk-hd {{ display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); padding-bottom: 0.25rem; }}
+    .dk-col {{ font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: var(--accent); }}
+    .dk-label {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .dk-cam {{ display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.8rem; padding: 0.1rem 0; font-family: ui-monospace, Menlo, monospace; }}
+    .dk-c {{ min-width: 3.2rem; font-weight: 600; }}
+    .dk-r {{ min-width: 6rem; color: var(--text); }}
+    .dk-n {{ min-width: 2.5rem; color: var(--text-secondary); }}
+    .dk-sz {{ color: var(--text-secondary); text-align: right; flex: 1; }}
+    .empty {{ text-align: center; color: var(--text-secondary); }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Disks</h1>
+    <div class="subtitle">what astro data lives on each filesystem — camera · date range · nights</div>
+    {disks_html}
+    <div class="footer"><a href="/astro/storage">by night &rarr;</a> &middot; <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
 def render_astro_player(*, camera, night, sources):
     """Advanced multi-source player for one night's astro outputs.
 
