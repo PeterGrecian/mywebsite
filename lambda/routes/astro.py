@@ -508,6 +508,64 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
         return max((sum(_i(v) for v in (it.get("bytes") or {}).values())
                     for it in locs), default=0)
 
+    # --- Status flags: a compact string per (night,camera) -----------------
+    # Peter 2026-07-29: want keeper/squashed/etc. back, but as a terse flag
+    # string ("K", "S", "Kq", "--") that stays narrow and takes new statuses.
+    # Flags, in fixed display order (see STATUS_LEGEND below):
+    #   K keeper · q squashable · S squashed · C cold-archived
+    # Keeper = clearest CLEAR night of its ISO week per camera (retention
+    # policy). Squashed = reduced sum8/sum2 products present. Add a status by
+    # appending to STATUS_LEGEND and emitting its letter in _status_flags.
+    SHRUNK_KEYS = ("raw_sum8", "binned_sum2")
+    STATUS_LEGEND = [("K", "keeper"), ("q", "squashable"),
+                     ("S", "squashed"), ("C", "cold-archived")]
+
+    def _night_verdict(locs):
+        for it in locs:
+            v = (it.get("verdict") or "").lower()
+            if v:
+                return v
+        return ""
+
+    def _row_shrunk(it):
+        return bool(it.get("shrunk")) or any(
+            k in (it.get("bytes") or {}) for k in SHRUNK_KEYS)
+
+    week_nights = {}   # (camera, isoweek) -> [(night, bytes, verdict)]
+    for (night, cam, kind), locs in by_nc.items():
+        if kind == "day":
+            continue
+        try:
+            wk = _dt.date.fromisoformat(night).isocalendar()[:2]
+        except ValueError:
+            continue
+        week_nights.setdefault((cam, wk), []).append(
+            (night, _night_bytes(locs), _night_verdict(locs)))
+    keepers = set()    # (camera, night)
+    for (cam, wk), nights in week_nights.items():
+        clear = [n for n in nights if n[2] == "clear"]
+        if clear:
+            keepers.add((cam, max(clear, key=lambda n: n[1])[0]))
+        elif not any(n[2] for n in nights):
+            keepers.add((cam, max(nights, key=lambda n: n[1])[0]))
+
+    def _status_flags(night, cam, kind, locs):
+        if kind == "day":
+            return "--"      # retention policy is night-sky only
+        shrunk = any(_row_shrunk(it) for it in locs)
+        cold = any(it.get("storage_class") == "deep-archive" for it in locs)
+        keep = (cam, night) in keepers
+        flags = ""
+        if keep:
+            flags += "K"
+        if shrunk:
+            flags += "S"
+        elif not keep:
+            flags += "q"     # squashable = not keeper, not yet squashed
+        if cold:
+            flags += "C"
+        return flags or "--"
+
     # --- Filesystem matrix: rows = night×camera, columns = filesystems ------
     # The page's job (peter 2026-07-29): answer "which filesystem is this
     # night on?" at a glance. Each column is one filesystem, abbreviated;
@@ -593,6 +651,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
         # one-copy nights are the fragile ones — flag the row
         lonely = ' mx-lonely' if n_copies <= 1 else ''
         biggest = _night_bytes(locs)
+        status = _status_flags(night, cam, kind, locs)
         # night column: just the day-of-month — the month is fixed by the
         # selector/radio above, so 'YYYY-MM-' is redundant. Full date on hover.
         # The day cell rowspans across all that day's camera rows (emit once).
@@ -609,6 +668,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             + day_cell
             + f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
             f'<td class="mx-n">{n_copies}</td>'
+            f'<td class="mx-st" title="{status}">{status}</td>'
             + "".join(cells)
             + f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
 
@@ -675,20 +735,23 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
               if not show_all else
               f'<a href="/astro/storage{_mo_path}">clean</a> · '
               f'<a href="/astro/storage{_mo_path}?all=1">+ derivatives ✓</a>')
+    status_legend = " ".join(f"<b>{ch}</b> {lbl}" for ch, lbl in STATUS_LEGEND)
     cal_html = (
         '<table class="mx"><thead><tr>'
         '<th title="day of month">d</th><th>cam</th>'
         '<th class="mx-col" title="number of filesystems holding this night">#</th>'
+        '<th class="mx-col" title="retention status">st</th>'
         + head_cols +
         '<th class="mx-col">size</th>'
         '</tr></thead><tbody>' + ("".join(mx_rows) or
-        f'<tr><td colspan="{len(col_order)+4}" class="empty">'
+        f'<tr><td colspan="{len(col_order)+5}" class="empty">'
         'No inventory this month.</td></tr>')
         + '</tbody></table>'
         f'<div class="axis-label"><span class="mx-toggle">{toggle}</span><br>'
         f'{legend}<br>'
-        'd = day of month · # = filesystems holding this night '
-        '(dim column = none this month) · orange row = only ONE copy.</div>')
+        f'st: {status_legend} (– none) &middot; '
+        '# = filesystems holding this night (dim col = none this month) &middot; '
+        'orange row = only ONE copy.</div>')
 
     # month nav
     month_links = []
@@ -751,11 +814,13 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .sc-deep-archive {{ background: #1f2f3a; color: #6ab0ff; }}
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
-    /* filesystem matrix */
-    .mx {{ width: 100%; border-collapse: collapse; font-size: 0.72rem; }}
-    .mx th {{ color: var(--text-secondary); font-weight: 500; font-size: 0.66rem; padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    /* filesystem matrix — tuned for horizontal density */
+    .mx {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
+    .mx th {{ color: var(--text-secondary); font-weight: 500; font-size: 0.64rem; padding: 0.18rem 0.2rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
+    .mx td {{ padding: 0.18rem 0.2rem; }}
     .mx-col {{ text-align: center; }}
+    .mx-st {{ text-align: center; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.66rem; color: var(--text-secondary); letter-spacing: -0.02em; }}
     .mx-col-empty {{ opacity: 0.35; }}
     /* vertical zebra: alternate columns tinted so the grid reads column-wise.
        fallback for older browsers, then currentColor mix (theme-aware). */
@@ -763,7 +828,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .mx-zb {{ background: rgba(128,128,128,0.14); }}
     .mx-zb {{ background: color-mix(in srgb, currentColor 10%, transparent); }}
     .mx-toggle a {{ color: var(--accent); text-decoration: none; margin-right: 0.4rem; }}
-    .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .mx td {{ border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx-night {{ font-weight: 600; white-space: nowrap; vertical-align: middle; text-align: center; border-right: 1px solid var(--divider, #2C2C2E); }}
     .mx-cam {{ color: var(--text-secondary); white-space: nowrap; }}
     .mx-hit {{ text-align: center; font-weight: 600; }}
