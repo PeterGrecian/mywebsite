@@ -595,9 +595,9 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             f'<tr class="mx-row{lonely}">'
             f'<td class="mx-night" title="{night}">{day}</td>'
             f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
+            f'<td class="mx-n">{n_copies}</td>'
             + "".join(cells)
-            + f'<td class="mx-n">{n_copies}</td>'
-            f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
+            + f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
 
     head_cols = "".join(
         f'<th class="mx-col {"mx-za" if ci % 2 == 0 else "mx-zb"}'
@@ -664,8 +664,9 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
               f'<a href="/astro/storage{_mo_path}?all=1">+ derivatives ✓</a>')
     cal_html = (
         '<table class="mx"><thead><tr>'
-        '<th title="day of month">d</th><th>cam</th>' + head_cols +
+        '<th title="day of month">d</th><th>cam</th>'
         '<th class="mx-col" title="number of filesystems holding this night">#</th>'
+        + head_cols +
         '<th class="mx-col">size</th>'
         '</tr></thead><tbody>' + ("".join(mx_rows) or
         f'<tr><td colspan="{len(col_order)+4}" class="empty">'
@@ -743,8 +744,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
     .mx-col {{ text-align: center; }}
     .mx-col-empty {{ opacity: 0.35; }}
-    .mx-za {{ background: rgba(255,255,255,0.03); }}
-    .mx-zb {{ background: rgba(255,255,255,0.07); }}
+    /* vertical zebra: alternate columns tinted so the grid reads column-wise.
+       fallback for older browsers, then currentColor mix (theme-aware). */
+    .mx-za {{ background: transparent; }}
+    .mx-zb {{ background: rgba(128,128,128,0.14); }}
+    .mx-zb {{ background: color-mix(in srgb, currentColor 10%, transparent); }}
     .mx-toggle a {{ color: var(--accent); text-decoration: none; margin-right: 0.4rem; }}
     .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx-night {{ font-weight: 600; white-space: nowrap; }}
