@@ -472,155 +472,157 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     n_stick = sum(1 for it in inventory if it.get("storage_class") == "usb-stick")
     n_cold = sum(1 for it in inventory if it.get("storage_class") == "deep-archive")
 
-    inv_rows = []
-    for night, cam, kind in month_groups:
-        locs = by_nc[(night, cam, kind)]
-        cells = []
-        # drift flag: >1 local copy OF THIS CAMERA's night whose sizes
-        # differ by more than 5% — copies that have genuinely diverged.
-        # Sub-5% differences are typically a few extra derived files on
-        # the processing host, not a bad copy; the per-row sizes still
-        # show them.
-        local_sizes = [sum(_i(v) for v in (it.get("bytes") or {}).values())
-                       for it in locs if it.get("storage_class") == "local"]
-        drift = (len(local_sizes) > 1 and min(local_sizes) >= 0 and
-                 max(local_sizes) > min(local_sizes) * 1.05)
-        for it in sorted(locs, key=lambda x: x.get("storage_class", "")):
-            sc = it.get("storage_class", "local")
-            total = sum(_i(v) for v in (it.get("bytes") or {}).values())
-            fmt_bits = [b for b in (_fmt_desc(it), it.get("notes")) if b]
-            fmt_html = (f'<div class="loc-fmt">{" — ".join(fmt_bits)}</div>'
-                        if fmt_bits else "")
-            cells.append(
-                f'<div class="loc loc-{sc}">'
-                f'<span class="loc-where">{it.get("host","?")}'
-                f'<span class="loc-path">{_tilde(it.get("path",""))}</span></span>'
-                f'<span class="loc-tags"><span class="sc sc-{sc}">'
-                f'{SC_LABEL.get(sc, sc)}</span> {_gib(total)}</span></div>'
-                f'{fmt_html}')
-        # A missing Deep Archive copy is NOT flagged: cold archiving is
-        # still under development, so its absence is expected, not a hazard.
-        flags = ""
-        if drift:
-            flags += '<span class="flag flag-drift">size drift</span>'
-        inv_rows.append(
-            f'<div class="night-row"><div class="night-hd">'
-            f'<span class="nr-night">{night}</span>'
-            f'<span class="nr-cam">{_cam_label(cam, kind)}</span>{flags}</div>'
-            f'{"".join(cells)}</div>')
-    inv_html = "".join(inv_rows) or '<p class="empty">No inventory.</p>'
-
-    # --- Keeper computation: clearest CLEAR night per ISO week --------------
-    # Retention policy (project-deep-archive-backlog): the clearest clear
-    # night of each ISO week is a "keeper" (kept raw + → Glacier); the rest
-    # are "squashable". verdict comes from inventory rows when present; weeks
-    # with no clear night get no keeper. Falls back to biggest night/week
-    # when verdict is absent (until the reporter records it).
-    def _night_verdict(locs):
-        for it in locs:
-            v = (it.get("verdict") or "").lower()
-            if v:
-                return v
-        return ""
-
     def _night_bytes(locs):
         return max((sum(_i(v) for v in (it.get("bytes") or {}).values())
                     for it in locs), default=0)
 
-    week_nights = {}  # (camera, isoweek) -> [(night, bytes, verdict)]
-    for (night, cam, kind), locs in by_nc.items():
-        if kind == "day":
-            continue   # retention policy is about night-sky data only
-        try:
-            wk = _dt.date.fromisoformat(night).isocalendar()[:2]  # (year, week)
-        except ValueError:
-            continue
-        week_nights.setdefault((cam, wk), []).append(
-            (night, _night_bytes(locs), _night_verdict(locs)))
+    # --- Filesystem matrix: rows = night×camera, columns = filesystems ------
+    # The page's job (peter 2026-07-29): answer "which filesystem is this
+    # night on?" at a glance. Each column is one filesystem, abbreviated;
+    # a row ticks the columns where that (night,camera) actually lives.
+    # Columns are matched in order — first match wins — so every location
+    # maps to exactly one column. `col` values are short abbreviations;
+    # hover (title) gives the full host:path and storage class.
+    #
+    # To add a filesystem: append a (col, label, host, path_prefix, sc) row.
+    # host/path_prefix/sc of None = wildcard. `title` is the tooltip.
+    FS_COLUMNS = [
+        # col     full label                     host          path prefix              sc
+        ("bs",   "muppet /mnt/bigstore",        "muppet",     "/mnt/bigstore",         "local"),
+        ("bd2",  "muppet /mnt/bigdisk2",        "muppet",     "/mnt/bigdisk2",         "local"),
+        ("bd",   "muppet /mnt/bigdisk",         "muppet",     "/mnt/bigdisk",          "local"),
+        ("pd",   "muppet /mnt/photodisk",       "muppet",     "/mnt/photodisk",        "local"),
+        ("mup",  "muppet ~ (home)",             "muppet",     "/home",                 "local"),
+        ("pup",  "puppy ~ (home)",              "puppy",      None,                    "local"),
+        ("ecl",  "eclipticam /mnt/ssd",         "eclipticam", None,                    "local"),
+        ("ab",   "muppet ASTROBACKUP (USB)",    "muppet",     None,                    "usb-stick"),
+        ("s3",   "AWS S3 Deep Archive",         "aws",        None,                    "deep-archive"),
+    ]
 
-    # Keeper = clearest CLEAR night each week, PER CAMERA. A week is only
-    # eligible to have its keeper chosen by verdict once ANY of that
-    # camera's nights that week has a verdict; weeks with no verdict info
-    # at all fall back to biggest (so the column is still useful before
-    # the reporter records verdicts).
-    keepers = set()  # of (camera, night)
-    for (cam, wk), nights in week_nights.items():
-        clear = [n for n in nights if n[2] == "clear"]
-        if clear:
-            keepers.add((cam, max(clear, key=lambda n: n[1])[0]))
-        elif not any(n[2] for n in nights):   # no verdict known this week
-            keepers.add((cam, max(nights, key=lambda n: n[1])[0]))
-        # else: week has verdicts but none clear -> NO keeper
+    def _fs_col(it):
+        """Which matrix column an inventory row belongs to (first match)."""
+        host = it.get("host", "")
+        path = str(it.get("path", ""))
+        sc = it.get("storage_class", "local")
+        for col, _label, chost, cprefix, csc in FS_COLUMNS:
+            if chost is not None and host != chost:
+                continue
+            if csc is not None and sc != csc:
+                continue
+            if cprefix is not None and not path.startswith(cprefix):
+                continue
+            return col
+        return None  # unmatched — surfaces as an "other" tick
 
-    # --- Calendar table: night -> where stored + shrunk + keeper -----------
-    # "Shrunk" = squashed format present (raw_sum8 / binned_sum2 bytes), per
-    # COLD_STORAGE.md — the ~0.17x reduced per-frame products that replace raw.
-    SHRUNK_KEYS = ("raw_sum8", "binned_sum2")
-    def _yes(b):
-        return '<span class="yes">✓</span>' if b else '<span class="no">·</span>'
+    # only columns actually used this month get shown (keeps it narrow)
+    used_cols = []
+    for night, cam, kind in month_groups:
+        for it in by_nc[(night, cam, kind)]:
+            c = _fs_col(it)
+            if c and c not in used_cols:
+                used_cols.append(c)
+    # preserve FS_COLUMNS order, not discovery order
+    col_order = [c for (c, *_r) in FS_COLUMNS if c in used_cols]
+    col_meta = {c: (label, sc) for (c, label, _h, _p, sc) in FS_COLUMNS}
 
-    def _row_shrunk(it):
-        return bool(it.get("shrunk")) or any(
-            k in (it.get("bytes") or {}) for k in SHRUNK_KEYS)
-
-    cal_rows = []
+    mx_rows = []
     for night, cam, kind in month_groups:
         locs = by_nc[(night, cam, kind)]
-        # local copy counts, full-res and shrunk separately: "2", "1+1s", "2s"
-        loc_rows = [it for it in locs if it.get("storage_class") == "local"]
-        n_full = sum(1 for it in loc_rows if not _row_shrunk(it))
-        n_shr = len(loc_rows) - n_full
-        local_cell = "+".join(
-            ([str(n_full)] if n_full else []) +
-            ([f"{n_shr}s"] if n_shr else [])) or '<span class="no">·</span>'
-        on_stick = any(it.get("storage_class") == "usb-stick" for it in locs)
-        on_cold = any(it.get("storage_class") == "deep-archive" for it in locs)
-        hosts = sorted({it.get("host", "?") for it in locs
-                        if it.get("storage_class") == "local"})
-        shrunk = any(_row_shrunk(it) for it in locs)
-        # resolution class: from the first location with scanner fmt info.
-        # full/half are the demosaiced classes — prefix the file type so
-        # the column says 'jpg full' rather than a bare 'full'.
-        res = ""
+        # map column -> bytes on that fs (for the cell tooltip)
+        col_bytes = {}
         for it in locs:
-            f = it.get("fmt") or {}
-            if f.get("res_class"):
-                res = _res_label(f["res_class"])
-                if res in ("full", "half"):
-                    res = f'{str(f.get("ext", "")).lstrip(".")} {res}'.strip()
-                break
-            if not res and len(f.get("dims") or []) == 2:
-                res = f'{_i(f["dims"][0])}×{_i(f["dims"][1])}'
+            c = _fs_col(it)
+            if not c:
+                continue
+            col_bytes.setdefault(c, 0)
+            col_bytes[c] += sum(_i(v) for v in (it.get("bytes") or {}).values())
+        n_copies = len(col_bytes)  # how many distinct filesystems hold it
+        cells = []
+        for c in col_order:
+            if c in col_bytes:
+                sc = col_meta[c][1]
+                cells.append(
+                    f'<td class="mx-hit mx-{sc}" '
+                    f'title="{col_meta[c][0]} — {_gib(col_bytes[c])}">✓</td>')
+            else:
+                cells.append('<td class="mx-miss">·</td>')
+        # one-copy nights are the fragile ones — flag the row
+        lonely = ' mx-lonely' if n_copies <= 1 else ''
         biggest = _night_bytes(locs)
-        keep = (cam, night) in keepers
-        keep_cell = ('<span class="no">&mdash;</span>' if kind == "day"
-                     else '<span class="keep">★ keeper</span>' if keep
-                     else '<span class="squash">squashed</span>' if shrunk
-                     else '<span class="squash">squashable</span>')
-        cal_rows.append(
-            f'<tr><td class="c-night">{night}</td>'
-            f'<td class="c-cam">{_cam_label(cam, kind)}</td>'
-            f'<td class="c-res">{res or "&mdash;"}</td>'
-            f'<td>{", ".join(hosts) if hosts else "&mdash;"}</td>'
-            f'<td class="c-ctr">{local_cell}</td>'
-            f'<td class="c-ctr">{_yes(on_stick)}</td>'
-            f'<td class="c-ctr">{_yes(on_cold)}</td>'
-            f'<td class="c-ctr">{_yes(shrunk)}</td>'
-            f'<td class="c-keep">{keep_cell}</td>'
-            f'<td class="c-sz">{_gib(biggest)}</td></tr>')
+        mx_rows.append(
+            f'<tr class="mx-row{lonely}">'
+            f'<td class="mx-night">{night}</td>'
+            f'<td class="mx-cam">{_cam_label(cam, kind)}</td>'
+            + "".join(cells)
+            + f'<td class="mx-n">{n_copies}</td>'
+            f'<td class="mx-sz">{_gib(biggest)}</td></tr>')
+
+    head_cols = "".join(
+        f'<th class="mx-col" title="{col_meta[c][0]}">{c}</th>'
+        for c in col_order)
+    legend = " &middot; ".join(f"<b>{c}</b> {col_meta[c][0]}" for c in col_order)
+
+    # --- Per-camera format footnotes ---------------------------------------
+    # Format is a property of the CAMERA, not each night, so it lives here as
+    # a footnote (peter 2026-07-29: "v3w is 5 GB mosaic 60s exposures") rather
+    # than repeating down every row. For each camera shown this month, derive
+    # a one-line spec (resolution class · dims · exposure/cadence) plus a
+    # typical night size (median of that camera's night totals).
+    import statistics as _stats
+    cam_specs = {}   # display-cam -> (spec_line, typical_bytes)
+    for (night, cam, kind), locs in by_nc.items():
+        dcam = _cam_label(cam, kind)
+        # gather a representative fmt + this night's total bytes
+        fmt = next((it.get("fmt") for it in locs if it.get("fmt")), None) or {}
+        nb = _night_bytes(locs)
+        spec = cam_specs.get(dcam, {"fmt": {}, "sizes": []})
+        if fmt and not spec["fmt"]:
+            spec["fmt"] = fmt
+        if nb:
+            spec["sizes"].append(nb)
+        cam_specs[dcam] = spec
+
+    cams_this_month = []
+    for night, cam, kind in month_groups:
+        dcam = _cam_label(cam, kind)
+        if dcam not in cams_this_month:
+            cams_this_month.append(dcam)
+
+    def _cam_spec_line(dcam):
+        spec = cam_specs.get(dcam) or {}
+        f = spec.get("fmt") or {}
+        parts = []
+        if f.get("res_class"):
+            parts.append(_res_label(f["res_class"]))
+        dims = f.get("dims") or []
+        if len(dims) == 2:
+            parts.append(f"{_i(dims[0])}×{_i(dims[1])}")
+        if _i(f.get("cadence_s")):
+            parts.append(f"{_i(f['cadence_s'])} s exposures")
+        if f.get("ext"):
+            parts.append(str(f["ext"]).lstrip("."))
+        sizes = spec.get("sizes") or []
+        typ = _gib(int(_stats.median(sizes))) if sizes else ""
+        spec_txt = " · ".join(parts) if parts else "—"
+        return f"{spec_txt}{(' · ~' + typ + '/night') if typ else ''}"
+
+    cam_notes = "".join(
+        f'<div class="cam-note"><b>{dcam}</b> — {_cam_spec_line(dcam)}</div>'
+        for dcam in cams_this_month)
+    cam_notes_html = (f'<div class="cam-notes">{cam_notes}</div>'
+                      if cam_notes else "")
     cal_html = (
-        '<table class="cal"><thead><tr>'
-        '<th>night</th><th>cam</th><th>res</th><th>local host(s)</th>'
-        '<th>local</th><th>USB</th><th>cold</th><th>shrunk</th>'
-        '<th>retention</th><th>size</th>'
-        '</tr></thead><tbody>' + ("".join(cal_rows) or
-        '<tr><td colspan="10" class="empty">No inventory this month.</td></tr>')
+        '<table class="mx"><thead><tr>'
+        '<th>night</th><th>cam</th>' + head_cols +
+        '<th class="mx-col" title="number of filesystems holding this night">#</th>'
+        '<th class="mx-col">size</th>'
+        '</tr></thead><tbody>' + ("".join(mx_rows) or
+        f'<tr><td colspan="{len(col_order)+4}" class="empty">'
+        'No inventory this month.</td></tr>')
         + '</tbody></table>'
-        '<div class="axis-label">local = number of local copies '
-        '(Ns = N shrunk copies) &middot; retention: ★ keeper = clearest '
-        'clear night of its ISO week, kept at full resolution; '
-        'squashable = may be reduced to the sum8+sum2 products '
-        '(≈0.17× the bytes); squashed = already reduced</div>')
+        f'<div class="axis-label">{legend}<br>'
+        '# = how many filesystems hold this night · '
+        'a highlighted row has only ONE copy.</div>')
 
     # month nav
     month_links = []
@@ -683,17 +685,27 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
     .sc-deep-archive {{ background: #1f2f3a; color: #6ab0ff; }}
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
-    .cal {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
-    .cal th {{ text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 0.64rem; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
-    .cal td {{ padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
-    .c-night {{ font-weight: 600; white-space: nowrap; }}
-    .c-cam {{ color: var(--text-secondary); }}
-    .c-res {{ color: var(--text-secondary); white-space: nowrap; }}
-    .c-ctr {{ text-align: center; }}
-    .c-keep {{ white-space: nowrap; }}
-    .c-sz {{ text-align: right; color: var(--text-secondary); white-space: nowrap; }}
-    .keep {{ color: #f0c040; font-weight: 600; }}
-    .squash {{ color: var(--text-secondary); }}
+    /* filesystem matrix */
+    .mx {{ width: 100%; border-collapse: collapse; font-size: 0.72rem; }}
+    .mx th {{ color: var(--text-secondary); font-weight: 500; font-size: 0.66rem; padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
+    .mx-col {{ text-align: center; }}
+    .mx td {{ padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .mx-night {{ font-weight: 600; white-space: nowrap; }}
+    .mx-cam {{ color: var(--text-secondary); white-space: nowrap; }}
+    .mx-hit {{ text-align: center; font-weight: 600; }}
+    .mx-local {{ color: #6fcf6a; }}
+    .mx-usb-stick {{ color: #9a9aff; }}
+    .mx-deep-archive {{ color: #6ab0ff; }}
+    .mx-miss {{ text-align: center; color: var(--divider, #3a3a3c); }}
+    .mx-n {{ text-align: center; color: var(--text-secondary); }}
+    .mx-sz {{ text-align: right; color: var(--text-secondary); white-space: nowrap; }}
+    .mx-lonely {{ background: rgba(255,149,0,0.12); }}
+    .mx-lonely .mx-n {{ color: var(--warning, #FF9500); font-weight: 600; }}
+    /* per-camera format footnotes */
+    .cam-notes {{ margin-top: 0.6rem; }}
+    .cam-note {{ font-size: 0.72rem; color: var(--text-secondary); padding: 0.1rem 0; }}
+    .cam-note b {{ color: var(--text); }}
     .months {{ text-align: center; margin-bottom: 0.6rem; }}
     .months a {{ display: inline-block; margin: 0.1rem 0.25rem; padding: 0.15rem 0.5rem; font-size: 0.75rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; }}
     .months a.cur {{ color: var(--text); background: var(--divider, #2C2C2E); }}
@@ -721,12 +733,10 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None):
       <div class="tier"><div class="tier-v">{n_cold}</div><div class="tier-l">Deep Archive</div></div>
     </div>
 
-    <h2>Calendar — {cur_month or "—"}</h2>
+    <h2>Where each night lives — {cur_month or "—"}</h2>
     {month_nav}
     {cal_html}
-
-    <h2>Inventory detail — {cur_month or "—"}</h2>
-    {inv_html}
+    {cam_notes_html}
 
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
