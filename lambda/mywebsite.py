@@ -3829,7 +3829,7 @@ def lambda_handler(event, context):
         return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
 
     elif re.search(
-            r'/astro/(astrocam|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+            r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
             path):
         # PUBLIC — advanced multi-source player for one night's deliverables
         # + experiments. Reuses skycam's render_skycam_player (per project
@@ -3838,7 +3838,7 @@ def lambda_handler(event, context):
         # experiments/ subdir; presigns each; first is what loads, ↑/↓
         # cycles. Frame-step, clip in/out, speed, loop, share-URL.
         m = re.search(
-            r'/astro/(astrocam|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+            r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
             path)
         camera, night = m.group(1), m.group(2)
         try:
@@ -3878,24 +3878,26 @@ def lambda_handler(event, context):
                     'body': f'<p>error: {e}</p>',
                     'headers': {'Content-Type': 'text/html'}}
 
-    elif re.search(r'/astro/(astrocam|eclipticam)(/night/\d{4}-\d{2}-\d{2})?/?$',
+    elif re.search(r'/astro/(astrocam|eclipticam|canon)(/night/\d{4}-\d{2}-\d{2})?/?$',
                    path):
         # PUBLIC — live nightly deliverables (unify-cameras pipeline).
         # /astro/<cam>                    -> dashboard (latest night)
         # /astro/<cam>/night/YYYY-MM-DD  -> that night
         import json as _json
         m = re.search(
-            r'/astro/(astrocam|eclipticam)(?:/night/(\d{4}-\d{2}-\d{2}))?/?$',
+            r'/astro/(astrocam|eclipticam|canon)(?:/night/(\d{4}-\d{2}-\d{2}))?/?$',
             path)
         camera, night = m.group(1), m.group(2)
         is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
-        titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera'}
+        titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
+                  'canon': 'EOS Camera'}
         # unify-cameras split: each section is now its own top-level S3
         # camera prefix (eclipticam-v3w / eclipticam-v1) with UN-prefixed
         # filenames (max.jpg, not v3w_max.jpg). astrocam is a single camera.
         # Each entry: (s3_camera_prefix, section_label).
         cam_sections = {
             'astrocam': [('astrocam', None)],
+            'canon': [('canon', None)],
             'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
                            ('eclipticam-v1', 'OV5647 (v1)')],
         }[camera]

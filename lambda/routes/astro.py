@@ -15,6 +15,12 @@ CAMERAS = [
         "status": "live",
     },
     {
+        "path": "/astro/canon",
+        "title": "EOS Camera",
+        "desc": "Canon EOS 2000D DSLR — 30 s ISO-1600 fixed-focus subs, fixed mount. Nightly short-trail star-field stacks with hot/cold pixel masking.",
+        "status": "live",
+    },
+    {
         "path": "/starcam",
         "title": "Star Camera (historical)",
         "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
