@@ -4060,6 +4060,13 @@ def lambda_handler(event, context):
                 for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
                              'sweep-diff.mp4', 'sweep-detrans.mp4',
                              'sweep-detrans-deep.mp4',
+                             # -web variants are what the page actually plays
+                             # (1280-wide, +faststart, ~5MB vs 130-180MB).
+                             # They must be presigned here or the route's
+                             # lookup silently falls back to full-res.
+                             'sweep-colour-web.mp4', 'sweep-mono-web.mp4',
+                             'sweep-diff-web.mp4', 'sweep-detrans-web.mp4',
+                             'sweep-detrans-deep-web.mp4',
                              'poster-colour.jpg', 'poster-mono.jpg',
                              'poster-diff.jpg', 'poster-detrans.jpg',
                              'poster-detrans-deep.jpg',

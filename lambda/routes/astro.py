@@ -164,14 +164,28 @@ def _section(sec):
          "subtracted (max SNR); pulls the faintest stars onto a clean "
          "dark sky, per 10 min window through the night"),
     ):
-        url = urls.get(key)
+        # Serve the -web variant: 1280-wide, denoised, +faststart, ~5MB vs
+        # 130-180MB full-res. This is what publish-night-cam builds them FOR
+        # ("the website serves sweep-<name>-web.mp4; the full-res mp4 stays as
+        # the high-quality/download copy") — the site had never used them, so
+        # visitors pulled the full-res file, whose moov atom is at the END,
+        # meaning playback could not start until the whole clip downloaded.
+        # Fall back to full-res for older nights that predate the web encode.
+        web_key = key.replace(".mp4", "-web.mp4")
+        web_url = urls.get(web_key)
+        url = web_url or urls.get(key)
         if url:
             poster = urls.get(poster_key) or shared_poster
+            full = urls.get(key)
+            # Offer the full-res as a download only when we're actually
+            # playing the smaller web encode.
+            dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
+                  if web_url and full else "")
             imgs.append(
                 f'<video controls loop preload="metadata" playsinline '
                 f'poster="{poster}"><source src="{url}" type="video/mp4">'
                 f'Your browser cannot play this clip.</video>'
-                f'<div class="caption">{cap}</div>')
+                f'<div class="caption">{cap}{dl}</div>')
     for key, cap in (("derot.jpg", "pole-derotated stack (darkest window)"),
                      ("max.jpg", "max stack — star trails"),
                      ("brightness.png", "per-frame brightness (log&#8322;)")):
@@ -1089,6 +1103,8 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .player-link a:hover {{ opacity: 0.85; }}
     img, video {{ width: 100%; height: auto; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
+    .caption a.dl {{ color: var(--accent); text-decoration: none; white-space: nowrap; }}
+    .caption a.dl:hover {{ text-decoration: underline; }}
     .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
     .stat {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; }}
     .stat-v {{ font-size: 1rem; font-weight: 600; }}
