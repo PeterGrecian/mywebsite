@@ -3841,16 +3841,41 @@ def lambda_handler(event, context):
             r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
             path)
         camera, night = m.group(1), m.group(2)
+        # The night PAGE is addressed by the logical camera ('eclipticam') and
+        # links here with that same name, but S3 was split by the
+        # unify-cameras change into PHYSICAL prefixes (eclipticam-v3w /
+        # eclipticam-v1). Listing 'eclipticam/nights/<n>/' therefore hit the
+        # dead PRE-SPLIT prefix (last data 2026-06-16, filenames like
+        # v3w_sweep-diff.mp4) and reported "no mp4s for this night yet" on
+        # nights that had eight. Resolve logical -> physical the same way the
+        # camera page does, and search every section so a night published by
+        # only one sub-camera still plays.
+        player_prefixes = {
+            'astrocam': ['astrocam'],
+            'canon': ['canon'],
+            'eclipticam': ['eclipticam-v3w', 'eclipticam-v1'],
+        }.get(camera, [camera])
         try:
             s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
-            listing = s3.list_objects_v2(
-                Bucket=ASTRO_BUCKET, Prefix=f'{camera}/nights/{night}/')
             mp4_keys = []
-            for item in listing.get('Contents', []) or []:
-                k = item['Key']
-                if not k.endswith('.mp4'):
-                    continue
-                mp4_keys.append(k)
+            for pfx in player_prefixes:
+                listing = s3.list_objects_v2(
+                    Bucket=ASTRO_BUCKET, Prefix=f'{pfx}/nights/{night}/')
+                for item in listing.get('Contents', []) or []:
+                    k = item['Key']
+                    if not k.endswith('.mp4'):
+                        continue
+                    mp4_keys.append(k)
+            # Prefer the -web encode of each sweep and drop the full-res twin:
+            # publish-night-cam builds sweep-<n>-web.mp4 (1280-wide, denoised,
+            # +faststart, ~4MB) precisely so the site serves that, keeping the
+            # full-res as the download/archive copy. Listing both put every
+            # clip in the player twice, full-res first — a 162MB file whose
+            # moov atom is at the END, so it cannot start until fully loaded.
+            web_stems = {k[:-len('-web.mp4')] for k in mp4_keys
+                         if k.endswith('-web.mp4')}
+            mp4_keys = [k for k in mp4_keys
+                        if k.endswith('-web.mp4') or k[:-4] not in web_stems]
             # Order: night-root deliverables first (they're the "story of
             # the night"), then experiments alphabetically.
             mp4_keys.sort(
