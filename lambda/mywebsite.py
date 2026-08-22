@@ -2281,6 +2281,18 @@ def render_site_test_page():
         return f.read().format(theme_css_js=THEME_CSS_JS)
 
 
+def render_privacy_page():
+    """Render the privacy policy — delegated to template.
+
+    Cited as the privacy policy of the `rclone-gdrive` Google OAuth client on
+    its published consent screen, so this route must keep resolving to a real
+    page rather than falling through to the contents catch-all.
+    """
+    _dir = os.path.join(os.path.dirname(__file__), "templates")
+    with open(os.path.join(_dir, "privacy.html")) as f:
+        return f.read().format(theme_css_js=THEME_CSS_JS)
+
+
 AI_APPS = [
     {"key": "alerting", "name": "Alerting", "desc": "Incident analysis"},
     {"key": "rcr", "name": "RCR", "desc": "Album ranking"},
@@ -2545,6 +2557,7 @@ def lambda_handler(event, context):
                 'Allow: /\n'
                 'Allow: /cv\n'
                 'Allow: /contents\n'
+                'Allow: /privacy\n'
                 'Disallow: /event\n'
                 'Disallow: /gitinfo\n'
                 'Disallow: /lambda-stats\n'
@@ -2580,6 +2593,8 @@ def lambda_handler(event, context):
         html += render_contents_page()
     elif path == f'/{stage}/site-test' or path == '/site-test':
         html = render_site_test_page()
+    elif path == f'/{stage}/privacy' or path == '/privacy':
+        html = render_privacy_page()
     elif path.startswith(f'/{stage}/calendaralarm') or path.startswith('/calendaralarm'):
         # calendaralarm — CRUD webapp + JSON API for standing alarm rules.
         # Basic Auth on every subpath (page + API). The pip poller reads

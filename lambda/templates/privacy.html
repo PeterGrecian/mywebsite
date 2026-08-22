@@ -1,0 +1,121 @@
+<html lang="en">
+  <head>
+    <title>Privacy Policy - Peter Grecian</title>
+    <style>
+      * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }}
+      .container {{ max-width: 760px; margin: 0 auto; }}
+      h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; }}
+      .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
+      .nav {{ text-align: center; margin-bottom: 2rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.5rem; display: inline-block; }}
+      .nav a:hover {{ opacity: 0.8; }}
+      section {{ background: var(--card-bg); border: 1px solid var(--divider); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }}
+      h2 {{ font-size: 1.05rem; color: var(--text); margin-bottom: 0.75rem; }}
+      p {{ color: var(--text); line-height: 1.6; margin-bottom: 0.75rem; }}
+      p:last-child, ul:last-child {{ margin-bottom: 0; }}
+      ul {{ margin: 0 0 0.75rem 1.25rem; }}
+      li {{ color: var(--text); line-height: 1.6; margin-bottom: 0.4rem; }}
+      code {{ font-family: monospace; background: rgba(142,142,147,0.15); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }}
+      a {{ color: var(--accent); }}
+      .updated {{ color: var(--text-secondary); text-align: center; font-size: 0.85rem; margin-top: 1.5rem; }}
+    </style>
+    {theme_css_js}
+  </head>
+  <body>
+    <div class="container">
+      <h1>Privacy Policy</h1>
+      <p class="subtitle">www.petergrecian.co.uk and associated personal tools</p>
+      <div class="nav"><a href="/contents">Home</a></div>
+
+      <section>
+        <h2>Who this covers</h2>
+        <p>
+          This site and the tools described below are the personal projects of
+          Peter Grecian. There is no company, no product and no customer base.
+          Nothing here is operated on anyone else's behalf, and none of the data
+          described below is sold, rented, or shared with third parties for
+          advertising or any other purpose.
+        </p>
+      </section>
+
+      <section>
+        <h2>Google account access (<code>rclone-gdrive</code>)</h2>
+        <p>
+          A Google OAuth client named <code>rclone-gdrive</code> is registered
+          under this project. It exists for one purpose: so that
+          <a href="https://rclone.org/">rclone</a>, running on Peter Grecian's
+          own computers, can back up his own files to his own Google Drive.
+        </p>
+        <ul>
+          <li>
+            It requests the <code>drive.file</code> scope only. That scope grants
+            access solely to files the application itself creates — it cannot see
+            or touch anything else in the Drive account.
+          </li>
+          <li>
+            It is used by the account owner, on his own machines, against his own
+            Drive. It is not offered as a service to anyone else.
+          </li>
+          <li>
+            Google account data is never transmitted to any server other than
+            Google's own APIs. The OAuth refresh token is held in the rclone
+            configuration file on those machines and in a private secrets store;
+            it is not published, shared, or sent anywhere else.
+          </li>
+          <li>
+            Google user data is not used to train any model, and is not used for
+            advertising, profiling, or resale.
+          </li>
+        </ul>
+        <p>
+          Access can be revoked at any time from
+          <a href="https://myaccount.google.com/permissions">Google Account
+          permissions</a>, which immediately invalidates the credential.
+        </p>
+      </section>
+
+      <section>
+        <h2>What this website records</h2>
+        <p>
+          Requests to www.petergrecian.co.uk are logged for operational reasons —
+          to see what is being used, to measure page timings, and to spot abusive
+          traffic. A log entry may contain the requested path, the timestamp, the
+          originating IP address, the browser user-agent string, and the referring
+          page. These entries are stored in AWS DynamoDB in the eu-west-1 region
+          and are used only to run and debug the site.
+        </p>
+        <p>
+          The site sets no advertising cookies and runs no third-party analytics
+          or tracking scripts. Some pages are protected by HTTP basic
+          authentication; those credentials are checked against a value held in
+          AWS SSM Parameter Store and are not logged.
+        </p>
+      </section>
+
+      <section>
+        <h2>Images and cameras</h2>
+        <p>
+          Several pages display images from cameras pointed at the sky or at a
+          private garden in Berrylands, Surrey. Camera pages that could show the
+          garden are password-protected. Sky and timelapse imagery contains no
+          personal data.
+        </p>
+      </section>
+
+      <section>
+        <h2>Retention and contact</h2>
+        <p>
+          Operational logs are kept only as long as they are useful for
+          diagnostics and are periodically discarded. If you want a log entry
+          associated with you removed, or have any question about this policy,
+          write to
+          <a href="mailto:peter.grecian@gmail.com">peter.grecian@gmail.com</a>
+          and it will be dealt with.
+        </p>
+      </section>
+
+      <p class="updated">Last updated: 22 August 2026</p>
+    </div>
+  </body>
+</html>
