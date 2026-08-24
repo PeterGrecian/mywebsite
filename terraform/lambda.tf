@@ -5,7 +5,7 @@ resource "aws_lambda_function" "mywebsite" {
   handler       = "mywebsite.lambda_handler"
   runtime       = "python3.12"
   timeout       = 30
-  memory_size   = 128
+  memory_size   = 512
 
   # Dummy zip — actual deployment handled by ./deploy script
   filename         = "dummy.zip"
