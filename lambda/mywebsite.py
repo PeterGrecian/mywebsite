@@ -362,7 +362,7 @@ def get_images_for_date(date_str):
     # Convert date to S3 prefix: 2026-02-15 → garden_20260215
     date_prefix = f"garden_{date_str.replace('-', '')}"
 
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
 
     try:
         response = s3.list_objects_v2(
@@ -488,7 +488,7 @@ def get_all_gardencam_images(max_keys=None):
     """
     if not BOTO3_AVAILABLE:
         return []
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
 
     # Optimization: S3 returns objects in alphabetical order
     # Since our keys are garden_YYYYMMDD_HHMMSS.jpg, alphabetical = chronological
@@ -585,7 +585,7 @@ def get_latest_skycam_images(count=3):
     """
     if not BOTO3_AVAILABLE:
         return []
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     objs = []
     for back in range(7):
         d = (datetime.utcnow() - timedelta(days=back))
@@ -641,7 +641,7 @@ def get_latest_gardencam_images(count=3):
     images = []
     all_images = []
 
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
 
     for batch_size in batch_sizes:
         # Fetch images up to this batch size
@@ -726,7 +726,7 @@ def get_latest_springcam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     all_objects = []
 
     # Fast path: try last 60 days by date prefix
@@ -779,7 +779,7 @@ def get_all_springcam_images(max_keys=None):
     """Get all springcam images from S3, newest first."""
     if not BOTO3_AVAILABLE:
         return []
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     paginator = s3.get_paginator('list_objects_v2')
     all_objects = []
     for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SPRINGCAM_KEY_PREFIX):
@@ -821,7 +821,7 @@ def get_latest_skycam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     all_objects = []
 
     # Fast path: try last 60 days by date prefix (both old flat and new date-based paths)
@@ -893,7 +893,7 @@ def get_all_skycam_images(max_keys=None):
     if _skycam_images_cache is not None and (now - _skycam_images_cache_time) < _SKYCAM_CACHE_TTL:
         images = _skycam_images_cache
     else:
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         paginator = s3.get_paginator('list_objects_v2')
         all_objects = []
         # Search both old flat path and new date-based path
@@ -930,7 +930,7 @@ def get_springcam_images_for_date(date_str):
     if not BOTO3_AVAILABLE:
         return []
     prefix = f"springcam/spring_{date_str.replace('-', '')}"
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     try:
         images = []
         paginator = s3.get_paginator('list_objects_v2')
@@ -972,7 +972,7 @@ def get_latest_starcam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     all_objects = []
 
     # Fast path: try last 60 days by date prefix
@@ -1025,7 +1025,7 @@ def get_all_starcam_images(max_keys=None):
     """Get all starcam images from S3, newest first."""
     if not BOTO3_AVAILABLE:
         return []
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     paginator = s3.get_paginator('list_objects_v2')
     all_objects = []
     for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix=STARCAM_KEY_PREFIX):
@@ -1051,7 +1051,7 @@ def get_starcam_images_for_date(date_str):
     if not BOTO3_AVAILABLE:
         return []
     prefix = f"frames/star_{date_str.replace('-', '')}"
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     try:
         images = []
         paginator = s3.get_paginator('list_objects_v2')
@@ -1093,7 +1093,7 @@ def get_skycam_images_for_date(date_str):
         f"skycam/{date_str.replace('-', '/')}/sky_",     # new: skycam/2026/04/19/sky_
         f"skycam/sky_{date_compact}",                     # old: skycam/sky_20260419
     ]
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     try:
         images = []
         paginator = s3.get_paginator('list_objects_v2')
@@ -1110,6 +1110,81 @@ def get_skycam_images_for_date(date_str):
     except Exception as e:
         print(f"Error fetching skycam images for {date_str}: {e}")
         return []
+
+
+# Every camera's keys carry the compact date in the filename, and skycam's
+# newer layout also carries it in the path:
+#   frames/star_20260517_111057_stacked.jpg
+#   springcam/spring_20260305_185436_stacked.jpg
+#   skycam/sky_20260406_093515.jpg
+#   skycam/2026/04/18/sky_20260418_120000.jpg   (path layout)
+_DATE_IN_PATH = re.compile(r'/(\d{4})/(\d{2})/(\d{2})/')
+_DATE_IN_NAME = re.compile(r'_(\d{4})(\d{2})(\d{2})_')
+
+
+def _date_from_key(key):
+    """The date a key belongs to, as the per-date views define it.
+
+    The path layout wins when present. get_skycam_images_for_date() selects
+    by folder prefix, so a frame written into skycam/2026/04/19/ with a
+    post-midnight filename (sky_20260420_...) belongs to the 19th as far as
+    the gallery is concerned — there is one such frame in April 2026.
+    Counting it on the 20th would make the month view disagree by one with
+    the day page it links to.
+    """
+    m = _DATE_IN_PATH.search(key) or _DATE_IN_NAME.search(key)
+    return f'{m.group(1)}-{m.group(2)}-{m.group(3)}' if m else None
+
+
+def _camera_period_prefixes(camera, period):
+    """S3 bucket + key prefixes covering a whole period for one camera.
+
+    period is 'YYYY' or 'YYYY-MM'. These are exactly the prefixes the
+    per-date lookups use, truncated — so the set of objects counted is
+    identical, just gathered in one listing instead of one per day.
+    """
+    compact = period.replace('-', '')
+    if camera == 'starcam':
+        return STARCAM_BUCKET, [f'frames/star_{compact}']
+    if camera == 'springcam':
+        return GARDENCAM_BUCKET, [f'springcam/spring_{compact}']
+    if camera == 'skycam':
+        year, _, month = period.partition('-')
+        return GARDENCAM_BUCKET, [
+            f'skycam/{year}/{month}/' if month else f'skycam/{year}/',
+            f'skycam/sky_{compact}',
+        ]
+    raise ValueError(f'unknown camera: {camera}')
+
+
+def count_images_by_date(camera, period):
+    """{date: n_images} for a whole period, in ONE listing per prefix.
+
+    The gallery year/month/week views only ever needed counts, but they got
+    them by calling get_<cam>_images_for_date() once per day — a client
+    build and an S3 round trip each. A year view meant ~365 of those and
+    reliably blew the 30s Lambda timeout (503). One prefix listing gives the
+    same numbers.
+    """
+    if not BOTO3_AVAILABLE:
+        return {}
+    bucket, prefixes = _camera_period_prefixes(camera, period)
+    counts = {}
+    try:
+        paginator = s3_client().get_paginator('list_objects_v2')
+        for prefix in prefixes:
+            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.jpg'):
+                        continue
+                    date = _date_from_key(key)
+                    if date:
+                        counts[date] = counts.get(date, 0) + 1
+    except Exception as e:
+        print(f'Error counting {camera} images for {period}: {e}')
+        return {}
+    return counts
 
 
 def _iso_week_for_date(date_str):
@@ -1983,7 +2058,7 @@ def get_memspeed_results():
     if not BOTO3_AVAILABLE:
         return []
 
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     results = []
 
     try:
@@ -2013,7 +2088,7 @@ def get_memspeed_downloads():
     if not BOTO3_AVAILABLE:
         return []
 
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     downloads = []
 
     try:
@@ -2042,7 +2117,7 @@ def get_memspeed_download_url(key, expires_in=3600):
     """Generate presigned URL for a memspeed download."""
     if not BOTO3_AVAILABLE:
         return None
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     return s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
@@ -2071,7 +2146,7 @@ def save_memspeed_result(data):
     key = f"{MEMSPEED_RESULTS_PREFIX}{machine}_{ts}.json"
 
     try:
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         s3.put_object(
             Bucket=GARDENCAM_BUCKET,
             Key=key,
@@ -2658,7 +2733,7 @@ def lambda_handler(event, context):
                 }
             }
         subpath = path.split('/glacier', 1)[1]
-        s3_glacier = boto3.client('s3', region_name=GLACIER_REGION)
+        s3_glacier = s3_client(GLACIER_REGION)
         if subpath.startswith('/thumbs/'):
             rel = subpath[len('/thumbs/'):]
             # users/peter/thumbs/<archive>/<nn>.jpg — refuse traversal
@@ -3017,7 +3092,7 @@ def lambda_handler(event, context):
             }
 
         # Read cached summary from S3 (updated hourly by gardencam-storage-summary Lambda)
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         cache_key = "stats/s3-storage-summary.json"
         cache_error = None
 
@@ -3694,10 +3769,13 @@ def lambda_handler(event, context):
         if year_param:
             # Year view: list months
             months = _months_in_year(year_param, SPRINGCAM_EARLIEST_DATE)
+            # One listing for the whole year — this used to be one
+            # S3 round trip per day and timed the Lambda out (503).
+            counts = count_images_by_date('springcam', year_param)
             months_with_counts = []
             for m in reversed(months):
                 days = _days_in_month(m, SPRINGCAM_EARLIEST_DATE)
-                count = sum(len(get_springcam_images_for_date(d)) for d in days)
+                count = sum(counts.get(d, 0) for d in days)
                 if count > 0:
                     months_with_counts.append((m, count))
             from routes.camera import render_gallery_year
@@ -3707,6 +3785,7 @@ def lambda_handler(event, context):
         elif month_param:
             # Month view: weeks with their days
             weeks = _weeks_in_month(month_param, SPRINGCAM_EARLIEST_DATE)
+            counts = count_images_by_date('springcam', month_param)
             weeks_with_days = []
             for w in reversed(weeks):
                 w_days = _days_in_week(w, SPRINGCAM_EARLIEST_DATE)
@@ -3714,7 +3793,7 @@ def lambda_handler(event, context):
                 w_days = [d for d in w_days if d[:7] == month_param]
                 day_counts = []
                 for d in reversed(w_days):
-                    count = len(get_springcam_images_for_date(d))
+                    count = counts.get(d, 0)
                     if count > 0:
                         day_counts.append((d, count))
                 if day_counts:
@@ -3727,9 +3806,13 @@ def lambda_handler(event, context):
         elif week_param:
             # Week view: list days in this week
             w_days = _days_in_week(week_param, SPRINGCAM_EARLIEST_DATE)
+            # A week can straddle a month boundary — one listing each.
+            counts = {}
+            for _period in sorted({d[:7] for d in w_days}):
+                counts.update(count_images_by_date('springcam', _period))
             days_with_counts = []
             for d in reversed(w_days):
-                count = len(get_springcam_images_for_date(d))
+                count = counts.get(d, 0)
                 if count > 0:
                     days_with_counts.append((d, count))
             # Determine month for zoom-out (use the Thursday of the week for ISO month)
@@ -3763,7 +3846,7 @@ def lambda_handler(event, context):
 
     elif path.startswith(f'/{stage}/springcam/videos') or path.startswith('/springcam/videos'):
 
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         videos = []
         try:
             paginator = s3.get_paginator('list_objects_v2')
@@ -3792,7 +3875,7 @@ def lambda_handler(event, context):
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
 
         try:
             s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
@@ -3891,7 +3974,7 @@ def lambda_handler(event, context):
             'eclipticam': ['eclipticam-v3w', 'eclipticam-v1'],
         }.get(camera, [camera])
         try:
-            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            s3 = s3_client()
             mp4_keys = []
             for pfx in player_prefixes:
                 listing = s3.list_objects_v2(
@@ -3979,7 +4062,7 @@ def lambda_handler(event, context):
         # night camera for eclipticam).
         primary_cam = cam_sections[0][0]
         try:
-            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            s3 = s3_client()
             paginator = s3.get_paginator('list_objects_v2')
 
             def list_all_nights():
@@ -4212,7 +4295,7 @@ def lambda_handler(event, context):
         is_dashboard = not path.endswith('/all')
         import json as _json
         try:
-            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            s3 = s3_client()
             paginator = s3.get_paginator('list_objects_v2')
             nights = []
             for page_resp in paginator.paginate(
@@ -4269,7 +4352,7 @@ def lambda_handler(event, context):
                     'headers': {'Content-Type': 'text/html'}}
         key_prefix = f'nights/{night_str}/'
         try:
-            s3 = boto3.client('s3', region_name=GARDENCAM_REGION)
+            s3 = s3_client()
             obj = s3.get_object(Bucket=STARCAM_BUCKET,
                                 Key=f'{key_prefix}summary.json')
             summary = _json.loads(obj['Body'].read())
@@ -4305,10 +4388,13 @@ def lambda_handler(event, context):
 
         if year_param:
             months = _months_in_year(year_param, STARCAM_EARLIEST_DATE)
+            # One listing for the whole year — this used to be one
+            # S3 round trip per day and timed the Lambda out (503).
+            counts = count_images_by_date('starcam', year_param)
             months_with_counts = []
             for m in reversed(months):
                 days = _days_in_month(m, STARCAM_EARLIEST_DATE)
-                count = sum(len(get_starcam_images_for_date(d)) for d in days)
+                count = sum(counts.get(d, 0) for d in days)
                 if count > 0:
                     months_with_counts.append((m, count))
             from routes.camera import render_gallery_year
@@ -4317,13 +4403,14 @@ def lambda_handler(event, context):
 
         elif month_param:
             weeks = _weeks_in_month(month_param, STARCAM_EARLIEST_DATE)
+            counts = count_images_by_date('starcam', month_param)
             weeks_with_days = []
             for w in reversed(weeks):
                 w_days = _days_in_week(w, STARCAM_EARLIEST_DATE)
                 w_days = [d for d in w_days if d[:7] == month_param]
                 day_counts = []
                 for d in reversed(w_days):
-                    count = len(get_starcam_images_for_date(d))
+                    count = counts.get(d, 0)
                     if count > 0:
                         day_counts.append((d, count))
                 if day_counts:
@@ -4335,9 +4422,13 @@ def lambda_handler(event, context):
 
         elif week_param:
             w_days = _days_in_week(week_param, STARCAM_EARLIEST_DATE)
+            # A week can straddle a month boundary — one listing each.
+            counts = {}
+            for _period in sorted({d[:7] for d in w_days}):
+                counts.update(count_images_by_date('starcam', _period))
             days_with_counts = []
             for d in reversed(w_days):
-                count = len(get_starcam_images_for_date(d))
+                count = counts.get(d, 0)
                 if count > 0:
                     days_with_counts.append((d, count))
             from datetime import date as _date
@@ -4422,7 +4513,7 @@ def lambda_handler(event, context):
 
     elif path.startswith(f'/{stage}/starcam/videos') or path.startswith('/starcam/videos'):
 
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         videos = []
         try:
             paginator = s3.get_paginator('list_objects_v2')
@@ -4451,7 +4542,7 @@ def lambda_handler(event, context):
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
 
         try:
             s3.head_object(Bucket=STARCAM_BUCKET, Key=video_key)
@@ -4502,10 +4593,13 @@ def lambda_handler(event, context):
 
         if year_param:
             months = _months_in_year(year_param, SKYCAM_EARLIEST_DATE)
+            # One listing for the whole year — this used to be one
+            # S3 round trip per day and timed the Lambda out (503).
+            counts = count_images_by_date('skycam', year_param)
             months_with_counts = []
             for m in reversed(months):
                 days = _days_in_month(m, SKYCAM_EARLIEST_DATE)
-                count = sum(len(get_skycam_images_for_date(d)) for d in days)
+                count = sum(counts.get(d, 0) for d in days)
                 if count > 0:
                     months_with_counts.append((m, count))
             from routes.camera import render_gallery_year
@@ -4515,13 +4609,14 @@ def lambda_handler(event, context):
 
         elif month_param:
             weeks = _weeks_in_month(month_param, SKYCAM_EARLIEST_DATE)
+            counts = count_images_by_date('skycam', month_param)
             weeks_with_days = []
             for w in reversed(weeks):
                 w_days = _days_in_week(w, SKYCAM_EARLIEST_DATE)
                 w_days = [d for d in w_days if d[:7] == month_param]
                 day_counts = []
                 for d in reversed(w_days):
-                    count = len(get_skycam_images_for_date(d))
+                    count = counts.get(d, 0)
                     if count > 0:
                         day_counts.append((d, count))
                 if day_counts:
@@ -4533,9 +4628,13 @@ def lambda_handler(event, context):
 
         elif week_param:
             w_days = _days_in_week(week_param, SKYCAM_EARLIEST_DATE)
+            # A week can straddle a month boundary — one listing each.
+            counts = {}
+            for _period in sorted({d[:7] for d in w_days}):
+                counts.update(count_images_by_date('skycam', _period))
             days_with_counts = []
             for d in reversed(w_days):
-                count = len(get_skycam_images_for_date(d))
+                count = counts.get(d, 0)
                 if count > 0:
                     days_with_counts.append((d, count))
             from datetime import date as _date
@@ -4582,7 +4681,7 @@ def lambda_handler(event, context):
     elif path.startswith(f'/{stage}/skycam/videos') or path.startswith('/skycam/videos'):
         query_params = event.get('queryStringParameters', {}) or {}
 
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
 
         def _presign_vid(key):
             return s3.generate_presigned_url(
@@ -4792,7 +4891,7 @@ def lambda_handler(event, context):
 
     elif path == f'/{stage}/skycam/starcam' or path == '/skycam/starcam':
         # Starcam index: list all nights with stacked images
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         from collections import defaultdict
         nights = defaultdict(int)  # evening_date -> count
 
@@ -4827,7 +4926,7 @@ def lambda_handler(event, context):
         if not evening_date:
             html += '<p style="color:#888; text-align:center;">No date specified.</p>'
         else:
-            s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+            s3 = s3_client()
             from zoneinfo import ZoneInfo
             ev_dt = datetime.strptime(evening_date, '%Y-%m-%d')
             morning_dt = ev_dt + timedelta(days=1)
@@ -4915,7 +5014,7 @@ def lambda_handler(event, context):
     elif path == f'/{stage}/skycam/clouds' or path == '/skycam/clouds':
         # "Clouds - The Movie" — playlist of hourly cloudcam videos with
         # day×hour selection, speed control, cast queue with auto-extend.
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
         days = []
         today = datetime.utcnow()
         miss_streak = 0
@@ -4968,7 +5067,7 @@ def lambda_handler(event, context):
 
     elif path.startswith(f'/{stage}/skycam/play') or path.startswith('/skycam/play'):
         query_params = event.get('queryStringParameters', {}) or {}
-        s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+        s3 = s3_client()
 
         # Find the video to play: ?key=... or default to today's combined, falling back to daily
         video_key = query_params.get('key', '')
