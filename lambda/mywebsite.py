@@ -319,11 +319,31 @@ def parse_timestamp_from_key(key):
     return None
 
 
+_S3_CLIENTS = {}
+
+
+def s3_client(region=None):
+    """Cached S3 client, one per region, reused across warm invocations.
+
+    boto3.client() costs ~0.14s on a 128MB Lambda (it builds a fresh Session
+    and re-parses botocore's ~700KB s3 service model). Pages that presign a
+    URL per item paid that per item: the astrocam calendar's 70 nights cost
+    ~10s of pure client construction. Presigning itself is local crypto and
+    effectively free once the client exists.
+    """
+    region = region or GARDENCAM_REGION
+    client = _S3_CLIENTS.get(region)
+    if client is None:
+        client = boto3.client("s3", region_name=region)
+        _S3_CLIENTS[region] = client
+    return client
+
+
 def get_presigned_url(key, expires_in=3600, bucket=None):
     """Generate presigned URL for a specific S3 key."""
     if not BOTO3_AVAILABLE:
         return None
-    s3 = boto3.client("s3", region_name=GARDENCAM_REGION)
+    s3 = s3_client()
     return s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': bucket or GARDENCAM_BUCKET, 'Key': key},
@@ -3918,16 +3938,27 @@ def lambda_handler(event, context):
                     'body': f'<p>error: {e}</p>',
                     'headers': {'Content-Type': 'text/html'}}
 
-    elif re.search(r'/astro/(astrocam|eclipticam|canon)(/night/\d{4}-\d{2}-\d{2})?/?$',
+    elif re.search(r'/astro/(astrocam|eclipticam|canon)'
+                   r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}'
+                   r'|/month/\d{4}-\d{2}|/all)?/?$',
                    path):
         # PUBLIC — live nightly deliverables (unify-cameras pipeline).
-        # /astro/<cam>                    -> dashboard (latest night)
+        # /astro/<cam>                    -> calendar, last 7 days
+        # /astro/<cam>/week/YYYY-MM-DD   -> that 7-day block
+        # /astro/<cam>/month/YYYY-MM     -> that month
+        # /astro/<cam>/all               -> full history
         # /astro/<cam>/night/YYYY-MM-DD  -> that night
         import json as _json
         m = re.search(
-            r'/astro/(astrocam|eclipticam|canon)(?:/night/(\d{4}-\d{2}-\d{2}))?/?$',
+            r'/astro/(astrocam|eclipticam|canon)'
+            r'(?:/night/(\d{4}-\d{2}-\d{2})'
+            r'|/week/(\d{4}-\d{2}-\d{2})'
+            r'|/month/(\d{4}-\d{2})'
+            r'|(/all))?/?$',
             path)
         camera, night = m.group(1), m.group(2)
+        want_week, want_month = m.group(3), m.group(4)
+        want_all = m.group(5) is not None
         is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
         titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
                   'canon': 'EOS Camera'}
@@ -3980,21 +4011,34 @@ def lambda_handler(event, context):
                 except Exception:
                     manifest = None
 
+                from routes.astro import astro_calendar_window
+
                 if manifest is not None:
+                    by_night = {e['night']: e
+                                for e in manifest.get('nights', [])
+                                if e.get('night')}
+                    nights = sorted(by_night, reverse=True)
+                    # Window FIRST, presign second: only the nights actually
+                    # rendered cost a presign, so the page no longer gets
+                    # slower with every night published.
+                    selected, window_label, weeks, months = \
+                        astro_calendar_window(nights, week=want_week,
+                                              month=want_month,
+                                              show_all=want_all)
                     nights_meta = []
-                    for entry in manifest.get('nights', []):
+                    for n in selected:
+                        entry = by_night[n]
                         tk = entry.get('thumb_key')
                         thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
                                      if tk else None)
                         nights_meta.append({
-                            'night': entry.get('night'),
+                            'night': n,
                             'thumb_url': thumb_url,
                             'summary': {
                                 'n_frames': entry.get('n_frames'),
                                 'n_stacked': entry.get('n_stacked'),
                                 'verdict': entry.get('verdict'),
                             }})
-                    nights = [m['night'] for m in nights_meta]
 
                 if manifest is None:
                     nights = list_all_nights()
@@ -4012,8 +4056,12 @@ def lambda_handler(event, context):
                     # (thumb.jpg, falling back to max.jpg) + summary.json for
                     # the "X of Y frames stacked" line. Filenames are
                     # un-prefixed post-split.
+                    selected, window_label, weeks, months = \
+                        astro_calendar_window(nights, week=want_week,
+                                              month=want_month,
+                                              show_all=want_all)
                     nights_meta = []
-                    for n in nights:
+                    for n in selected:
                         thumb_url = None
                         summary = None
                         listing_n = s3.list_objects_v2(
@@ -4068,7 +4116,9 @@ def lambda_handler(event, context):
                         camera=camera, nights_with_meta=nights_meta,
                         combined_brightness_url=combined_url,
                         moon_net_url=moon_net_url,
-                        sun_net_url=sun_net_url),
+                        sun_net_url=sun_net_url,
+                        window_label=window_label, weeks=weeks,
+                        months=months, show_all=want_all),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
             # Nights nav strip (nights[:14]). Prefer the precomputed manifest

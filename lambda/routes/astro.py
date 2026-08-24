@@ -216,11 +216,106 @@ def _section(sec):
     return f'{heading}{stats_html}{"".join(imgs)}'
 
 
+def _short_date(d):
+    """'17 Aug' — %-d is glibc-only, so build the day number by hand."""
+    return f'{d.day} {d.strftime("%b")}'
+
+
+def astro_calendar_window(nights, *, week=None, month=None, show_all=False):
+    """Pick which nights the calendar shows, plus its week/month nav lists.
+
+    The calendar used to render every published night at once, which meant a
+    presigned thumbnail per night and a page that got slower every night.
+    It now shows one window at a time — the last 7 days by default — and
+    links to the rest.
+
+    nights: all published nights as 'YYYY-MM-DD' (any order).
+    week:   'YYYY-MM-DD' start of a 7-day block (from the nav links).
+    month:  'YYYY-MM'.
+    show_all: render the full history (the /all escape hatch).
+
+    Returns (selected, label, weeks, months):
+      selected: nights to render, newest first
+      label:    human description of the current window
+      weeks:    [{'start', 'label', 'current'}] 7-day blocks anchored on the
+                newest night, newest first
+      months:   [{'key', 'label', 'current'}] months that have nights
+    """
+    import datetime as _dt
+
+    def _d(s):
+        return _dt.date.fromisoformat(s)
+
+    nights = sorted({n for n in nights if n}, reverse=True)
+    if not nights:
+        return [], '', [], []
+
+    newest, oldest = _d(nights[0]), _d(nights[-1])
+
+    # Weeks tile backwards from the newest night, so the default window is
+    # always week block 0 and the blocks line up with the links.
+    weeks = []
+    for k in range((newest - oldest).days // 7 + 1):
+        end = newest - _dt.timedelta(days=7 * k)
+        start = end - _dt.timedelta(days=6)
+        weeks.append({'start': start.isoformat(),
+                      'label': f'{_short_date(start)}–{_short_date(end)}'})
+
+    months = [{'key': k, 'label': _d(f'{k}-01').strftime('%B %Y')}
+              for k in sorted({n[:7] for n in nights}, reverse=True)]
+
+    current_week = current_month = None
+    if show_all:
+        selected, label = list(nights), 'all nights'
+    elif month:
+        selected = [n for n in nights if n.startswith(f'{month}-')]
+        label = _d(f'{month}-01').strftime('%B %Y')
+        current_month = month
+    else:
+        # Both the explicit week links and the default window are 7-day
+        # blocks; the default is simply the one ending on the newest night.
+        end = _d(week) + _dt.timedelta(days=6) if week else newest
+        start = end - _dt.timedelta(days=6)
+        selected = [n for n in nights if start <= _d(n) <= end]
+        label = ('last 7 days' if not week
+                 else f'{_short_date(start)}–{_short_date(end)}')
+        current_week = start.isoformat()
+
+    for w in weeks:
+        w['current'] = (w['start'] == current_week)
+    for m in months:
+        m['current'] = (m['key'] == current_month)
+    return selected, label, weeks, months
+
+
+def _render_calendar_nav(camera, weeks, months, show_all):
+    """Week/month/all links under the calendar heading."""
+    if not weeks and not months:
+        return ''
+
+    def _links(items, href_of):
+        return ''.join(
+            f'<a class="nav-chip{" current" if it.get("current") else ""}" '
+            f'href="{href_of(it)}">{it["label"]}</a>' for it in items)
+
+    # Weeks stay a short list — the months below cover the deep history.
+    week_html = _links(weeks[:8], lambda w: f'/astro/{camera}/week/{w["start"]}')
+    month_html = _links(months, lambda m: f'/astro/{camera}/month/{m["key"]}')
+    all_html = (f'<a class="nav-chip{" current" if show_all else ""}" '
+                f'href="/astro/{camera}/all">all nights</a>')
+    return (f'<div class="nav-row"><span class="nav-label">weeks</span>'
+            f'{week_html}</div>'
+            f'<div class="nav-row"><span class="nav-label">months</span>'
+            f'{month_html}{all_html}</div>')
+
+
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
                                  combined_brightness_url=None,
                                  moon_net_url=None,
-                                 sun_net_url=None):
+                                 sun_net_url=None,
+                                 window_label='', weeks=(), months=(),
+                                 show_all=False):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -265,8 +360,15 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'companion to the moon net for pinning pointing &amp; '
             f'distortion</div>')
 
+    nav_html = _render_calendar_nav(camera, list(weeks), list(months),
+                                    show_all)
+    window_html = (f'<div class="window-label">{window_label}</div>'
+                   if window_label else '')
+
     if not nights_with_meta:
-        cards_html = '<p class="empty">No nights published yet.</p>'
+        cards_html = ('<p class="empty">No nights in this window.</p>'
+                      if weeks or months
+                      else '<p class="empty">No nights published yet.</p>')
     else:
         cards = []
         for n in nights_with_meta:
@@ -323,6 +425,12 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
+    .nav-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }}
+    .nav-label {{ color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; min-width: 3.5rem; }}
+    .nav-chip {{ padding: 0.2rem 0.6rem; border-radius: 8px; background: var(--card-bg); color: var(--accent); text-decoration: none; font-size: 0.8rem; }}
+    .nav-chip:hover {{ opacity: 0.8; }}
+    .nav-chip.current {{ background: var(--accent); color: #fff; }}
+    .window-label {{ color: var(--text-secondary); font-size: 0.85rem; margin: 0.8rem 0 0.5rem; }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
   </style>
@@ -334,6 +442,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     {combined_html}
     {moon_net_html}
     {sun_net_html}
+    {nav_html}
+    {window_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
