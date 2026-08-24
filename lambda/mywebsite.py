@@ -726,28 +726,7 @@ def get_latest_springcam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = s3_client()
-    all_objects = []
-
-    # Fast path: try last 60 days by date prefix
-    for days_ago in range(60):
-        date = datetime.utcnow() - timedelta(days=days_ago)
-        prefix = f"springcam/spring_{date.strftime('%Y%m%d')}"
-        try:
-            response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
-            if "Contents" in response:
-                all_objects.extend(response["Contents"])
-            if len(all_objects) >= count * 2:
-                break
-        except Exception:
-            pass
-
-    # Fall back to full scan if fast path found nothing
-    if not all_objects:
-        paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=SPRINGCAM_KEY_PREFIX):
-            if "Contents" in page:
-                all_objects.extend(page["Contents"])
+    all_objects = find_latest_objects('springcam', count * 2)
 
     if not all_objects:
         return []
@@ -821,30 +800,7 @@ def get_latest_skycam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = s3_client()
-    all_objects = []
-
-    # Fast path: try last 60 days by date prefix (both old flat and new date-based paths)
-    for days_ago in range(60):
-        date = datetime.utcnow() - timedelta(days=days_ago)
-        for prefix in [f"skycam/{date.strftime('%Y/%m/%d')}/sky_",
-                       f"skycam/sky_{date.strftime('%Y%m%d')}"]:
-            try:
-                response = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix, MaxKeys=100)
-                if "Contents" in response:
-                    all_objects.extend(response["Contents"])
-            except Exception:
-                pass
-        if len(all_objects) >= count * 2:
-            break
-
-    # Fall back to full scan if fast path found nothing
-    if not all_objects:
-        for pfx in [SKYCAM_KEY_PREFIX, "skycam/20"]:
-            paginator = s3.get_paginator('list_objects_v2')
-            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=pfx):
-                if "Contents" in page:
-                    all_objects.extend(page["Contents"])
+    all_objects = find_latest_objects('skycam', count * 2)
 
     if not all_objects:
         return []
@@ -972,28 +928,7 @@ def get_latest_starcam_images(count=3):
 
     import time
     t0 = time.time()
-    s3 = s3_client()
-    all_objects = []
-
-    # Fast path: try last 60 days by date prefix
-    for days_ago in range(60):
-        date = datetime.utcnow() - timedelta(days=days_ago)
-        prefix = f"frames/star_{date.strftime('%Y%m%d')}"
-        try:
-            response = s3.list_objects_v2(Bucket=STARCAM_BUCKET, Prefix=prefix, MaxKeys=100)
-            if "Contents" in response:
-                all_objects.extend(response["Contents"])
-            if len(all_objects) >= count * 2:
-                break
-        except Exception:
-            pass
-
-    # Fall back to full scan if fast path found nothing
-    if not all_objects:
-        paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix=STARCAM_KEY_PREFIX):
-            if "Contents" in page:
-                all_objects.extend(page["Contents"])
+    all_objects = find_latest_objects('starcam', count * 2)
 
     if not all_objects:
         return []
@@ -1139,22 +1074,86 @@ def _date_from_key(key):
 def _camera_period_prefixes(camera, period):
     """S3 bucket + key prefixes covering a whole period for one camera.
 
-    period is 'YYYY' or 'YYYY-MM'. These are exactly the prefixes the
-    per-date lookups use, truncated — so the set of objects counted is
-    identical, just gathered in one listing instead of one per day.
+    period is 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD'. These are exactly the
+    prefixes the per-date lookups use, truncated — so the set of objects
+    covered is identical, just gathered in one listing instead of per day.
     """
-    compact = period.replace('-', '')
+    parts = period.split('-')
+    compact = ''.join(parts)
     if camera == 'starcam':
         return STARCAM_BUCKET, [f'frames/star_{compact}']
     if camera == 'springcam':
         return GARDENCAM_BUCKET, [f'springcam/spring_{compact}']
     if camera == 'skycam':
-        year, _, month = period.partition('-')
+        # Two layouts coexist: skycam/YYYY/MM/DD/sky_… and skycam/sky_…
         return GARDENCAM_BUCKET, [
-            f'skycam/{year}/{month}/' if month else f'skycam/{year}/',
+            'skycam/' + '/'.join(parts) + '/',
             f'skycam/sky_{compact}',
         ]
     raise ValueError(f'unknown camera: {camera}')
+
+
+def find_latest_objects(camera, min_count, day_probe=7, months_back=24):
+    """The most recent .jpg objects for a camera, as raw S3 entries.
+
+    Two stages on purpose:
+
+    1. A few small per-day listings. An active camera stops on the first or
+       second, which is what the old per-camera code optimised for.
+    2. Then a month at a time. The old code instead probed 60 *days* and,
+       finding nothing, fell back to scanning the camera's whole prefix —
+       so a dormant camera hit the worst case on every single request.
+       springcam last captured 2026-05-17, so /springcam was paying 60 empty
+       round trips plus a 5304-key scan to show three thumbnails.
+
+    Deliberately no full-bucket fallback: months_back reaches further than
+    any camera's history, so finding nothing means there is nothing, and a
+    whole-prefix scan would only be a slow way to confirm it.
+    """
+    if not BOTO3_AVAILABLE:
+        return []
+    from datetime import date as _date
+    s3 = s3_client()
+    seen, objects = set(), []
+
+    def _add(items):
+        for obj in items:
+            key = obj['Key']
+            if key.endswith('.jpg') and key not in seen:
+                seen.add(key)
+                objects.append(obj)
+
+    today = _date.fromisoformat(_today_london())
+
+    for i in range(day_probe):
+        day = today - timedelta(days=i)
+        bucket, prefixes = _camera_period_prefixes(camera, day.isoformat())
+        for prefix in prefixes:
+            try:
+                resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix,
+                                          MaxKeys=200)
+                _add(resp.get('Contents', []))
+            except Exception:
+                pass
+        if len(objects) >= min_count:
+            return objects
+
+    month = today.replace(day=1)
+    for _ in range(months_back):
+        bucket, prefixes = _camera_period_prefixes(
+            camera, month.strftime('%Y-%m'))
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for prefix in prefixes:
+                for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                    _add(page.get('Contents', []))
+        except Exception:
+            pass
+        if len(objects) >= min_count:
+            return objects
+        month = (month - timedelta(days=1)).replace(day=1)
+
+    return objects
 
 
 def count_images_by_date(camera, period):
