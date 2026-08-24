@@ -137,7 +137,9 @@ def astro_s3(mywebsite):
         for n in _nights()]}
 
     client = MagicMock()
-    client.get_object.return_value = {
+    # A fresh Body per call — a single BytesIO is exhausted after one read,
+    # which silently drops later calls onto the no-manifest fallback path.
+    client.get_object.side_effect = lambda *a, **kw: {
         "Body": io.BytesIO(json.dumps(manifest).encode())}
     client.head_object.side_effect = Exception("no combined plot")
     client.generate_presigned_url.side_effect = (
@@ -195,13 +197,72 @@ class TestCalendarRoute:
         assert result["statusCode"] == 200
         assert result["body"].count('class="night-card"') == len(_nights())
 
-    def test_nav_links_are_present(self, mywebsite, astro_s3,
-                                   make_event, make_context):
+    def test_calendar_links_out_compactly(self, mywebsite, astro_s3,
+                                          make_event, make_context):
+        # The week/month lists moved to /nights; the calendar carries a
+        # single link to it, not two rows of chips that grow forever.
         body = mywebsite.lambda_handler(
             make_event("/astro/astrocam"), make_context())["body"]
-        assert '/astro/astrocam/week/2026-08-10' in body
-        assert '/astro/astrocam/month/2026-07' in body
+        assert '/astro/astrocam/nights' in body
+        assert body.count('/astro/astrocam/week/') == 0
+        assert body.count('/astro/astrocam/month/') == 0
+
+    def test_window_label_shown_on_every_window(self, mywebsite, astro_s3,
+                                                make_event, make_context):
+        for path, label in (("/astro/astrocam", "last 7 days"),
+                            ("/astro/astrocam/week/2026-08-10",
+                             "10 Aug–16 Aug"),
+                            ("/astro/astrocam/month/2026-07", "July 2026"),
+                            ("/astro/astrocam/all", "all nights")):
+            body = mywebsite.lambda_handler(
+                make_event(path), make_context())["body"]
+            assert label in body, path
+            assert '/astro/astrocam/nights' in body, path
+
+
+class TestNightsIndex:
+    """/astro/<cam>/nights — the week/month index."""
+
+    def test_lists_every_week_and_month(self, mywebsite, astro_s3,
+                                        make_event, make_context):
+        result = mywebsite.lambda_handler(
+            make_event("/astro/astrocam/nights"), make_context())
+        assert result["statusCode"] == 200
+        body = result["body"]
+        _, _, weeks, months = astro_calendar_window(_nights())
+        for w in weeks:
+            assert f'/astro/astrocam/week/{w["start"]}' in body
+        for m in months:
+            assert f'/astro/astrocam/month/{m["key"]}' in body
         assert '/astro/astrocam/all' in body
+
+    def test_costs_no_presigns(self, mywebsite, astro_s3,
+                               make_event, make_context):
+        # It is a page of links; thumbnails are what made the calendar slow.
+        mywebsite.lambda_handler(
+            make_event("/astro/astrocam/nights"), make_context())
+        assert astro_s3.generate_presigned_url.call_count == 0
+
+    def test_shows_night_counts(self, mywebsite, astro_s3,
+                                make_event, make_context):
+        body = mywebsite.lambda_handler(
+            make_event("/astro/astrocam/nights"), make_context())["body"]
+        assert "7 nights" in body        # a full week block
+        assert "31 nights" in body       # July
+        assert f"{len(_nights())} nights across 3 months" in body
+
+    def test_links_back_to_the_calendar(self, mywebsite, astro_s3,
+                                        make_event, make_context):
+        body = mywebsite.lambda_handler(
+            make_event("/astro/astrocam/nights"), make_context())["body"]
+        assert 'href="/astro/astrocam"' in body
+
+    def test_counts_are_accurate_with_gaps(self):
+        nights = ["2026-08-23", "2026-08-22", "2026-08-01"]
+        _, _, weeks, months = astro_calendar_window(nights)
+        assert weeks[0]["count"] == 2
+        assert sum(w["count"] for w in weeks) == len(nights)
+        assert [m["count"] for m in months] == [3]
 
 
 class TestS3ClientCache:

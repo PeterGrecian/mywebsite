@@ -3940,10 +3940,11 @@ def lambda_handler(event, context):
 
     elif re.search(r'/astro/(astrocam|eclipticam|canon)'
                    r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}'
-                   r'|/month/\d{4}-\d{2}|/all)?/?$',
+                   r'|/month/\d{4}-\d{2}|/all|/nights)?/?$',
                    path):
         # PUBLIC — live nightly deliverables (unify-cameras pipeline).
         # /astro/<cam>                    -> calendar, last 7 days
+        # /astro/<cam>/nights            -> index of weeks & months (links only)
         # /astro/<cam>/week/YYYY-MM-DD   -> that 7-day block
         # /astro/<cam>/month/YYYY-MM     -> that month
         # /astro/<cam>/all               -> full history
@@ -3954,11 +3955,13 @@ def lambda_handler(event, context):
             r'(?:/night/(\d{4}-\d{2}-\d{2})'
             r'|/week/(\d{4}-\d{2}-\d{2})'
             r'|/month/(\d{4}-\d{2})'
-            r'|(/all))?/?$',
+            r'|(/all)'
+            r'|(/nights))?/?$',
             path)
         camera, night = m.group(1), m.group(2)
         want_week, want_month = m.group(3), m.group(4)
         want_all = m.group(5) is not None
+        want_index = m.group(6) is not None
         is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
         titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
                   'canon': 'EOS Camera'}
@@ -4012,6 +4015,25 @@ def lambda_handler(event, context):
                     manifest = None
 
                 from routes.astro import astro_calendar_window
+
+                if want_index:
+                    # Links only — no thumbnails, so no presigning at all.
+                    # One S3 read and the page size is independent of how
+                    # many nights the camera has published.
+                    all_nights = (
+                        sorted((e['night'] for e in manifest.get('nights', [])
+                                if e.get('night')), reverse=True)
+                        if manifest is not None else list_all_nights())
+                    _, _, weeks, months = astro_calendar_window(all_nights)
+                    from routes.astro import render_astro_nights_index
+                    return {
+                        'statusCode': 200,
+                        'body': render_astro_nights_index(
+                            theme_css_js=THEME_CSS_JS, title=titles[camera],
+                            camera=camera, weeks=weeks, months=months,
+                            total_nights=len(all_nights)),
+                        'headers': {
+                            'Content-Type': 'text/html; charset=utf-8'}}
 
                 if manifest is not None:
                     by_night = {e['night']: e
@@ -4118,7 +4140,7 @@ def lambda_handler(event, context):
                         moon_net_url=moon_net_url,
                         sun_net_url=sun_net_url,
                         window_label=window_label, weeks=weeks,
-                        months=months, show_all=want_all),
+                        months=months),
                     'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
             # Nights nav strip (nights[:14]). Prefer the precomputed manifest
