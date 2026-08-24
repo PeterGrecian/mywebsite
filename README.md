@@ -55,7 +55,7 @@ The route set grows over time; this is the shape, not an exhaustive list (grep
 | `/robots.txt` | Static robots file |
 | `/gardencam*` | Garden camera: latest images, gallery, stats, remote capture (POST `/gardencam/capture`) — password protected |
 | `/springcam*`, `/skycam*`, `/starcam*` | Other cameras: galleries, timelapses, video players (incl. Chromecast) |
-| `/astro*` | Astro pages (starcam night index, storage view) |
+| `/astro*` | Astro pages: per-camera night calendars (`/astro/<cam>`, last 7 days; `/nights` index; `/week/`, `/month/`, `/all` windows), storage view |
 | `/pi-fleet` | Raspberry Pi fleet status dashboard |
 | `/t3` | K2 bus arrivals (TfL) — redundant, see note below |
 | `/lambda-stats` | Lambda execution metrics and free-tier / cost tracking |

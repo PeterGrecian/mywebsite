@@ -29,12 +29,15 @@ The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's person
 | `/lambda-stats` | Execution metrics and costs |
 | `/event` | Debug info |
 | `/gitinfo` | Git deployment info |
+| `/astro/<cam>` | Camera calendar — **last 7 days** (`astrocam`, `eclipticam`, `canon`) |
+| `/astro/<cam>/nights` | Index of every week & month (links only, no thumbnails) |
+| `/astro/<cam>/week/YYYY-MM-DD`<br>`/month/YYYY-MM`<br>`/all` | Other calendar windows |
 
 ## AWS Resources
 
 | Resource | Name | Notes |
 |----------|------|-------|
-| Lambda | `mywebsite` | Python 3.12, 128MB, 30s timeout |
+| Lambda | `mywebsite` | Python 3.12, **512MB**, 30s timeout |
 | API Gateway | `mywebsite-api` | HTTP API v2; origin for Cloudflare CNAME |
 | Custom domain | `www.petergrecian.co.uk` | Uses wildcard ACM cert; proxied by Cloudflare |
 | DynamoDB | `mywebsite-contents` | Navigation data (partition key: `path`) |
@@ -126,6 +129,40 @@ The `/t3` route has its own TfL API calls baked into `mywebsite.py`. There are n
 | `busclock` Flask app | `.env` | Prototype for physical servo clock |
 
 The `/t3` web page has no clear future. Options: retire it, or redirect it to call the `t3` Lambda instead of duplicating the logic. Leave it for now.
+
+## S3 Access Patterns — read this before adding a page
+
+Three rules, each learned from a page that was broken or nearly so.
+
+**Never build a boto3 client per item.** `boto3.client()` costs ~0.14s on a
+128MB Lambda (fresh Session, re-parse of botocore's ~700KB s3 service model);
+presigning itself is local crypto and free. `get_presigned_url` used to build
+one per call, so the astrocam calendar's 70 nights cost ~10s of pure client
+construction. Use `s3_client(region=None)` — cached per region, reused across
+warm invocations.
+
+This bug hides behind a function call: an AST scan for `boto3.client()`
+*inside a loop* finds nothing here, because the client is built inside a
+helper that is *called* from a loop. Scan for calls to client-building
+functions from inside a loop instead.
+
+**Never make one S3 call per day.** The gallery year views called
+`get_<cam>_images_for_date()` once per day purely to `len()` it — ~365 round
+trips to produce twelve integers, which reliably hit the 30s timeout and
+returned 503. Use `count_images_by_date(camera, period)`
+(`period` = `YYYY` or `YYYY-MM`), which lists one truncated prefix. Likewise
+`find_latest_objects(camera, min_count)` for "the newest N": a short 7-day
+probe, then a month at a time — never a full-prefix scan.
+
+**Window the page, then presign.** Presign only what is on screen, or the
+page gets slower with every night published. `/astro/<cam>` renders 7 nights
+and links to `/astro/<cam>/nights` for the rest.
+
+When changing any of this, diff the bulk counts against the per-date counts
+on real S3. That check caught a genuine off-by-one: one April frame lives in
+`skycam/2026/04/19/` with a post-midnight `sky_20260420_` filename, and
+`get_skycam_images_for_date` selects by *folder*, so the path must win over
+the filename or the month view disagrees with the day page it links to.
 
 ## Timestamps
 
