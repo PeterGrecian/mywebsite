@@ -1469,6 +1469,17 @@ TRANSIENT_CATEGORIES = [
 ]
 
 
+# How sure the classification is. A card that says "meteor" with no hedge
+# is making a claim; these let it say how strong the claim is. Anything
+# else the manifest carries is shown verbatim.
+TRANSIENT_CONFIDENCE = {
+    "confirmed": "confirmed",
+    "likely": "likely",
+    "possible": "possible",
+    "unknown": "unclassified",
+}
+
+
 def _transient_label(cat):
     for slug, label in TRANSIENT_CATEGORIES:
         if slug == cat:
@@ -1528,6 +1539,31 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
             meta_html = " &middot; ".join(x for x in meta if x)
             caption = e.get("caption") or ""
             cap_html = f'<p class="t-cap">{caption}</p>' if caption else ""
+            # The reasoning is the point of the card: a streak does not
+            # explain itself, so show WHY it is called what it is rather
+            # than asserting the label and moving on.
+            rationale = e.get("rationale") or ""
+            evidence = [x for x in (e.get("evidence") or []) if x]
+            why_html = ""
+            if rationale or evidence:
+                bits = []
+                if rationale:
+                    bits.append(f'<p class="t-why">{rationale}</p>')
+                if evidence:
+                    points = "".join(f'<li>{x}</li>' for x in evidence)
+                    bits.append(f'<ul class="t-ev">{points}</ul>')
+                why_html = (f'<div class="t-reason">'
+                            f'<div class="t-why-h">why we call it this</div>'
+                            f'{"".join(bits)}</div>')
+            # A missing field reads as "unknown", not as silence: an
+            # unhedged category label claims the classification is settled,
+            # which is exactly what an entry with no confidence has not
+            # established.
+            conf = (e.get("confidence") or "unknown").lower()
+            conf_html = ""
+            if conf and conf != "confirmed":
+                conf_html = (f'<span class="t-conf">'
+                             f'{TRANSIENT_CONFIDENCE.get(conf, conf)}</span>')
             # A night link only when that night actually has a page.
             night_html = ""
             if e.get("night") and e.get("camera") in (
@@ -1545,15 +1581,53 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
                 f'<figcaption>'
                 f'<div class="t-head">'
                 f'<span class="t-title">{e.get("title", "")}</span>'
-                f'<span class="t-badge">{_transient_label(e.get("category") or "other")}</span>'
+                f'<span class="t-badge">'
+                f'{_transient_label(e.get("category") or "other")}'
+                f'{conf_html}</span>'
                 f'</div>'
                 f'<div class="t-meta">{meta_html}</div>'
-                f'{cap_html}{night_html}'
+                f'{cap_html}{why_html}{night_html}'
                 f'</figcaption></figure>')
         cards_html = f'<div class="t-grid">{"".join(cards)}</div>'
 
     heading = ("Transients" if not selected
                else f"Transients &mdash; {_transient_label(selected)}")
+
+    # Page-level rationale. Per-item reasoning says why THIS streak is a
+    # meteor; this says what the test is in general, so a reader can judge
+    # the calls rather than take them on trust. Kept in the same language
+    # as astro's bin/find-transients, which is where the discriminator
+    # actually lives. Collapsed by default — it is context, not the gallery.
+    explainer = '''<details class="explain">
+      <summary>How these are told apart</summary>
+      <div class="explain-body">
+        <p>A bright streak on a fixed camera is a meteor, a satellite, an
+        aircraft or just a star trail, and the picture alone does not say
+        which. The primary test is <strong>geometric</strong>, because it
+        survives saturation &mdash; a clipped core destroys the brightness
+        profile, but not the shape:</p>
+        <ul>
+          <li><strong>Meteor</strong> &mdash; the streak <em>starts and stops
+          inside</em> the frame: it ignites and burns out within the field,
+          and appears in exactly one sub-second sub.</li>
+          <li><strong>Satellite</strong> &mdash; at least one end
+          <em>touches the border</em>: it crosses the field of view, and it
+          steps across consecutive subs.</li>
+          <li><strong>Aircraft</strong> &mdash; a crossing trail too, but
+          usually with strobes along it, and a contrail broadens over time
+          instead of holding a fixed width.</li>
+          <li><strong>Star trail</strong> &mdash; the main false positive.
+          Long, and near the edge it can rival a meteor, so length alone
+          does not separate them. Rejected because it agrees with its
+          neighbours&rsquo; sidereal angle and is in <em>every</em> frame.</li>
+        </ul>
+        <p>Secondary evidence scores confidence rather than deciding it: a
+        symmetric brightness taper (ablation), departure from the local
+        star-trail angle, and solar altitude &mdash; below about
+        &minus;18&deg; the Earth&rsquo;s shadow reaches past most of low
+        orbit, so a sunlit satellite is unlikely.</p>
+      </div>
+    </details>'''
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1583,6 +1657,19 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     .t-badge {{ color: var(--text-secondary); font-size: 0.7rem; white-space: nowrap; }}
     .t-meta {{ color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.15rem; }}
     .t-cap {{ font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; margin: 0.45rem 0 0; }}
+    .t-conf {{ display: block; font-size: 0.66rem; opacity: 0.75; }}
+    .t-reason {{ margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--divider, #2C2C2E); }}
+    .t-why-h {{ font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); opacity: 0.8; }}
+    .t-why {{ font-size: 0.82rem; line-height: 1.45; margin: 0.3rem 0 0; }}
+    .t-ev {{ font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin: 0.35rem 0 0; padding-left: 1.1rem; }}
+    .t-ev li {{ margin-bottom: 0.15rem; }}
+    .explain {{ background: var(--card-bg); padding: 0.5rem 0.8rem; margin-bottom: 1.2rem; font-size: 0.85rem; }}
+    .explain summary {{ cursor: pointer; color: var(--accent); font-size: 0.82rem; }}
+    .explain-body {{ color: var(--text-secondary); line-height: 1.55; }}
+    .explain-body p {{ margin: 0.6rem 0; }}
+    .explain-body ul {{ margin: 0.6rem 0; padding-left: 1.1rem; }}
+    .explain-body li {{ margin-bottom: 0.3rem; }}
+    .explain-body strong {{ color: var(--text); font-weight: 600; }}
     .t-night {{ display: inline-block; margin-top: 0.45rem; font-size: 0.78rem; color: var(--accent); text-decoration: none; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     code {{ font-size: 0.85em; }}
@@ -1595,7 +1682,8 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     <h1>{heading}</h1>
     <div class="subtitle">one-off captures worth keeping &mdash; meteors, lightning,
       aircraft, satellites, odd frames caught mid-inspection, and daylight
-      test shots</div>
+      test shots, each with the reasoning for what it is</div>
+    {explainer}
     {chips_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>

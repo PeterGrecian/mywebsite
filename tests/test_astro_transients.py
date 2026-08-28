@@ -15,10 +15,14 @@ MANIFEST = {"schema": 1, "items": [
     {"id": "2026-08-12-meteor-perseid", "title": "Perseid fireball",
      "category": "meteor", "date": "2026-08-12", "time": "23:41 BST",
      "camera": "canon", "night": "2026-08-12", "caption": "Burnt out mid-frame.",
+     "rationale": "Both ends stop inside the frame and it appears in one sub.",
+     "evidence": ["both ends interior", "present in exactly one sub"],
+     "confidence": "likely",
      "image_key": "transients/items/a.jpg",
      "thumb_key": "transients/thumbs/a.jpg"},
     {"id": "2026-08-01-daytime-focus", "title": "Focus target at noon",
      "category": "daytime", "date": "2026-08-01", "camera": "canon",
+     "confidence": "confirmed",
      "image_key": "transients/items/b.jpg",
      "thumb_key": "transients/thumbs/b.jpg"},
     {"id": "2026-07-04-aurora-glow", "title": "Odd northern glow",
@@ -141,6 +145,53 @@ class TestTransientsPage:
         assert '/astro/canon/night/2026-08-12' in result["body"]
         # The aurora entry has no camera/night, so it gets no night link.
         assert result["body"].count("night page") == 1
+
+
+class TestReasoning:
+    """A streak does not explain itself: the card has to say why it is
+    called what it is, and must not present an unestablished label as
+    settled."""
+
+    def test_rationale_and_every_evidence_point_are_shown(self, mywebsite,
+                                                          make_event,
+                                                          make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/meteor")
+        body = result["body"]
+        assert "Both ends stop inside the frame" in body
+        assert "both ends interior" in body
+        assert "present in exactly one sub" in body
+
+    def test_confirmed_carries_no_hedge(self, mywebsite, make_event,
+                                        make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/daytime")
+        # The CSS rule is always present; the span is what must be absent.
+        assert 'class="t-conf"' not in result["body"]
+
+    def test_unhedged_label_is_never_implied_by_a_missing_field(
+            self, mywebsite, make_event, make_context):
+        # The aurora entry has no confidence key at all.
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/aurora")
+        assert "unclassified" in result["body"]
+
+    def test_item_without_reasoning_gets_no_empty_reason_block(
+            self, mywebsite, make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/daytime")
+        assert "why we call it this" not in result["body"]
+
+    def test_page_explains_the_discriminator(self, mywebsite, make_event,
+                                             make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients")
+        body = result["body"]
+        assert "How these are told apart" in body
+        # The general test is geometric, and the page must say so rather
+        # than asking the reader to take the calls on trust.
+        assert "starts and stops" in body
+        assert "touches the border" in body
 
 
 class TestHubLinksToTransients:
