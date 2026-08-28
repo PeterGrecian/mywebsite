@@ -3908,6 +3908,80 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
+    elif path.endswith('/astro/colour-max-test') or path.endswith('/astro/color-max-test'):
+        from routes.astro import render_colour_max_test
+        img_names = [
+            'astrocam_2026-08-22_1_raw_lum.jpg',
+            'astrocam_2026-08-22_2_ratio_mean.jpg',
+            'astrocam_2026-08-22_3_ratio_median.jpg',
+            'astrocam_2026-08-22_4_diff_median.jpg',
+            'astrocam_2026-08-22_lum_keyed.jpg',
+            'astrocam_2026-08-22_per_channel.jpg',
+            'astrocam_2026-08-22_mono.jpg',
+            'canon_2026-08-10_lum_keyed.jpg',
+            'canon_2026-08-10_per_channel.jpg',
+            'canon_2026-08-10_mono.jpg',
+            'eclipticam-v3w_2026-08-22_1_raw_lum.jpg',
+            'eclipticam-v3w_2026-08-22_2_ratio_mean.jpg',
+            'eclipticam-v3w_2026-08-22_3_ratio_median.jpg',
+            'eclipticam-v3w_2026-08-22_4_diff_median.jpg',
+            'eclipticam-v3w_2026-08-22_lum_keyed.jpg',
+            'eclipticam-v3w_2026-08-22_per_channel.jpg',
+            'eclipticam-v3w_2026-08-22_mono.jpg',
+        ]
+        urls = {name: get_presigned_url(f'test/colour-max/{name}', expires_in=86400, bucket=ASTRO_BUCKET)
+                for name in img_names}
+        return {
+            'statusCode': 200,
+            'body': render_colour_max_test(theme_css_js=THEME_CSS_JS, urls=urls),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    elif re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path):
+        # PUBLIC — the curated general collection: meteors, lightning,
+        # aircraft, satellites, screen grabs, daytime Canon focus frames.
+        # Hand-published by astro's bin/add-transient, which writes ONE
+        # manifest at transients/index.json plus items/ + thumbs/ objects.
+        # Same shape as the calendar fast path: read the manifest, filter
+        # to the requested category, and presign only what we render — an
+        # unfiltered gallery of N items costs 2N presigns and nothing else.
+        import json as _json
+        m = re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path)
+        selected = m.group(1)
+        from routes.astro import (render_astro_transients,
+                                  transient_category_counts)
+        items = []
+        try:
+            s3 = s3_client()
+            obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='transients/index.json')
+            items = _json.loads(obj['Body'].read()).get('items', []) or []
+        except Exception as e:
+            print(f"transients: no manifest ({e})")
+        counts = transient_category_counts(items)
+        known = {c[0] for c in counts}
+        if selected and selected not in known:
+            # An unknown slug is a typo or a stale link, not an empty
+            # category — send it back to the whole collection rather than
+            # showing a chip-less dead page.
+            return {'statusCode': 302,
+                    'headers': {'Location': '/astro/transients'}, 'body': ''}
+        shown = [e for e in items
+                 if not selected or (e.get('category') or 'other') == selected]
+        for e in shown:
+            e['image_url'] = (get_presigned_url(e['image_key'],
+                                                bucket=ASTRO_BUCKET)
+                              if e.get('image_key') else None)
+            e['thumb_url'] = (get_presigned_url(e['thumb_key'],
+                                                bucket=ASTRO_BUCKET)
+                              if e.get('thumb_key') else None)
+        return {
+            'statusCode': 200,
+            'body': render_astro_transients(theme_css_js=THEME_CSS_JS,
+                                            items=shown, counts=counts,
+                                            selected=selected),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
     elif re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', path):
         # PUBLIC storage status — capacity bars, data inventory & location,
         # archive-tier state. Reads astro-host-capacity + astro-storage-
@@ -4133,6 +4207,8 @@ def lambda_handler(event, context):
                     for n in selected:
                         entry = by_night[n]
                         tk = entry.get('thumb_key')
+                        if tk and camera == 'eclipticam' and tk.endswith('/thumb.jpg'):
+                            tk = tk[:-9] + 'max.jpg'
                         thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
                                      if tk else None)
                         nights_meta.append({
@@ -4141,6 +4217,7 @@ def lambda_handler(event, context):
                             'summary': {
                                 'n_frames': entry.get('n_frames'),
                                 'n_stacked': entry.get('n_stacked'),
+                                'stops': entry.get('stops'),
                                 'verdict': entry.get('verdict'),
                             }})
 
@@ -4157,7 +4234,7 @@ def lambda_handler(event, context):
                                 'Content-Type': 'text/html; charset=utf-8'}}
                     # Slow fallback (pre-manifest): build calendar cards from
                     # the primary (night) camera per night — thumbnail
-                    # (thumb.jpg, falling back to max.jpg) + summary.json for
+                    # (max.jpg, falling back to thumb.jpg) + summary.json for
                     # the "X of Y frames stacked" line. Filenames are
                     # un-prefixed post-split.
                     selected, window_label, weeks, months = \
@@ -4173,11 +4250,10 @@ def lambda_handler(event, context):
                             Prefix=f'{primary_cam}/nights/{n}/')
                         names_n = {it['Key'].split('/')[-1]: it['Key']
                                    for it in listing_n.get('Contents', []) or []}
-                        # Prefer the colour-sweep mid-frame thumb (a single
-                        # 10-min stack from the heart of the dark window).
-                        # Fall back to the all-night max for legacy nights
-                        # without a sweep.
-                        for thumb_key in ('thumb.jpg', 'max.jpg'):
+                        # Prefer the all-night max stack (more representative of
+                        # the night, no clear/cloudy judgement needed).
+                        # Fall back to thumb.jpg for legacy nights.
+                        for thumb_key in ('max.jpg', 'thumb.jpg'):
                             if thumb_key in names_n:
                                 thumb_url = get_presigned_url(
                                     names_n[thumb_key], bucket=ASTRO_BUCKET)
@@ -4188,6 +4264,29 @@ def lambda_handler(event, context):
                                     Bucket=ASTRO_BUCKET,
                                     Key=names_n['summary.json'])
                                 summary = _json.loads(obj['Body'].read())
+                                if summary:
+                                    anchor = summary.get('anchor') or {}
+                                    if 'stops' in anchor and anchor['stops'] is not None:
+                                        summary['stops'] = anchor['stops']
+                                    elif 'per_s' in anchor:
+                                        import math as _math
+                                        per_s = anchor['per_s']
+                                        pedestal = 2048.0 if camera == 'canon' else 50.0
+                                        exp_gain = 480.0 if camera == 'canon' else 59.9
+                                        hours = summary.get('hours') or []
+                                        min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
+                                        if min_hr is not None:
+                                            norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
+                                            if per_s < 10:
+                                                mean_adu = per_s * exp_gain
+                                            elif per_s > 1000:
+                                                mean_adu = per_s / 64.0
+                                            else:
+                                                if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
+                                                    mean_adu = per_s * exp_gain
+                                                else:
+                                                    mean_adu = per_s
+                                            summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
                             except Exception:
                                 pass
                         nights_meta.append({'night': n, 'thumb_url': thumb_url,
@@ -4250,6 +4349,29 @@ def lambda_handler(event, context):
                     obj = s3.get_object(Bucket=ASTRO_BUCKET,
                                         Key=names['summary.json'])
                     summary = _json.loads(obj['Body'].read())
+                    if summary:
+                        anchor = summary.get('anchor') or {}
+                        if 'stops' in anchor and anchor['stops'] is not None:
+                            summary['stops'] = anchor['stops']
+                        elif 'per_s' in anchor:
+                            import math as _math
+                            per_s = anchor['per_s']
+                            pedestal = 2048.0 if camera == 'canon' else 50.0
+                            exp_gain = 480.0 if camera == 'canon' else 59.9
+                            hours = summary.get('hours') or []
+                            min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
+                            if min_hr is not None:
+                                norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
+                                if per_s < 10:
+                                    mean_adu = per_s * exp_gain
+                                elif per_s > 1000:
+                                    mean_adu = per_s / 64.0
+                                else:
+                                    if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
+                                        mean_adu = per_s * exp_gain
+                                    else:
+                                        mean_adu = per_s
+                                summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
                 urls = {}
                 for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
                              'sweep-diff.mp4', 'sweep-detrans.mp4',

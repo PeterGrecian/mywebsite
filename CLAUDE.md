@@ -32,6 +32,7 @@ The main website Lambda serving `www.petergrecian.co.uk`. This is Peter's person
 | `/astro/<cam>` | Camera calendar — **last 7 days** (`astrocam`, `eclipticam`, `canon`) |
 | `/astro/<cam>/nights` | Index of every week & month (links only, no thumbnails) |
 | `/astro/<cam>/week/YYYY-MM-DD`<br>`/month/YYYY-MM`<br>`/all` | Other calendar windows |
+| `/astro/transients`<br>`/astro/transients/<category>` | Curated one-off captures (meteors, lightning, aircraft, screen grabs, daytime). Reads `transients/index.json`, published by hand with `astro/bin/add-transient` |
 
 ## AWS Resources
 

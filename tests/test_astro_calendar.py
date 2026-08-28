@@ -275,3 +275,44 @@ class TestS3ClientCache:
             assert a is b
             assert fake.client.call_count == 1
         mywebsite._S3_CLIENTS.clear()
+
+
+class TestEclipticamThumbnails:
+    def test_eclipticam_uses_max_stack_for_cards(self, mywebsite, make_event, make_context):
+        import io
+        import json
+        from unittest.mock import MagicMock, patch
+
+        manifest = {"nights": [
+            {"night": "2026-08-25", "thumb_key": "eclipticam-v3w/nights/2026-08-25/max.jpg",
+             "n_frames": 471, "n_stacked": 343, "stops": 5.42, "verdict": "clear"},
+            {"night": "2026-08-24", "thumb_key": "eclipticam-v3w/nights/2026-08-24/thumb.jpg",
+             "n_frames": 263, "n_stacked": 259, "stops": 4.59, "verdict": "clear"},
+        ]}
+
+        client = MagicMock()
+        client.get_object.side_effect = lambda *a, **kw: {
+            "Body": io.BytesIO(json.dumps(manifest).encode())}
+        client.head_object.side_effect = Exception("no combined plot")
+        signed_keys = []
+        def fake_sign(*a, **kw):
+            key = kw['Params']['Key']
+            signed_keys.append(key)
+            return f"https://signed/{key}"
+        client.generate_presigned_url.side_effect = fake_sign
+
+        mywebsite._S3_CLIENTS.clear()
+        with patch.object(mywebsite, "boto3") as fake:
+            fake.client.return_value = client
+            result = mywebsite.lambda_handler(make_event("/astro/eclipticam"), make_context())
+            assert result["statusCode"] == 200
+            # Both entries (even the one with thumb.jpg in manifest) should use max.jpg
+            assert all(k.endswith("/max.jpg") for k in signed_keys)
+            assert "343/471" in result["body"]
+            assert "5.4" in result["body"]
+            assert "259/263" in result["body"]
+            assert "4.6" in result["body"]
+            assert "verdict-clear" not in result["body"]
+        mywebsite._S3_CLIENTS.clear()
+
+

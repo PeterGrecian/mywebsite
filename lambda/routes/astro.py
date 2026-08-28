@@ -29,6 +29,18 @@ CAMERAS = [
 ]
 
 
+# Non-camera destinations under /astro — collections that cut ACROSS the
+# cameras rather than belonging to one of them.
+COLLECTIONS = [
+    {
+        "path": "/astro/transients",
+        "title": "Transients",
+        "desc": "Curated one-off captures — meteors and fireballs, lightning, aircraft, satellites, odd frames caught mid-inspection, and daylight test shots.",
+        "status": "live",
+    },
+]
+
+
 def _card(cam):
     badge = "" if cam["status"] == "live" else '<span class="badge">coming soon</span>'
     return f'''<a class="cam-card" href="{cam["path"]}">
@@ -40,6 +52,8 @@ def _card(cam):
 
 def render_astro_hub(*, theme_css_js):
     cards = "".join(_card(c) for c in CAMERAS)
+    collections = ('<h2 class="section">Collections</h2>'
+                   + "".join(_card(c) for c in COLLECTIONS))
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,6 +70,7 @@ def render_astro_hub(*, theme_css_js):
     .cam-card:hover {{ opacity: 0.85; }}
     .cam-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); }}
     .cam-desc {{ font-size: 0.85rem; color: var(--text-secondary); margin: 0.4rem 0 0; line-height: 1.5; }}
+    .section {{ font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin: 1.6rem 0 0.6rem; }}
     .badge {{ display: inline-block; margin-left: 0.5rem; padding: 0.1rem 0.5rem; font-size: 0.7rem; font-weight: 400; color: var(--text-secondary); background: var(--divider, #2C2C2E); border-radius: 6px; vertical-align: middle; }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
@@ -66,6 +81,7 @@ def render_astro_hub(*, theme_css_js):
     <h1>Astro</h1>
     <div class="subtitle">scientific astronomy cameras — measurements, not timelapses</div>
 {cards}
+{collections}
     <div class="footer">
       <a href="/astro/storage">Storage status</a> &middot;
       <a href="/contents">Home</a>
@@ -200,6 +216,12 @@ def _section(sec):
         v = (f'{stacked} / {s["n_frames"]}' if stacked is not None
              else f'{s["n_frames"]}')
         stats.append(_stat("frames stacked / captured", v))
+    anchor = s.get("anchor") or {}
+    stops = anchor.get("stops") if isinstance(anchor, dict) else None
+    if stops is None:
+        stops = s.get("stops")
+    if stops is not None:
+        stats.append(_stat("brightness index", f'{stops:.2f} stops' if isinstance(stops, (int, float)) else f'{stops} stops'))
     derot = s.get("derot")
     if derot:
         w = derot.get("window_utc") or [None, None]
@@ -441,23 +463,21 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             s = n.get("summary") or {}
             n_stacked = s.get("n_stacked")
             n_frames = s.get("n_frames")
-            stats = (f'{n_stacked} of {n_frames} frames stacked'
-                     if n_stacked is not None and n_frames is not None
-                     else "")
+            stops = s.get("stops")
+            stats_parts = []
+            if n_stacked is not None and n_frames is not None:
+                stats_parts.append(f'{n_stacked}/{n_frames}')
+            if stops is not None:
+                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
+            stats = " &middot; ".join(stats_parts)
             poster = (f'<img src="{thumb}" alt="{night}" loading="lazy">'
                       if thumb else
                       '<div class="no-thumb">no preview</div>')
-            verdict = (s.get("verdict") or "").lower()
-            verdict_badge = ""
-            if verdict in ("clear", "cloudy", "no-data"):
-                verdict_badge = (
-                    f'<span class="verdict verdict-{verdict}">{verdict}</span>')
             cards.append(
                 f'<a class="night-card" href="/astro/{camera}/night/{night}">'
                 f'<div class="night-thumb">{poster}</div>'
-                f'<div class="night-meta"><div class="night-date">{night}'
-                f'{verdict_badge}</div>'
-                f'<div class="night-stats">{stats}</div></div></a>')
+                f'<div class="night-meta"><span class="night-date">{night}</span>'
+                f'<span class="night-stats">{stats}</span></div></a>')
         cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
 
     return f'''<!DOCTYPE html>
@@ -478,13 +498,9 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-thumb {{ aspect-ratio: 2304 / 1064; background: #000; overflow: hidden; }}
     .night-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
     .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
-    .night-meta {{ padding: 0.6rem 0.8rem; }}
-    .night-date {{ font-weight: 600; }}
-    .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.15rem; }}
-    .verdict {{ display: inline-block; margin-left: 0.5rem; padding: 0.05rem 0.4rem; font-size: 0.7rem; font-weight: 500; border-radius: 6px; vertical-align: middle; text-transform: lowercase; }}
-    .verdict-clear {{ background: #1f3a1f; color: #6fcf6a; }}
-    .verdict-cloudy {{ background: #3a2f1f; color: #d6a04a; }}
-    .verdict-no-data {{ background: var(--divider, #2C2C2E); color: var(--text-secondary); }}
+    .night-meta {{ display: flex; justify-content: space-between; align-items: baseline; padding: 0.45rem 0.65rem; }}
+    .night-date {{ font-weight: 600; font-size: 0.85rem; }}
+    .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
     .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
@@ -1292,6 +1308,296 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     {nights_nav}
     {player_link}
     {body}
+    <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_colour_max_test(theme_css_js="", urls=None):
+    urls = urls or {}
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro — Colour Max Stack Evaluation</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font, system-ui, sans-serif); background: var(--bg, #111); color: var(--text, #eee); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1200px; margin: 0 auto; }}
+    h1 {{ font-size: 1.6rem; margin: 1rem 0 0.3rem; text-align: center; }}
+    .intro {{ text-align: center; color: var(--text-secondary, #aaa); font-size: 0.9rem; max-width: 850px; margin: 0 auto 2rem; line-height: 1.5; }}
+    h2 {{ font-size: 1.25rem; color: var(--accent, #4a9eff); margin: 2rem 0 0.8rem; border-bottom: 1px solid var(--divider, #333); padding-bottom: 0.3rem; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
+    .card {{ background: var(--card-bg, #1a1a1a); border-radius: 8px; overflow: hidden; border: 1px solid var(--divider, #2a2a2a); }}
+    .card img {{ width: 100%; height: auto; display: block; }}
+    .card .caption {{ padding: 0.75rem 1rem; }}
+    .card .title {{ font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem; }}
+    .card .desc {{ font-size: 0.8rem; color: var(--text-secondary, #aaa); line-height: 1.4; }}
+    a {{ color: var(--accent, #4a9eff); text-decoration: none; }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 3rem 0 1rem; color: var(--text-secondary, #888); }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Colour Max Stack Evaluation</h1>
+    <div class="intro">
+      Comparing <strong>Raw Luminance Max</strong> vs <strong>Frame-Average Normalised Max</strong> (where a pixel must be outstanding relative to the frame background: <code>L / mean(L)</code>) vs <strong>Per-Channel Max</strong>.
+    </div>
+
+    <h2>1. Eclipticam-v3w (Full Night — 2026-08-22)</h2>
+    <div class="grid">
+      <div class="card">
+        <a href="{urls.get('eclipticam-v3w_2026-08-22_2_ratio_mean.jpg', '')}" target="_blank">
+          <img src="{urls.get('eclipticam-v3w_2026-08-22_2_ratio_mean.jpg', '')}" alt="Eclipticam Ratio to Mean">
+        </a>
+        <div class="caption">
+          <div class="title">Frame-Average Normalised Max (L / mean) &mdash; Best!</div>
+          <div class="desc">Pixel must be outstanding relative to the frame average. Star trails extend right across the sky without being washed out by dawn/dusk sky brightness! Garden colours preserved.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('eclipticam-v3w_2026-08-22_1_raw_lum.jpg', '')}" target="_blank">
+          <img src="{urls.get('eclipticam-v3w_2026-08-22_1_raw_lum.jpg', '')}" alt="Eclipticam Raw Lum">
+        </a>
+        <div class="caption">
+          <div class="title">Raw Luminance Max (Dominated by Dawn/Dusk)</div>
+          <div class="desc">Faint and mid-sky stars are overwritten by bright twilight sky diffuse glow.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('eclipticam-v3w_2026-08-22_per_channel.jpg', '')}" target="_blank">
+          <img src="{urls.get('eclipticam-v3w_2026-08-22_per_channel.jpg', '')}" alt="Eclipticam Per Channel">
+        </a>
+        <div class="caption">
+          <div class="title">Per-Channel Independent Max</div>
+          <div class="desc">Maxes R, G, B independently per pixel across all frames.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>2. Astrocam (Full Night — 2026-08-22)</h2>
+    <div class="grid">
+      <div class="card">
+        <a href="{urls.get('astrocam_2026-08-22_2_ratio_mean.jpg', '')}" target="_blank">
+          <img src="{urls.get('astrocam_2026-08-22_2_ratio_mean.jpg', '')}" alt="Astrocam Ratio to Mean">
+        </a>
+        <div class="caption">
+          <div class="title">Frame-Average Normalised Max (L / mean)</div>
+          <div class="desc">Trails around Polaris are dense, sharp, and continuous. Distinct star colors (amber giants vs blue-white stars) are preserved.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('astrocam_2026-08-22_1_raw_lum.jpg', '')}" target="_blank">
+          <img src="{urls.get('astrocam_2026-08-22_1_raw_lum.jpg', '')}" alt="Astrocam Raw Lum">
+        </a>
+        <div class="caption">
+          <div class="title">Raw Luminance Max (Dawn/Dusk Dominated)</div>
+          <div class="desc">Washed out by morning twilight.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('astrocam_2026-08-22_per_channel.jpg', '')}" target="_blank">
+          <img src="{urls.get('astrocam_2026-08-22_per_channel.jpg', '')}" alt="Astrocam Per Channel">
+        </a>
+        <div class="caption">
+          <div class="title">Per-Channel Independent Max</div>
+          <div class="desc">Midnight window independent channel max.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>3. Canon EOS 2000D DSLR (2026-08-10)</h2>
+    <div class="grid">
+      <div class="card">
+        <a href="{urls.get('canon_2026-08-10_lum_keyed.jpg', '')}" target="_blank">
+          <img src="{urls.get('canon_2026-08-10_lum_keyed.jpg', '')}" alt="Canon Luminance Keyed">
+        </a>
+        <div class="caption">
+          <div class="title">Luminance-Keyed RGB (Proposed)</div>
+          <div class="desc">Pinpoint 30s star trails with rich stellar spectral colors.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('canon_2026-08-10_per_channel.jpg', '')}" target="_blank">
+          <img src="{urls.get('canon_2026-08-10_per_channel.jpg', '')}" alt="Canon Per Channel">
+        </a>
+        <div class="caption">
+          <div class="title">Per-Channel Independent Max</div>
+          <div class="desc">Independent channel maxing across the 14-bit DSLR raws.</div>
+        </div>
+      </div>
+      <div class="card">
+        <a href="{urls.get('canon_2026-08-10_mono.jpg', '')}" target="_blank">
+          <img src="{urls.get('canon_2026-08-10_mono.jpg', '')}" alt="Canon Monochrome Reference">
+        </a>
+        <div class="caption">
+          <div class="title">Monochrome Max (Reference)</div>
+          <div class="desc">Standard 2x2 binned mono max stack.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer"><a href="/astro">&larr; Astro Hub</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+# ---------------------------------------------------------------------------
+# Transients — the curated general collection.
+#
+# Not a pipeline output: meteors, lightning, aircraft, satellites, screen
+# grabs, and the daytime frames from the Canon focus work, published by
+# hand with astro's bin/add-transient into transients/index.json. The
+# Lambda reads that ONE manifest and presigns only the items it renders,
+# the same shape as the per-camera calendar's fast path.
+
+# Chip order + display labels for the categories the collection knows
+# about. An unknown category still renders (titlecased, appended after
+# these) — the gallery is meant to grow a category the day something new
+# turns up in a frame.
+TRANSIENT_CATEGORIES = [
+    ("meteor", "Meteors"),
+    ("lightning", "Lightning"),
+    ("plane", "Aircraft"),
+    ("satellite", "Satellites"),
+    ("screen-grab", "Screen grabs"),
+    ("daytime", "Daytime"),
+    ("other", "Other"),
+]
+
+
+def _transient_label(cat):
+    for slug, label in TRANSIENT_CATEGORIES:
+        if slug == cat:
+            return label
+    return cat.replace("-", " ").title()
+
+
+def transient_category_counts(items):
+    """[(slug, label, count)] in chip order, known categories first,
+    unknown ones appended alphabetically. Empty categories are dropped —
+    a chip that filters to nothing is just a dead end."""
+    counts = {}
+    for e in items:
+        counts[e.get("category") or "other"] = \
+            counts.get(e.get("category") or "other", 0) + 1
+    known = [s for s, _ in TRANSIENT_CATEGORIES]
+    ordered = [s for s in known if counts.get(s)]
+    ordered += sorted(s for s in counts if s not in known)
+    return [(s, _transient_label(s), counts[s]) for s in ordered]
+
+
+def render_astro_transients(*, theme_css_js, items, counts, selected=None):
+    """Gallery of curated one-off captures.
+
+    items: manifest entries (already filtered to `selected`), each with an
+        added 'image_url' / 'thumb_url' presigned pair.
+    counts: from transient_category_counts() over the UNFILTERED set, so
+        the chips keep showing the whole collection while one is active.
+    selected: category slug currently filtered to, or None for all.
+    """
+    total = sum(c for _s, _l, c in counts)
+    chips = [
+        f'<a class="chip{"" if selected else " on"}" href="/astro/transients">'
+        f'All <span class="n">{total}</span></a>']
+    for slug, label, n in counts:
+        on = " on" if slug == selected else ""
+        chips.append(f'<a class="chip{on}" href="/astro/transients/{slug}">'
+                     f'{label} <span class="n">{n}</span></a>')
+    chips_html = f'<div class="chips">{"".join(chips)}</div>'
+
+    if not items:
+        cards_html = ('<p class="empty">Nothing in this category yet.</p>'
+                      if selected else
+                      '<p class="empty">The collection is empty &mdash; '
+                      'publish one with <code>astro/bin/add-transient</code>.</p>')
+    else:
+        cards = []
+        for e in items:
+            thumb = e.get("thumb_url") or e.get("image_url") or ""
+            full = e.get("image_url") or ""
+            # Meta line: date, clock time if we recorded one, camera.
+            meta = [e.get("date") or ""]
+            if e.get("time"):
+                meta.append(e["time"])
+            if e.get("camera"):
+                meta.append(e["camera"])
+            meta_html = " &middot; ".join(x for x in meta if x)
+            caption = e.get("caption") or ""
+            cap_html = f'<p class="t-cap">{caption}</p>' if caption else ""
+            # A night link only when that night actually has a page.
+            night_html = ""
+            if e.get("night") and e.get("camera") in (
+                    "astrocam", "eclipticam", "canon"):
+                night_html = (
+                    f'<a class="t-night" '
+                    f'href="/astro/{e["camera"]}/night/{e["night"]}">'
+                    f'night page &rarr;</a>')
+            poster = (f'<img src="{thumb}" alt="{e.get("title", "")}" '
+                      f'loading="lazy">' if thumb else
+                      '<div class="no-thumb">no preview</div>')
+            cards.append(
+                f'<figure class="t-card">'
+                f'<a class="t-shot" href="{full}">{poster}</a>'
+                f'<figcaption>'
+                f'<div class="t-head">'
+                f'<span class="t-title">{e.get("title", "")}</span>'
+                f'<span class="t-badge">{_transient_label(e.get("category") or "other")}</span>'
+                f'</div>'
+                f'<div class="t-meta">{meta_html}</div>'
+                f'{cap_html}{night_html}'
+                f'</figcaption></figure>')
+        cards_html = f'<div class="t-grid">{"".join(cards)}</div>'
+
+    heading = ("Transients" if not selected
+               else f"Transients &mdash; {_transient_label(selected)}")
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transients</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1100px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }}
+    .chips {{ display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-bottom: 1.2rem; }}
+    .chip {{ display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px; background: var(--card-bg); color: var(--text-secondary); text-decoration: none; font-size: 0.8rem; }}
+    .chip:hover {{ opacity: 0.85; }}
+    .chip.on {{ color: var(--accent); }}
+    .chip .n {{ opacity: 0.6; font-size: 0.72rem; margin-left: 0.2rem; }}
+    .t-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem; }}
+    .t-card {{ margin: 0; background: var(--card-bg); overflow: hidden; display: flex; flex-direction: column; }}
+    .t-shot {{ display: block; background: #000; }}
+    .t-shot img {{ width: 100%; height: auto; display: block; }}
+    .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
+    figcaption {{ padding: 0.55rem 0.7rem 0.7rem; }}
+    .t-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }}
+    .t-title {{ font-weight: 600; font-size: 0.9rem; }}
+    .t-badge {{ color: var(--text-secondary); font-size: 0.7rem; white-space: nowrap; }}
+    .t-meta {{ color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.15rem; }}
+    .t-cap {{ font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; margin: 0.45rem 0 0; }}
+    .t-night {{ display: inline-block; margin-top: 0.45rem; font-size: 0.78rem; color: var(--accent); text-decoration: none; }}
+    .empty {{ text-align: center; color: var(--text-secondary); }}
+    code {{ font-size: 0.85em; }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{heading}</h1>
+    <div class="subtitle">one-off captures worth keeping &mdash; meteors, lightning,
+      aircraft, satellites, odd frames caught mid-inspection, and daylight
+      test shots</div>
+    {chips_html}
+    {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
