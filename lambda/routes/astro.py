@@ -1,6 +1,11 @@
 """Astro hub page — lists the project's astronomy cameras."""
 
 
+# Ordered as the hub renders them: the cameras still taking data, then the
+# cross-camera collections, then the retired ones under their own heading.
+# Transients sits between the live cameras and the historical ones because it
+# is fed by the live cameras and is the page's most-visited destination after
+# them (Peter, 2026-08-28).
 CAMERAS = [
     {
         "path": "/astro/astrocam",
@@ -12,18 +17,6 @@ CAMERAS = [
         "path": "/astro/eclipticam",
         "title": "Ecliptic Camera",
         "desc": "Two-camera Pi (OV5647 v1 + IMX708 Wide) — day and night astro along the ecliptic.",
-        "status": "live",
-    },
-    {
-        "path": "/astro/canon",
-        "title": "EOS Camera",
-        "desc": "Canon EOS 2000D DSLR — 30 s ISO-1600 fixed-focus subs, fixed mount. Nightly short-trail star-field stacks with hot/cold pixel masking.",
-        "status": "live",
-    },
-    {
-        "path": "/starcam",
-        "title": "Star Camera (historical)",
-        "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
         "status": "live",
     },
 ]
@@ -41,6 +34,24 @@ COLLECTIONS = [
 ]
 
 
+# Retired instruments. Their pages stay up — the data is still there and still
+# linked from the nights — but they are no longer taking frames.
+HISTORICAL = [
+    {
+        "path": "/astro/canon",
+        "title": "EOS Camera",
+        "desc": "Canon EOS 2000D DSLR — 30 s ISO-1600 fixed-focus subs, fixed mount. Nightly short-trail star-field stacks with hot/cold pixel masking.",
+        "status": "live",
+    },
+    {
+        "path": "/starcam",
+        "title": "Star Camera",
+        "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
+        "status": "live",
+    },
+]
+
+
 def _card(cam):
     badge = "" if cam["status"] == "live" else '<span class="badge">coming soon</span>'
     return f'''<a class="cam-card" href="{cam["path"]}">
@@ -52,8 +63,9 @@ def _card(cam):
 
 def render_astro_hub(*, theme_css_js):
     cards = "".join(_card(c) for c in CAMERAS)
-    collections = ('<h2 class="section">Collections</h2>'
-                   + "".join(_card(c) for c in COLLECTIONS))
+    collections = "".join(_card(c) for c in COLLECTIONS)
+    historical = ('<h2 class="section">Historical</h2>'
+                  + "".join(_card(c) for c in HISTORICAL))
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,6 +94,7 @@ def render_astro_hub(*, theme_css_js):
     <div class="subtitle">scientific astronomy cameras — measurements, not timelapses</div>
 {cards}
 {collections}
+{historical}
     <div class="footer">
       <a href="/astro/storage">Storage status</a> &middot;
       <a href="/contents">Home</a>
