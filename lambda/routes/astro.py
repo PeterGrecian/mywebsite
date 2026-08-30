@@ -26,6 +26,12 @@ CAMERAS = [
 # cameras rather than belonging to one of them.
 COLLECTIONS = [
     {
+        "path": "/astro/photos",
+        "title": "Photo Showcase",
+        "desc": "Curated astrophotography captures — deep sky, Milky Way, star trails, polar derotations, and meteor fireballs with full equipment & exposure recipes.",
+        "status": "live",
+    },
+    {
         "path": "/astro/transients",
         "title": "Transients",
         "desc": "Curated one-off captures — meteors and fireballs, lightning, aircraft, satellites, odd frames caught mid-inspection, and daylight test shots.",
@@ -1541,8 +1547,10 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     else:
         cards = []
         for e in items:
+            item_id = e.get("id") or ""
             thumb = e.get("thumb_url") or e.get("image_url") or ""
             full = e.get("image_url") or ""
+            item_href = f"/astro/transients/{item_id}" if item_id else full
             # Meta line: date, clock time if we recorded one, camera.
             meta = [e.get("date") or ""]
             if e.get("time"):
@@ -1551,23 +1559,19 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
                 meta.append(e["camera"])
             meta_html = " &middot; ".join(x for x in meta if x)
             caption = e.get("caption") or ""
-            cap_html = f'<p class="t-cap">{caption}</p>' if caption else ""
-            # The reasoning is the point of the card: a streak does not
-            # explain itself, so show WHY it is called what it is rather
-            # than asserting the label and moving on.
+            cap_paras = [p.strip() for p in caption.split("\n\n") if p.strip()] if caption else []
+            cap_html = "".join(f'<p class="t-cap">{p}</p>' for p in cap_paras)
+
             rationale = e.get("rationale") or ""
+            rat_paras = [p.strip() for p in rationale.split("\n\n") if p.strip()] if rationale else []
+            why_paras = "".join(f'<p class="t-why">{p}</p>' for p in rat_paras)
+
             evidence = [x for x in (e.get("evidence") or []) if x]
+            ev_html = f'<ul class="t-ev">{"".join(f"<li>{x}</li>" for x in evidence)}</ul>' if evidence else ""
+
             why_html = ""
-            if rationale or evidence:
-                bits = []
-                if rationale:
-                    bits.append(f'<p class="t-why">{rationale}</p>')
-                if evidence:
-                    points = "".join(f'<li>{x}</li>' for x in evidence)
-                    bits.append(f'<ul class="t-ev">{points}</ul>')
-                why_html = (f'<div class="t-reason">'
-                            f'<div class="t-why-h">why we call it this</div>'
-                            f'{"".join(bits)}</div>')
+            if why_paras or ev_html:
+                why_html = f'<div class="t-reason">{why_paras}{ev_html}</div>'
             # A missing field reads as "unknown", not as silence: an
             # unhedged category label claims the classification is settled,
             # which is exactly what an entry with no confidence has not
@@ -1585,62 +1589,30 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
                     f'<a class="t-night" '
                     f'href="/astro/{e["camera"]}/night/{e["night"]}">'
                     f'night page &rarr;</a>')
+            detail_link = f'<a class="t-view" href="{item_href}">Picture &amp; Analysis &rarr;</a>' if item_id else ''
             poster = (f'<img src="{thumb}" alt="{e.get("title", "")}" '
                       f'loading="lazy">' if thumb else
                       '<div class="no-thumb">no preview</div>')
+            title_text = e.get("title", "")
+            title_html = f'<a class="t-title-link" href="{item_href}">{title_text}</a>' if item_id else title_text
             cards.append(
                 f'<figure class="t-card">'
-                f'<a class="t-shot" href="{full}">{poster}</a>'
+                f'<a class="t-shot" href="{item_href}">{poster}</a>'
                 f'<figcaption>'
                 f'<div class="t-head">'
-                f'<span class="t-title">{e.get("title", "")}</span>'
+                f'<span class="t-title">{title_html}</span>'
                 f'<span class="t-badge">'
                 f'{_transient_label(e.get("category") or "other")}'
                 f'{conf_html}</span>'
                 f'</div>'
                 f'<div class="t-meta">{meta_html}</div>'
-                f'{cap_html}{why_html}{night_html}'
+                f'{cap_html}{why_html}'
+                f'<div class="t-links">{night_html}{detail_link}</div>'
                 f'</figcaption></figure>')
         cards_html = f'<div class="t-grid">{"".join(cards)}</div>'
 
     heading = ("Transients" if not selected
                else f"Transients &mdash; {_transient_label(selected)}")
-
-    # Page-level rationale. Per-item reasoning says why THIS streak is a
-    # meteor; this says what the test is in general, so a reader can judge
-    # the calls rather than take them on trust. Kept in the same language
-    # as astro's bin/find-transients, which is where the discriminator
-    # actually lives. Collapsed by default — it is context, not the gallery.
-    explainer = '''<details class="explain">
-      <summary>How these are told apart</summary>
-      <div class="explain-body">
-        <p>A bright streak on a fixed camera is a meteor, a satellite, an
-        aircraft or just a star trail, and the picture alone does not say
-        which. The primary test is <strong>geometric</strong>, because it
-        survives saturation &mdash; a clipped core destroys the brightness
-        profile, but not the shape:</p>
-        <ul>
-          <li><strong>Meteor</strong> &mdash; the streak <em>starts and stops
-          inside</em> the frame: it ignites and burns out within the field,
-          and appears in exactly one sub-second sub.</li>
-          <li><strong>Satellite</strong> &mdash; at least one end
-          <em>touches the border</em>: it crosses the field of view, and it
-          steps across consecutive subs.</li>
-          <li><strong>Aircraft</strong> &mdash; a crossing trail too, but
-          usually with strobes along it, and a contrail broadens over time
-          instead of holding a fixed width.</li>
-          <li><strong>Star trail</strong> &mdash; the main false positive.
-          Long, and near the edge it can rival a meteor, so length alone
-          does not separate them. Rejected because it agrees with its
-          neighbours&rsquo; sidereal angle and is in <em>every</em> frame.</li>
-        </ul>
-        <p>Secondary evidence scores confidence rather than deciding it: a
-        symmetric brightness taper (ablation), departure from the local
-        star-trail angle, and solar altitude &mdash; below about
-        &minus;18&deg; the Earth&rsquo;s shadow reaches past most of low
-        orbit, so a sunlit satellite is unlikely.</p>
-      </div>
-    </details>'''
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1659,31 +1631,31 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     .chip:hover {{ opacity: 0.85; }}
     .chip.on {{ color: var(--accent); }}
     .chip .n {{ opacity: 0.6; font-size: 0.72rem; margin-left: 0.2rem; }}
-    .t-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem; }}
-    .t-card {{ margin: 0; background: var(--card-bg); overflow: hidden; display: flex; flex-direction: column; }}
-    .t-shot {{ display: block; background: #000; }}
-    .t-shot img {{ width: 100%; height: auto; display: block; }}
+    .t-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }}
+    .t-card {{ margin: 0; background: var(--card-bg); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }}
+    .t-shot {{ display: block; background: #000; overflow: hidden; }}
+    .t-shot img {{ width: 100%; height: auto; display: block; transition: transform 0.3s ease; }}
+    .t-shot:hover img {{ transform: scale(1.02); }}
     .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
-    figcaption {{ padding: 0.55rem 0.7rem 0.7rem; }}
+    figcaption {{ padding: 0.75rem 0.85rem 0.85rem; display: flex; flex-direction: column; flex: 1; }}
     .t-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }}
-    .t-title {{ font-weight: 600; font-size: 0.9rem; }}
+    .t-title {{ font-weight: 600; font-size: 0.95rem; }}
+    .t-title-link {{ color: inherit; text-decoration: none; }}
+    .t-title-link:hover {{ color: var(--accent); }}
     .t-badge {{ color: var(--text-secondary); font-size: 0.7rem; white-space: nowrap; }}
-    .t-meta {{ color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.15rem; }}
-    .t-cap {{ font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; margin: 0.45rem 0 0; }}
+    .t-meta {{ color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.2rem; }}
+    .t-cap {{ font-size: 0.86rem; color: var(--text, #e0e0e0); line-height: 1.5; margin: 0.45rem 0 0; }}
+    .t-cap + .t-cap {{ margin-top: 0.5rem; }}
     .t-conf {{ display: block; font-size: 0.66rem; opacity: 0.75; }}
     .t-reason {{ margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--divider, #2C2C2E); }}
-    .t-why-h {{ font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); opacity: 0.8; }}
-    .t-why {{ font-size: 0.82rem; line-height: 1.45; margin: 0.3rem 0 0; }}
+    .t-why {{ font-size: 0.86rem; color: var(--text, #e0e0e0); line-height: 1.5; margin: 0.3rem 0 0; }}
+    .t-why + .t-why {{ margin-top: 0.5rem; }}
     .t-ev {{ font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin: 0.35rem 0 0; padding-left: 1.1rem; }}
     .t-ev li {{ margin-bottom: 0.15rem; }}
-    .explain {{ background: var(--card-bg); padding: 0.5rem 0.8rem; margin-bottom: 1.2rem; font-size: 0.85rem; }}
-    .explain summary {{ cursor: pointer; color: var(--accent); font-size: 0.82rem; }}
-    .explain-body {{ color: var(--text-secondary); line-height: 1.55; }}
-    .explain-body p {{ margin: 0.6rem 0; }}
-    .explain-body ul {{ margin: 0.6rem 0; padding-left: 1.1rem; }}
-    .explain-body li {{ margin-bottom: 0.3rem; }}
-    .explain-body strong {{ color: var(--text); font-weight: 600; }}
-    .t-night {{ display: inline-block; margin-top: 0.45rem; font-size: 0.78rem; color: var(--accent); text-decoration: none; }}
+    .t-links {{ display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.78rem; }}
+    .t-night {{ color: var(--accent); text-decoration: none; }}
+    .t-view {{ color: var(--accent); text-decoration: none; font-weight: 500; margin-left: auto; }}
+    .t-view:hover {{ text-decoration: underline; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     code {{ font-size: 0.85em; }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
@@ -1693,13 +1665,312 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
 <body>
   <div class="container">
     <h1>{heading}</h1>
-    <div class="subtitle">one-off captures worth keeping &mdash; meteors, lightning,
-      aircraft, satellites, odd frames caught mid-inspection, and daylight
-      test shots, each with the reasoning for what it is</div>
-    {explainer}
+    <div class="subtitle">A collection of short lived events.</div>
     {chips_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
+</body>
+</html>'''
+
+
+def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_item=None):
+    """Dedicated single-picture page for a curated transient capture."""
+    title = item.get("title") or "Transient Capture"
+    item_id = item.get("id") or ""
+    cat = item.get("category") or "other"
+    cat_label = _transient_label(cat)
+    conf = (item.get("confidence") or "unknown").lower()
+    conf_label = TRANSIENT_CONFIDENCE.get(conf, conf) if conf != "confirmed" else ""
+
+    full_url = item.get("image_url") or item.get("thumb_url") or ""
+    thumb_url = item.get("thumb_url") or full_url
+
+    meta = [item.get("date") or ""]
+    if item.get("time"):
+        meta.append(item["time"])
+    if item.get("camera"):
+        meta.append(item["camera"])
+    meta_str = " &middot; ".join(x for x in meta if x)
+
+    caption = item.get("caption") or ""
+    rationale = item.get("rationale") or ""
+    evidence = [x for x in (item.get("evidence") or []) if x]
+
+    night_link = ""
+    if item.get("night") and item.get("camera") in ("astrocam", "eclipticam", "canon"):
+        night_link = (f'<a class="hud-link" href="/astro/{item["camera"]}/night/{item["night"]}">'
+                      f'Full Observing Night Page ({item["night"]}) &rarr;</a>')
+
+    prev_link = ""
+    if prev_item and prev_item.get("id"):
+        p_id = prev_item["id"]
+        p_title = prev_item.get("title", "Previous")
+        prev_link = f'<a class="nav-btn prev" href="/astro/transients/{p_id}">&larr; {p_title}</a>'
+
+    next_link = ""
+    if next_item and next_item.get("id"):
+        n_id = next_item["id"]
+        n_title = next_item.get("title", "Next")
+        next_link = f'<a class="nav-btn next" href="/astro/transients/{n_id}">{n_title} &rarr;</a>'
+
+    caption = item.get("caption") or ""
+    rationale = item.get("rationale") or ""
+    all_paras = []
+    if caption:
+        all_paras.extend([p.strip() for p in caption.split("\n\n") if p.strip()])
+    if rationale:
+        all_paras.extend([p.strip() for p in rationale.split("\n\n") if p.strip()])
+    prose_html = "".join(f'<p>{p}</p>' for p in all_paras)
+
+    ev_block = ""
+    if evidence:
+        ev_items = "".join(f"<li>{x}</li>" for x in evidence)
+        ev_block = f'''
+        <div class="prose-block">
+          <h2>Evidence &amp; Discriminator Points</h2>
+          <ul class="ev-list">{ev_items}</ul>
+        </div>
+        '''
+
+    conf_badge = f'<span class="t-badge-conf">{conf_label}</span>' if conf_label else ''
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} | Transients</title>
+  <meta name="description" content="{caption[:160] if caption else title}" />
+  {theme_css_js}
+  <style>
+    body {{
+      font-family: var(--font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+      background: var(--bg, #000);
+      color: var(--text, #e0e0e0);
+      margin: 0;
+      padding: 1rem 1rem 3rem;
+      line-height: 1.6;
+    }}
+    .container {{ max-width: 1000px; margin: 0 auto; }}
+    .breadcrumbs {{
+      font-size: 0.82rem;
+      color: var(--text-secondary, #8e8e93);
+      margin: 0.5rem 0 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }}
+    .breadcrumbs a {{ color: var(--accent, #007aff); text-decoration: none; }}
+    .breadcrumbs .sep {{ opacity: 0.4; }}
+    .photo-header {{ margin-bottom: 1.2rem; }}
+    .photo-tags {{ display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.4rem; }}
+    .t-badge-main {{
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent, #007aff);
+      background: rgba(0, 122, 255, 0.12);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }}
+    .t-badge-conf {{
+      font-size: 0.72rem;
+      color: var(--text-secondary, #8e8e93);
+      background: var(--card-bg, #1c1c1e);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+    }}
+    h1 {{ font-size: 2rem; margin: 0.2rem 0 0.3rem; font-weight: 700; }}
+    .photo-meta {{ color: var(--text-secondary, #8e8e93); font-size: 0.88rem; }}
+    .viewer-frame {{
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      border: 1px solid var(--divider, #2c2c2e);
+      overflow: hidden;
+      margin: 1.5rem 0 2rem;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }}
+    .viewer-media {{ cursor: zoom-in; display: block; }}
+    .viewer-media img {{
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }}
+    .viewer-hint {{
+      position: absolute;
+      bottom: 0.8rem;
+      right: 0.8rem;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      color: var(--accent, #007aff);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      pointer-events: none;
+    }}
+    .zoom-modal {{
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 100000;
+      overflow: auto;
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+    }}
+    .zoom-modal.open {{ display: flex; }}
+    .zoom-modal img {{
+      max-width: 95vw;
+      max-height: 95vh;
+      object-fit: contain;
+      cursor: zoom-out;
+      border-radius: 4px;
+    }}
+    .modal-close {{
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100001;
+    }}
+    .prose-section {{ display: flex; flex-direction: column; gap: 1.2rem; margin-bottom: 2.5rem; }}
+    .prose-block {{
+      background: var(--card-bg, #161616);
+      border: 1px solid var(--divider, #2c2c2e);
+      border-radius: 10px;
+      padding: 1.4rem 1.6rem;
+    }}
+    .prose-block h2 {{
+      font-size: 1.05rem;
+      margin: 0 0 0.6rem;
+      font-weight: 600;
+      color: var(--accent, #007aff);
+    }}
+    .prose-block p {{ margin: 0; font-size: 0.95rem; line-height: 1.65; color: var(--text, #e0e0e0); }}
+    .prose-block p + p {{ margin-top: 1rem; }}
+    .ev-list {{ margin: 0; padding-left: 1.2rem; font-size: 0.88rem; line-height: 1.55; color: var(--text-secondary, #8e8e93); }}
+    .ev-list li {{ margin-bottom: 0.35rem; }}
+    .hud-link {{ display: inline-block; margin-top: 0.8rem; color: var(--accent, #007aff); font-size: 0.85rem; text-decoration: none; }}
+    .hud-link:hover {{ text-decoration: underline; }}
+    .nav-bar {{
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 2rem 0 1rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--divider, #2c2c2e);
+    }}
+    .nav-btn {{
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--card-bg, #161616);
+      border: 1px solid var(--divider, #2c2c2e);
+      border-radius: 6px;
+      color: var(--accent, #007aff);
+      text-decoration: none;
+      font-size: 0.82rem;
+    }}
+    footer.site-footer {{ text-align: center; color: var(--text-secondary, #8e8e93); font-size: 0.85rem; margin-top: 2rem; }}
+    footer.site-footer a {{ color: var(--accent, #007aff); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumbs" aria-label="Breadcrumbs">
+      <a href="/astro">Astro</a>
+      <span class="sep">/</span>
+      <a href="/astro/transients">Transients</a>
+      <span class="sep">/</span>
+      <span>{title}</span>
+    </nav>
+
+    <header class="photo-header">
+      <div class="photo-tags">
+        <span class="t-badge-main">{cat_label}</span>
+        {conf_badge}
+      </div>
+      <h1>{title}</h1>
+      <div class="photo-meta">{meta_str}</div>
+    </header>
+
+    <main>
+      <div class="viewer-frame">
+        <div class="viewer-media" id="media-zoom-trigger" title="Click for high-resolution zoom">
+          <img src="{full_url}" alt="{title}" fetchpriority="high" />
+        </div>
+        <div class="viewer-hint">&x1F50D; Click to zoom</div>
+      </div>
+
+      <div class="zoom-modal" id="zoom-modal" role="dialog" aria-modal="true">
+        <button class="modal-close" id="modal-close" aria-label="Close zoom modal">&times;</button>
+        <img id="zoom-img" src="{full_url}" alt="{title}" />
+      </div>
+
+      <section class="prose-section">
+        {f'<div class="prose-block">{prose_html}</div>' if prose_html else ''}
+        {ev_block}
+        {f'<div class="prose-block"><h2>Associated Observing Night</h2>{night_link}</div>' if night_link else ''}
+      </section>
+
+      <nav class="nav-bar">
+        <div>{prev_link}</div>
+        <div>{next_link}</div>
+      </nav>
+    </main>
+
+    <footer class="site-footer">
+      <a href="/astro/transients">&larr; Back to Transients Gallery</a> &middot;
+      <a href="/astro">Astro Hub</a> &middot;
+      <a href="/contents">Home</a>
+    </footer>
+  </div>
+
+  <script>
+    (function(){{
+      var trigger = document.getElementById('media-zoom-trigger');
+      var modal = document.getElementById('zoom-modal');
+      var closeBtn = document.getElementById('modal-close');
+      var zoomImg = document.getElementById('zoom-img');
+
+      if (!trigger || !modal) return;
+
+      function openModal() {{
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }}
+      function closeModal() {{
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+      }}
+
+      trigger.addEventListener('click', openModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', function(e) {{
+        if (e.target === modal || e.target === zoomImg) {{
+          closeModal();
+        }}
+      }});
+      document.addEventListener('keydown', function(e) {{
+        if (e.key === 'Escape' && modal.classList.contains('open')) {{
+          closeModal();
+        }}
+      }});
+    }})();
+  </script>
 </body>
 </html>'''

@@ -3937,18 +3937,89 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
+    elif re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', path):
+        # PUBLIC — the curated astrophotography showcase: deep-sky stacks,
+        # widefield Milky Way, polar derotation, star trails, and meteor fireballs.
+        # Hand-curated via Markdown in Git (astro/showcase/*.md), published to
+        # S3 (showcase/index.json + showcase/items/ + showcase/thumbs/).
+        import json as _json
+        m = re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', path)
+        slug = m.group(1)
+        from routes.astro_showcase import (
+            render_astro_showcase_gallery,
+            render_astro_showcase_detail,
+            showcase_category_counts,
+        )
+        items = []
+        try:
+            s3 = s3_client()
+            obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='showcase/index.json')
+            items = _json.loads(obj['Body'].read()).get('items', []) or []
+        except Exception as e:
+            print(f"showcase: no manifest ({e})")
+
+        # Check if slug matches a specific photo ID
+        item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
+        if slug and slug in item_by_id:
+            idx, item = item_by_id[slug]
+            item_copy = dict(item)
+            item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
+                                                        bucket=ASTRO_BUCKET)
+                                      if item_copy.get('image_key') else None)
+            item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
+                                                        bucket=ASTRO_BUCKET)
+                                      if item_copy.get('thumb_key') else None)
+            prev_item = items[idx - 1] if idx > 0 else None
+            next_item = items[idx + 1] if idx + 1 < len(items) else None
+            return {
+                'statusCode': 200,
+                'body': render_astro_showcase_detail(
+                    theme_css_js=THEME_CSS_JS,
+                    item=item_copy,
+                    prev_item=prev_item,
+                    next_item=next_item,
+                ),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
+
+        # Category filter or full gallery
+        counts = showcase_category_counts(items)
+        known_cats = {c[0] for c in counts}
+        if slug and slug not in known_cats:
+            return {'statusCode': 302,
+                    'headers': {'Location': '/astro/photos'}, 'body': ''}
+
+        selected_cat = slug if slug in known_cats else None
+        shown = [e for e in items
+                 if not selected_cat or (e.get('category') or 'other') == selected_cat]
+        for e in shown:
+            e['image_url'] = (get_presigned_url(e['image_key'],
+                                                bucket=ASTRO_BUCKET)
+                              if e.get('image_key') else None)
+            e['thumb_url'] = (get_presigned_url(e['thumb_key'],
+                                                bucket=ASTRO_BUCKET)
+                              if e.get('thumb_key') else None)
+        return {
+            'statusCode': 200,
+            'body': render_astro_showcase_gallery(
+                theme_css_js=THEME_CSS_JS,
+                items=shown,
+                counts=counts,
+                selected=selected_cat,
+            ),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
     elif re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path):
         # PUBLIC — the curated general collection: meteors, lightning,
         # aircraft, satellites, screen grabs, daytime Canon focus frames.
         # Hand-published by astro's bin/add-transient, which writes ONE
         # manifest at transients/index.json plus items/ + thumbs/ objects.
-        # Same shape as the calendar fast path: read the manifest, filter
-        # to the requested category, and presign only what we render — an
-        # unfiltered gallery of N items costs 2N presigns and nothing else.
         import json as _json
         m = re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path)
         selected = m.group(1)
         from routes.astro import (render_astro_transients,
+                                  render_astro_transient_detail,
                                   transient_category_counts)
         items = []
         try:
@@ -3957,12 +4028,35 @@ def lambda_handler(event, context):
             items = _json.loads(obj['Body'].read()).get('items', []) or []
         except Exception as e:
             print(f"transients: no manifest ({e})")
+
+        # 1. Check if selected slug matches an individual picture ID
+        item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
+        if selected and selected in item_by_id:
+            idx, item = item_by_id[selected]
+            item_copy = dict(item)
+            item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
+                                                        bucket=ASTRO_BUCKET)
+                                      if item_copy.get('image_key') else None)
+            item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
+                                                        bucket=ASTRO_BUCKET)
+                                      if item_copy.get('thumb_key') else None)
+            prev_item = items[idx - 1] if idx > 0 else None
+            next_item = items[idx + 1] if idx + 1 < len(items) else None
+            return {
+                'statusCode': 200,
+                'body': render_astro_transient_detail(
+                    theme_css_js=THEME_CSS_JS,
+                    item=item_copy,
+                    prev_item=prev_item,
+                    next_item=next_item,
+                ),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}
+            }
+
+        # 2. Category filter or full collection
         counts = transient_category_counts(items)
         known = {c[0] for c in counts}
         if selected and selected not in known:
-            # An unknown slug is a typo or a stale link, not an empty
-            # category — send it back to the whole collection rather than
-            # showing a chip-less dead page.
             return {'statusCode': 302,
                     'headers': {'Location': '/astro/transients'}, 'body': ''}
         shown = [e for e in items

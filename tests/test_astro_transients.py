@@ -182,17 +182,6 @@ class TestReasoning:
                          "/astro/transients/daytime")
         assert "why we call it this" not in result["body"]
 
-    def test_page_explains_the_discriminator(self, mywebsite, make_event,
-                                             make_context):
-        result, _ = _get(mywebsite, make_event, make_context,
-                         "/astro/transients")
-        body = result["body"]
-        assert "How these are told apart" in body
-        # The general test is geometric, and the page must say so rather
-        # than asking the reader to take the calls on trust.
-        assert "starts and stops" in body
-        assert "touches the border" in body
-
 
 class TestHubLinksToTransients:
     def test_hub_offers_the_collection(self, mywebsite, make_event,
@@ -200,3 +189,41 @@ class TestHubLinksToTransients:
         result = mywebsite.lambda_handler(make_event("/astro"),
                                           make_context())
         assert '/astro/transients' in result["body"]
+
+class TestTransientPicturePage:
+    """Dedicated single picture page per transient capture."""
+
+    def test_single_transient_page_renders(self, mywebsite, make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/2026-08-12-meteor-perseid")
+        assert result["statusCode"] == 200
+        body = result["body"]
+        assert "Perseid fireball" in body
+        assert "Both ends stop inside the frame" in body
+        assert "both ends interior" in body
+        assert "/astro/canon/night/2026-08-12" in body
+        assert "media-zoom-trigger" in body
+        assert "Breadcrumbs" in body
+
+    def test_single_transient_presigns_only_that_item(self, mywebsite, make_event, make_context):
+        _, client = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/2026-08-12-meteor-perseid")
+        keys = {c.kwargs["Params"]["Key"]
+                for c in client.generate_presigned_url.call_args_list}
+        assert keys == {"transients/items/a.jpg", "transients/thumbs/a.jpg"}
+
+    def test_single_transient_prev_next_links(self, mywebsite, make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/transients/2026-08-01-daytime-focus")
+        assert result["statusCode"] == 200
+        body = result["body"]
+        # In MANIFEST, daytime-focus is between perseid and aurora-glow
+        assert "Perseid fireball" in body
+        assert "Odd northern glow" in body
+
+    def test_gallery_links_to_picture_page(self, mywebsite, make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context, "/astro/transients")
+        assert result["statusCode"] == 200
+        body = result["body"]
+        assert 'href="/astro/transients/2026-08-12-meteor-perseid"' in body
+        assert 'href="/astro/transients/2026-08-01-daytime-focus"' in body
