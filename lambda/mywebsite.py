@@ -32,52 +32,27 @@ MEMSPEED_PREFIX = "memspeed/"
 MEMSPEED_RESULTS_PREFIX = "memspeed/results/"
 MEMSPEED_DOWNLOADS_PREFIX = "memspeed/downloads/"
 
-# Red tick favicon (base64-encoded PNG)
-TICK_PNG_B64 = (
-    "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"
-)
+# Red tick favicon assets (SVG vector, transparent PNG, genuine Windows ICO)
+_LAMBDA_DIR = os.path.dirname(os.path.abspath(__file__))
 
-FAVICON_TAGS = f'''<link rel="icon" type="image/png" href="data:image/png;base64,{TICK_PNG_B64}">
-<link rel="icon" type="image/png" href="/favicon.png">
+def _load_asset_b64(filename):
+    for candidate in (os.path.join(_LAMBDA_DIR, filename), filename):
+        try:
+            with open(candidate, "rb") as _f:
+                return base64.b64encode(_f.read()).decode("ascii")
+        except Exception:
+            continue
+    return ""
+
+FAVICON_ICO_B64 = _load_asset_b64("favicon.ico")
+FAVICON_PNG_B64 = _load_asset_b64("favicon.png") or _load_asset_b64("tick.png")
+
+FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="M8 20 L16 28 L32 10" fill="none" stroke="#FF3B30" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+FAVICON_SVG_B64 = base64.b64encode(FAVICON_SVG.encode("utf-8")).decode("ascii")
+
+FAVICON_TAGS = f'''<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{FAVICON_SVG_B64}">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/favicon.png">'''
 
@@ -2685,18 +2660,35 @@ def lambda_handler(event, context):
     ip = headers.get('X-Forwarded-For') or headers.get('x-forwarded-for', 'Unknown')
     print(f'X-Forwarded-For = {ip}')
 
-    # Favicon routes (/favicon.ico, /favicon.png, /tick.png)
-    if path in (f'/{stage}/favicon.ico', '/favicon.ico',
-                f'/{stage}/favicon.png', '/favicon.png',
-                f'/{stage}/tick.png', '/tick.png'):
+    # Favicon routes (/favicon.ico, /favicon.png, /favicon.svg, /tick.png)
+    if path in (f'/{stage}/favicon.ico', '/favicon.ico'):
         return {
             'statusCode': 200,
             'headers': {
-                'Content-Type': 'image/x-icon' if path.endswith('.ico') else 'image/png',
+                'Content-Type': 'image/x-icon',
                 'Cache-Control': 'public, max-age=86400',
             },
             'isBase64Encoded': True,
-            'body': TICK_PNG_B64,
+            'body': FAVICON_ICO_B64 or FAVICON_PNG_B64,
+        }
+    if path in (f'/{stage}/favicon.png', '/favicon.png', f'/{stage}/tick.png', '/tick.png'):
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'image/png',
+                'Cache-Control': 'public, max-age=86400',
+            },
+            'isBase64Encoded': True,
+            'body': FAVICON_PNG_B64,
+        }
+    if path in (f'/{stage}/favicon.svg', '/favicon.svg'):
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'image/svg+xml',
+                'Cache-Control': 'public, max-age=86400',
+            },
+            'body': FAVICON_SVG,
         }
 
     # robots.txt — reduce bot traffic and unnecessary invocations

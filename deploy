@@ -69,7 +69,7 @@ fi
 
 # Package Lambda
 cd lambda
-zip ../mywebsite.zip *.py *.html *.png *.png64 *.jpg *.txt 2>/dev/null || zip ../mywebsite.zip *.py *.html *.png *.txt
+zip ../mywebsite.zip *.py *.html *.png *.ico *.svg *.png64 *.jpg *.txt 2>/dev/null || zip ../mywebsite.zip *.py *.html *.png *.ico *.svg *.txt
 zip -r ../mywebsite.zip routes/ templates/ -x '*__pycache__*' 2>/dev/null || true
 cd ..
 

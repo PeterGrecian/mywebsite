@@ -38,6 +38,13 @@ class TestSimpleRoutes:
         assert result.get("isBase64Encoded") is True
         assert len(result["body"]) > 0
 
+    def test_favicon_svg(self, mywebsite, make_event, make_context):
+        event = make_event("/favicon.svg")
+        result = mywebsite.lambda_handler(event, make_context())
+        assert result["statusCode"] == 200
+        assert result["headers"]["Content-Type"] == "image/svg+xml"
+        assert "<svg" in result["body"]
+
     def test_event_debug(self, mywebsite, make_event, make_context):
         event = make_event("/event")
         result = mywebsite.lambda_handler(event, make_context())
