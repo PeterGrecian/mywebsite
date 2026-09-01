@@ -49,7 +49,8 @@ rm -rf __pycache__
 base64 -w 0 lambda/tick.png > lambda/favicon.png64 2>/dev/null || (base64 lambda/tick.png | tr -d '\n' > lambda/favicon.png64)
 
 # Generate gitinfo
-echo '<link rel="icon" type="image/png" href="/favicon.png"><link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="styles.css">' > lambda/gitinfo.html
+FAV_B64=$(cat lambda/favicon.png64)
+echo '<link rel="icon" type="image/png" href="data:image/png;base64,'$FAV_B64'"><link rel="icon" type="image/png" href="/favicon.png"><link rel="shortcut icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/favicon.png"><link rel="stylesheet" href="styles.css">' > lambda/gitinfo.html
 echo '<title>Peter Grecian - Git Info</title>' >> lambda/gitinfo.html
 echo '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>' >> lambda/gitinfo.html
 origin=$(git remote get-url origin 2>/dev/null || echo "local")

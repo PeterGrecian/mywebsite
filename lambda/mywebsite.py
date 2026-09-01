@@ -76,10 +76,13 @@ TICK_PNG_B64 = (
     "R6/ZtODjxBYyoAAIhDwIERiDX6T+GhgAiDHPmI+if//j838lyBEKvD/icwAAAABJRU5ErkJggg=="
 )
 
-# Shared iOS theme CSS + JS — included in every page's <head>
-THEME_CSS_JS = '''<link rel="icon" type="image/png" href="/favicon.png">
+FAVICON_TAGS = f'''<link rel="icon" type="image/png" href="data:image/png;base64,{TICK_PNG_B64}">
+<link rel="icon" type="image/png" href="/favicon.png">
 <link rel="shortcut icon" href="/favicon.ico">
-<script>
+<link rel="apple-touch-icon" href="/favicon.png">'''
+
+# Shared iOS theme CSS + JS — included in every page's <head>
+THEME_CSS_JS = FAVICON_TAGS + '''\n<script>
 (function(){
   var s=localStorage.getItem('theme');
   var p=window.matchMedia('(prefers-color-scheme:dark)').matches;
@@ -2657,7 +2660,7 @@ def lambda_handler(event, context):
     log_connection(event, context)
 
     html = ""
-    fav = '<link rel="icon" type="image/png" href="/favicon.png">\n<link rel="shortcut icon" href="/favicon.ico">'
+    fav = FAVICON_TAGS
 
     # Handle both REST API and HTTP API (v2) event formats
     if 'rawPath' in event:
