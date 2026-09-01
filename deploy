@@ -46,10 +46,10 @@ fi
 rm -rf __pycache__
 
 # Generate favicon
-base64 lambda/tick.png > lambda/favicon.png64
+base64 -w 0 lambda/tick.png > lambda/favicon.png64 2>/dev/null || (base64 lambda/tick.png | tr -d '\n' > lambda/favicon.png64)
 
 # Generate gitinfo
-echo '<link rel="stylesheet" href="styles.css">' > lambda/gitinfo.html
+echo '<link rel="icon" type="image/png" href="/favicon.png"><link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="styles.css">' > lambda/gitinfo.html
 echo '<title>Peter Grecian - Git Info</title>' >> lambda/gitinfo.html
 echo '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>' >> lambda/gitinfo.html
 origin=$(git remote get-url origin 2>/dev/null || echo "local")
@@ -68,7 +68,7 @@ fi
 
 # Package Lambda
 cd lambda
-zip ../mywebsite.zip *.py *.html *.png64 *.jpg *.txt 2>/dev/null || zip ../mywebsite.zip *.py *.html *.png64 *.txt
+zip ../mywebsite.zip *.py *.html *.png *.png64 *.jpg *.txt 2>/dev/null || zip ../mywebsite.zip *.py *.html *.png *.txt
 zip -r ../mywebsite.zip routes/ templates/ -x '*__pycache__*' 2>/dev/null || true
 cd ..
 
