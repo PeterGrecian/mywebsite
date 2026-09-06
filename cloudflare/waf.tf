@@ -134,10 +134,21 @@ resource "cloudflare_ruleset" "rate_limit" {
     enabled     = true
     # No regex here: the free plan refuses the `matches` operator outright
     # ("an higher Advanced Rate Limiting plan is required"), so the asset
-    # exclusion is spelled out with `contains`. These are the routes that
-    # legitimately arrive in bursts — a gallery page asks for many thumbs,
-    # and each one is a Cloudflare request because the Lambda answers with a
-    # 302 to a presigned S3 URL rather than serving the bytes itself.
+    # exclusion is spelled out with `contains`.
+    #
+    # What this exclusion actually covers, corrected 2026-09-06: only the
+    # routes where the Lambda answers with a 302 to a presigned S3 URL —
+    # /thumbs/ and the /*/fullres set. Those do arrive in bursts and are
+    # worth excluding. The astro gallery pages do NOT: they embed the
+    # presigned S3 URL directly in the img src, on the bucket's own
+    # amazonaws.com hostname, so those image requests never reach Cloudflare
+    # or Lambda at all and were never counted by this rule in the first
+    # place. The exclusion is narrower in effect than it looks — harmless,
+    # but do not read it as "galleries are protected".
+    #
+    # That split is itself the inefficiency: the 7.4 MB an astro page pulls
+    # bypasses the CDN entirely and is re-fetched on every view, because the
+    # presigned signature changes per render. See the strand IDEAS spool.
     expression  = <<-EOT
       not (http.request.uri.path contains "/thumbs/"
            or http.request.uri.path contains "/fullres"
