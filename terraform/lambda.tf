@@ -27,3 +27,15 @@ resource "aws_lambda_permission" "api_gateway" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.mywebsite.execution_arn}/*/*"
 }
+
+# CloudWatch Log Group for the Lambda.
+#
+# Created implicitly by Lambda on first invocation and had no retention until
+# 2026-09-06 — it had grown to 674 MB covering 6.5 months. The full history was
+# exported to s3://backup-peter/mywebsite-cloudwatch-logs/ and analysed
+# (analysis/access-history/REPORT.md) before this was applied, because setting
+# retention deletes the old data and cannot be undone.
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/mywebsite"
+  retention_in_days = 30
+}
