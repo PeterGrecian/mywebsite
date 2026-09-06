@@ -238,9 +238,25 @@ resource "aws_iam_role_policy" "ssm_parameters" {
         Effect = "Allow"
         Action = [
           "ssm:GetParameter",
+          "ssm:GetParameters",
           "ssm:PutParameter"
         ]
         Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/ai-config/*"
+      },
+      {
+        # srfcplus session cookie. The /srfcplus page reads it and the
+        # update-cookie form writes it, so this needs Put as well as Get.
+        # It was missing entirely: get_srfcplus_cookie() was failing with
+        # AccessDenied, swallowed by its try/except, so the page always
+        # said "No session cookie saved yet" and pasting a fresh cookie
+        # silently did nothing.
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:PutParameter"
+        ]
+        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/srfcplus/*"
       },
       {
         Effect = "Allow"

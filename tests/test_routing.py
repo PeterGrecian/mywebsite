@@ -160,3 +160,59 @@ class TestResponseStructure:
         assert "headers" in result
         assert "body" in result
         assert isinstance(result["statusCode"], int)
+
+
+class TestNotFound:
+    """Unknown paths must 404, not silently serve the contents page.
+
+    The dispatch chain's `else` used to render contents with a 200, so every
+    typo, bot probe and missing asset cost a billed invocation and gave
+    crawlers another indexable duplicate of the same page.
+    """
+
+    UNKNOWN = [
+        "/complete-nonsense-path",
+        "/wp-login.php",
+        "/gardencam/nonexistent-subpage",
+        "/skycam/not-a-real-view",
+        "/default/no-such-page",  # the legacy stage-prefixed form too
+    ]
+
+    @pytest.mark.parametrize("path", UNKNOWN)
+    def test_unknown_path_404(self, mywebsite, make_event, make_context, path):
+        event = make_event(path)
+        result = mywebsite.lambda_handler(event, make_context())
+        assert result["statusCode"] == 404
+        assert "text/html" in result["headers"]["Content-Type"]
+        assert "404" in result["body"]
+
+    def test_404_is_edge_cacheable(self, mywebsite, make_event, make_context):
+        event = make_event("/no-such-page")
+        result = mywebsite.lambda_handler(event, make_context())
+        assert result["headers"]["Cache-Control"] == "public, max-age=300"
+
+    def test_404_is_noindex(self, mywebsite, make_event, make_context):
+        event = make_event("/no-such-page")
+        result = mywebsite.lambda_handler(event, make_context())
+        assert 'name="robots" content="noindex"' in result["body"]
+
+    def test_404_escapes_the_path(self, mywebsite, make_event, make_context):
+        """The offending path is echoed back — it must not be injectable."""
+        event = make_event("/<script>alert(1)</script>")
+        result = mywebsite.lambda_handler(event, make_context())
+        assert result["statusCode"] == 404
+        assert "<script>alert(1)</script>" not in result["body"]
+        assert "&lt;script&gt;" in result["body"]
+
+    def test_404_links_home(self, mywebsite, make_event, make_context):
+        event = make_event("/no-such-page")
+        result = mywebsite.lambda_handler(event, make_context())
+        assert 'href="/contents"' in result["body"]
+
+    @pytest.mark.parametrize("path", ["", "/", "/default", "/default/"])
+    def test_root_still_serves_contents(self, mywebsite, make_event, make_context, path):
+        """The root is not a 404 — it keeps rendering the contents page."""
+        event = make_event(path)
+        result = mywebsite.lambda_handler(event, make_context())
+        assert result["statusCode"] == 200
+        assert "Cache-Control" not in result["headers"]

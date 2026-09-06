@@ -13,11 +13,22 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def _mock_boto3():
     """Replace boto3 with a stub before mywebsite is imported."""
+    def _get_parameters(Names, **kwargs):
+        """Mirror SSM's batch shape — the module fetches cold-start secrets
+        with GetParameters, so a mock that only answers GetParameter would
+        silently leave every password None and make auth tests pass for the
+        wrong reason."""
+        return {
+            "Parameters": [{"Name": n, "Value": "test-password"} for n in Names],
+            "InvalidParameters": [],
+        }
+
     fake_boto3 = types.ModuleType("boto3")
     fake_boto3.client = MagicMock(return_value=MagicMock(
         get_parameter=MagicMock(return_value={
             "Parameter": {"Value": "test-password"}
-        })
+        }),
+        get_parameters=MagicMock(side_effect=_get_parameters),
     ))
     fake_boto3.resource = MagicMock()
     fake_boto3.dynamodb = MagicMock()

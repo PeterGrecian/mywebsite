@@ -35,27 +35,32 @@ resource "cloudflare_record" "apex" {
   proxied = true # required for CNAME flattening + redirect rule to apply
 }
 
-# Redirect the apex to www (canonical host). 301, preserves path + query.
-resource "cloudflare_ruleset" "apex_redirect" {
-  zone_id     = cloudflare_zone.pg.id
-  name        = "Redirect apex to www"
-  description = "301 petergrecian.co.uk/* -> https://www.petergrecian.co.uk/*"
-  kind        = "zone"
-  phase       = "http_request_dynamic_redirect"
+# Redirect the apex to www (canonical host). 301, preserves the path.
+#
+# This is a Page Rule, not the Redirect Rule (`http_request_dynamic_redirect`
+# ruleset) you would reach for today. The reason is permissions, not taste:
+# the Terraform token can edit Cache Rules and the WAF but is refused on the
+# dynamic-redirect phase ("request is not authorized"), and the permission
+# group for it could not be located in Cloudflare's token editor. Page Rules
+# the token can already write — two of them are managed in waf.tf.
+#
+# Cost of the workaround: this takes the free plan's LAST page-rule slot
+# (3 total; the other two are the rate limits in waf.tf). If you ever need a
+# fourth page rule, that is the moment to go back and find the redirect
+# permission — swap this resource for a `cloudflare_ruleset` on phase
+# `http_request_dynamic_redirect` with a `redirect` action, and the slot
+# comes back. Page Rules are Cloudflare's legacy mechanism and will
+# eventually be retired, so treat this as owed work, not a resting place.
+resource "cloudflare_page_rule" "apex_redirect" {
+  zone_id  = cloudflare_zone.pg.id
+  target   = "petergrecian.co.uk/*" # apex only — www is matched separately
+  priority = 3                      # 1 and 2 are the waf.tf rate limits
 
-  rules {
-    action = "redirect"
-    action_parameters {
-      from_value {
-        status_code = 301
-        target_url {
-          expression = "concat(\"https://www.petergrecian.co.uk\", http.request.uri.path)"
-        }
-        preserve_query_string = true
-      }
+  actions {
+    forwarding_url {
+      url         = "https://www.petergrecian.co.uk/$1"
+      status_code = 301
     }
-    expression  = "(http.host eq \"petergrecian.co.uk\")"
-    description = "Apex to www canonical redirect"
   }
 }
 
@@ -95,7 +100,7 @@ resource "cloudflare_record" "ses_verification" {
   zone_id = cloudflare_zone.pg.id
   name    = "_amazonses"
   type    = "TXT"
-  content = "petergrecian-rrds7fhs7d5nvhvvvvvv"  # placeholder; read from AWS if needed
+  content = "petergrecian-rrds7fhs7d5nvhvvvvvv" # placeholder; read from AWS if needed
   ttl     = 300
   proxied = false
 }

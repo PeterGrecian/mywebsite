@@ -165,6 +165,33 @@ on real S3. That check caught a genuine off-by-one: one April frame lives in
 `get_skycam_images_for_date` selects by *folder*, so the path must win over
 the filename or the month view disagrees with the day page it links to.
 
+## Unknown paths return 404 — don't reintroduce the 200
+
+The dispatch chain in `lambda_handler` ends with an explicit split:
+
+```python
+elif path in ('', '/', f'/{stage}', f'/{stage}/'):
+    html += render_contents_page()      # the root, deliberately
+else:
+    status_code = 404
+    html = render_404_page(path)        # everything else
+```
+
+It used to be a bare `else: html += render_contents_page()`, so **every**
+unmatched path returned the contents page with a 200 — typos, bot probes
+(`/wp-login.php`), and missing assets alike. That is what made the favicon
+bug invisible for so long: `/favicon.ico` was a 200 HTML page, not a 404.
+It also meant a billed Lambda invocation per probe, nothing the edge could
+cache, and an unbounded set of indexable duplicate URLs.
+
+`render_404_page` escapes the path it echoes back (it is attacker-supplied),
+sets `noindex`, and the response carries `Cache-Control: public, max-age=300`
+so Cloudflare can absorb repeat probes. Covered by `TestNotFound` in
+`tests/test_routing.py`.
+
+When adding a route, add it as an `elif` **before** the final `else` — a new
+branch placed after it is unreachable and will silently 404.
+
 ## Timestamps
 
 - **S3 filenames** use UTC timestamps — this is correct, do not change

@@ -151,61 +151,115 @@ def format_to_sigfigs(value, sigfigs=3):
     return int(rounded) if rounded == int(rounded) else rounded
 
 
+_SSM_CLIENTS = {}
+
+
+def ssm_client(region=None):
+    """Cached SSM client, one per region — the sibling of s3_client().
+
+    Same lesson, different service: boto3.client() costs ~0.14s (fresh
+    Session, re-parse of the service model), and this module used to build
+    one per parameter. Four parameters at import time meant four clients on
+    every cold start, before a single byte of the page was rendered.
+    """
+    region = region or GARDENCAM_REGION
+    client = _SSM_CLIENTS.get(region)
+    if client is None:
+        client = boto3.client('ssm', region_name=region)
+        _SSM_CLIENTS[region] = client
+    return client
+
+
+def _coerce_parameter_value(value):
+    """Unwrap a parameter that stores JSON around the secret we actually want."""
+    try:
+        data = json.loads(value)
+    except json.JSONDecodeError:
+        return value  # plain string
+    if isinstance(data, dict):
+        return data.get('password') or data.get('api_key') or None
+    return value
+
+
+def get_parameters(parameter_names):
+    """Fetch several parameters in ONE API call. Returns {name: value}.
+
+    SSM's GetParameters takes up to 10 names per call, so the cold-start set
+    is one round trip rather than one per secret. Names that don't exist (or
+    that the role can't read) are simply absent from the result — callers
+    already treat a missing secret as "feature unavailable", so this keeps
+    the same failure shape as the old per-parameter version.
+    """
+    if not BOTO3_AVAILABLE:
+        print(f"WARNING: boto3 not available. Cannot retrieve parameters: {parameter_names}")
+        return {}
+
+    names = list(parameter_names)
+    out = {}
+    try:
+        client = ssm_client()
+        for batch_start in range(0, len(names), 10):  # GetParameters caps at 10
+            batch = names[batch_start:batch_start + 10]
+            response = client.get_parameters(Names=batch, WithDecryption=True)
+            for param in response.get('Parameters', []):
+                out[param['Name']] = _coerce_parameter_value(param['Value'])
+            for missing in response.get('InvalidParameters', []):
+                print(f"WARNING: parameter not found or not readable: {missing}")
+    except Exception as e:
+        print(f"ERROR: Failed to retrieve parameters {names}: {str(e)}")
+    return out
+
+
 def get_parameter(parameter_name):
-    """Retrieve a parameter from AWS Systems Manager Parameter Store (FREE!)."""
+    """Retrieve a single parameter. Prefer get_parameters() for several at once."""
     if not BOTO3_AVAILABLE:
         print(f"WARNING: boto3 not available. Cannot retrieve parameter: {parameter_name}")
         return None
-
     try:
-        client = boto3.client('ssm', region_name=GARDENCAM_REGION)
-        response = client.get_parameter(
-            Name=parameter_name,
-            WithDecryption=True  # Decrypt SecureString parameters
-        )
-
-        value = response['Parameter']['Value']
-
-        # Try to parse as JSON (for structured secrets)
-        try:
-            data = json.loads(value)
-            # If it's a dict with 'password' or 'api_key', extract that
-            if isinstance(data, dict):
-                return data.get('password') or data.get('api_key') or None
-            return value
-        except json.JSONDecodeError:
-            # Plain string value
-            return value
-
+        response = ssm_client().get_parameter(Name=parameter_name, WithDecryption=True)
+        return _coerce_parameter_value(response['Parameter']['Value'])
     except Exception as e:
         print(f"ERROR: Failed to retrieve parameter {parameter_name}: {str(e)}")
         return None
 
 
-# Initialize parameters from Parameter Store on cold start (FREE!)
-GARDENCAM_PASSWORD = get_parameter(GARDENCAM_PARAMETER_NAME)
-if not GARDENCAM_PASSWORD:
-    print(f"WARNING: Could not retrieve password from Parameter Store ({GARDENCAM_PARAMETER_NAME}). Gardencam will be inaccessible.")
-
+# Parameter names. Constants first, so the fetch below can take them all at once.
 SRFCPLUS_COOKIE_PARAM = '/srfcplus/session_cookie'
 
 # glacier-app: private archive contents page. Everything is private by
 # default (glacier-app DESIGN.md) — Basic Auth in front of the whole route.
 GLACIER_PARAMETER_NAME = "/glacier-app/page-password"
-GLACIER_PASSWORD = get_parameter(GLACIER_PARAMETER_NAME)
 GLACIER_BUCKET = "glacier-app-archive"
 GLACIER_REGION = "eu-west-2"
 GLACIER_PREFIX = "users/peter/"
-if not GLACIER_PASSWORD:
-    print(f"WARNING: Could not retrieve {GLACIER_PARAMETER_NAME}. /glacier will be inaccessible.")
 
 # calendaralarm webapp — Basic Auth in front of the whole /calendaralarm route.
 CALENDARALARM_PARAMETER_NAME = "/calendaralarm/page-password"
-CALENDARALARM_PASSWORD = get_parameter(CALENDARALARM_PARAMETER_NAME)
+
+# Initialize parameters from Parameter Store on cold start (FREE!).
+# ONE GetParameters call for all four — this used to be four get_parameter()
+# calls, each building its own boto3 client (~0.14s apiece) and making its
+# own round trip, on every cold start of every route including /robots.txt.
+_COLD_START_PARAMS = get_parameters([
+    GARDENCAM_PARAMETER_NAME,
+    GLACIER_PARAMETER_NAME,
+    CALENDARALARM_PARAMETER_NAME,
+    TFL_PARAMETER_NAME,
+])
+
+GARDENCAM_PASSWORD = _COLD_START_PARAMS.get(GARDENCAM_PARAMETER_NAME)
+if not GARDENCAM_PASSWORD:
+    print(f"WARNING: Could not retrieve password from Parameter Store ({GARDENCAM_PARAMETER_NAME}). Gardencam will be inaccessible.")
+
+GLACIER_PASSWORD = _COLD_START_PARAMS.get(GLACIER_PARAMETER_NAME)
+if not GLACIER_PASSWORD:
+    print(f"WARNING: Could not retrieve {GLACIER_PARAMETER_NAME}. /glacier will be inaccessible.")
+
+CALENDARALARM_PASSWORD = _COLD_START_PARAMS.get(CALENDARALARM_PARAMETER_NAME)
 if not CALENDARALARM_PASSWORD:
     print(f"WARNING: Could not retrieve {CALENDARALARM_PARAMETER_NAME}. /calendaralarm will be inaccessible.")
 
-TFL_API_KEY = get_parameter(TFL_PARAMETER_NAME)
+TFL_API_KEY = _COLD_START_PARAMS.get(TFL_PARAMETER_NAME)
 if TFL_API_KEY:
     print("TfL API key loaded from Parameter Store (FREE!)")
 else:
@@ -2198,8 +2252,7 @@ def save_srfcplus_cookie(value):
     if not BOTO3_AVAILABLE:
         return False
     try:
-        import boto3
-        ssm = boto3.client('ssm', region_name=GARDENCAM_REGION)
+        ssm = ssm_client()
         ssm.put_parameter(Name=SRFCPLUS_COOKIE_PARAM, Value=value, Type='SecureString', Overwrite=True)
         return True
     except Exception as e:
@@ -2534,22 +2587,39 @@ def get_ai_usage():
 
 
 def get_ai_configs():
-    """Read all /ai-config/ parameters from SSM."""
-    ssm = boto3.client("ssm", region_name="eu-west-1")
-    configs = {}
-    for app in AI_APPS:
-        try:
-            resp = ssm.get_parameter(Name=f"/ai-config/{app['key']}")
-            configs[app["key"]] = json.loads(resp["Parameter"]["Value"])
-        except Exception as e:
-            print(f"SSM get_ai_config failed for {app['key']}: {e}")
-            configs[app["key"]] = {"provider": "gemini", "model": "gemini-2.5-pro"}
+    """Read all /ai-config/ parameters from SSM in one call.
+
+    Values here are whole JSON documents ({"provider": ..., "model": ...}),
+    not secrets wrapped in JSON, so this reads them raw rather than going
+    through get_parameters()/_coerce_parameter_value, which would unwrap
+    them looking for a password and hand back None.
+    """
+    default = {"provider": "gemini", "model": "gemini-2.5-pro"}
+    configs = {app["key"]: dict(default) for app in AI_APPS}
+    names = {f"/ai-config/{app['key']}": app["key"] for app in AI_APPS}
+    if not names:
+        return configs
+
+    try:
+        ssm = ssm_client()
+        keys = list(names)
+        for start in range(0, len(keys), 10):  # GetParameters caps at 10
+            resp = ssm.get_parameters(Names=keys[start:start + 10])
+            for param in resp.get("Parameters", []):
+                try:
+                    configs[names[param["Name"]]] = json.loads(param["Value"])
+                except json.JSONDecodeError as e:
+                    print(f"SSM get_ai_config bad JSON for {param['Name']}: {e}")
+            for missing in resp.get("InvalidParameters", []):
+                print(f"SSM get_ai_config missing {missing} — using default")
+    except Exception as e:
+        print(f"SSM get_ai_configs failed: {e} — using defaults")
     return configs
 
 
 def set_ai_config(app_key, provider, model):
     """Write an /ai-config/ parameter to SSM."""
-    ssm = boto3.client("ssm", region_name="eu-west-1")
+    ssm = ssm_client()
     ssm.put_parameter(
         Name=f"/ai-config/{app_key}",
         Value=json.dumps({"provider": provider, "model": model}),
@@ -2560,7 +2630,7 @@ def set_ai_config(app_key, provider, model):
 
 def get_failover_chain():
     """Read the global failover chain from SSM. Returns a list of {provider, model} dicts."""
-    ssm = boto3.client("ssm", region_name="eu-west-1")
+    ssm = ssm_client()
     try:
         resp = ssm.get_parameter(Name="/ai-config/failover-chain")
         return json.loads(resp["Parameter"]["Value"]).get("chain", [])
@@ -2573,7 +2643,7 @@ def get_failover_chain():
 
 def set_failover_chain(chain):
     """Write the global failover chain. chain is a list of {provider, model} dicts."""
-    ssm = boto3.client("ssm", region_name="eu-west-1")
+    ssm = ssm_client()
     ssm.put_parameter(
         Name="/ai-config/failover-chain",
         Value=json.dumps({"chain": chain}),
@@ -2627,6 +2697,45 @@ def render_ai_config_page(configs, usage=None, message=None, chain=None, health=
               ai_apps=AI_APPS, ai_providers=AI_PROVIDERS,
               chain=chain or [], health=health or {})
 
+def render_404_page(path):
+    """The page for a path no branch claimed.
+
+    Until now the dispatch chain's `else` rendered the contents page with a
+    200, so every typo, probe and missing asset looked like a real page:
+    a billed invocation, nothing cacheable, and duplicate URLs for indexers.
+    A genuine 404 with a short Cache-Control lets Cloudflare absorb the
+    repeat traffic and lets crawlers drop the URL.
+    """
+    safe = (path or '/').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    if len(safe) > 120:
+        safe = safe[:120] + '&hellip;'
+    return f"""<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>404 &mdash; Not Found</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <style>
+      body {{ background:#000; color:#E0E0E0; margin:0;
+             font-family:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif; }}
+      .card {{ max-width:32rem; margin:4rem auto; padding:2rem;
+              background:#161616; border-radius:12px; }}
+      h1 {{ font-size:3rem; margin:0 0 .5rem; color:#FF3B30; }}
+      p {{ color:#8E8E93; line-height:1.5; }}
+      code {{ color:#E0E0E0; word-break:break-all; }}
+      a {{ color:#007AFF; text-decoration:none; }}
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>404</h1>
+      <p>No page at <code>{safe}</code>.</p>
+      <p><a href="/contents">Contents</a></p>
+    </div>
+  </body>
+</html>"""
+
+
 def lambda_handler(event, context):
     import time
     start_time = time.time()
@@ -2636,6 +2745,7 @@ def lambda_handler(event, context):
 
     html = ""
     fav = FAVICON_TAGS
+    status_code = 200
 
     # Handle both REST API and HTTP API (v2) event formats
     if 'rawPath' in event:
@@ -5447,8 +5557,12 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'application/json'}
         }
 
-    else:
+    elif path in ('', '/', f'/{stage}', f'/{stage}/'):
         html += render_contents_page()
+
+    else:
+        status_code = 404
+        html = render_404_page(path)
 
     # If html already has complete structure (DOCTYPE), inject favicon into existing <head>
     if html.strip().startswith('<!DOCTYPE') or html.strip().startswith('<html'):
@@ -5466,12 +5580,14 @@ def lambda_handler(event, context):
     user_agent = headers.get('User-Agent', headers.get('user-agent', 'Unknown'))
     log_execution_metrics(context, duration_ms, path, ip, user_agent)
 
+    resp_headers = {'Content-Type': 'text/html; charset=utf-8'}
+    if status_code == 404:
+        resp_headers['Cache-Control'] = 'public, max-age=300'
+
     return {
-        'statusCode': 200,
+        'statusCode': status_code,
         'body': content,
-        'headers': {
-            'Content-Type': 'text/html; charset=utf-8',
-        }
+        'headers': resp_headers,
     }
 
 if __name__ == "__main__":
