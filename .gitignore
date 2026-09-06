@@ -10,3 +10,7 @@ favicon.png64
 lambda/gitinfo.html
 lambda/build_info.py
 .venv/
+
+# Large intermediates from the access-history analysis (regenerable via
+# tools/analyse_visitors.py; raw kept in s3://backup-peter/mywebsite-cloudwatch-logs/)
+analysis/access-history/**/requests.csv

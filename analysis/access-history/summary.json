@@ -1,0 +1,502 @@
+{
+  "requests": 1466625,
+  "span": [
+    "2026-02-25T22:42:26.510957",
+    "2026-09-06T12:14:04.392414"
+  ],
+  "days": 62,
+  "machine_path_requests": 31274,
+  "bot_ua_requests": 1326777,
+  "probe_requests": 7173,
+  "distinct_ips": 3829,
+  "visits": 9296,
+  "human_visits": 101,
+  "human_ips": 17,
+  "human_visits_per_week": 11.4,
+  "owner_visits": 81,
+  "stranger_visits": 20,
+  "stranger_ips": 16,
+  "stranger_visits_per_week": 2.3,
+  "top_stranger_entry": [
+    [
+      "/contents",
+      12
+    ],
+    [
+      "/",
+      5
+    ],
+    [
+      "/skycam/clouds",
+      1
+    ],
+    [
+      "/us-vs-the-machines",
+      1
+    ],
+    [
+      "/astro/astrocam/night/2026-08-28",
+      1
+    ]
+  ],
+  "top_paths": [
+    [
+      "/",
+      1305634
+    ],
+    [
+      "/pi-fleet",
+      99964
+    ],
+    [
+      "/calendaralarm/api/rules",
+      31254
+    ],
+    [
+      "/springcam/fullres",
+      5612
+    ],
+    [
+      "/skycam/fullres",
+      4361
+    ],
+    [
+      "/skycam/play",
+      2647
+    ],
+    [
+      "/skycam/videos",
+      963
+    ],
+    [
+      "/springcam/gallery",
+      885
+    ],
+    [
+      "/skycam/gallery",
+      705
+    ],
+    [
+      "/stereo",
+      660
+    ],
+    [
+      "/robots.txt",
+      366
+    ],
+    [
+      "/favicon.ico",
+      318
+    ],
+    [
+      "/contents",
+      217
+    ],
+    [
+      "/astro/astrocam",
+      122
+    ],
+    [
+      "/astro",
+      114
+    ],
+    [
+      "/springcam",
+      106
+    ],
+    [
+      "/gotg",
+      96
+    ],
+    [
+      "/astro/eclipticam",
+      75
+    ],
+    [
+      "/-stage-/event",
+      68
+    ],
+    [
+      "/-stage-/contents",
+      68
+    ],
+    [
+      "/-stage-/cv",
+      68
+    ],
+    [
+      "/-stage-/anything-else",
+      68
+    ],
+    [
+      "/springcam/videos",
+      67
+    ],
+    [
+      "/skycam/starcam/night",
+      67
+    ],
+    [
+      "/.well-known/assetlinks.json",
+      63
+    ]
+  ],
+  "top_human_entry": [
+    [
+      "/contents",
+      49
+    ],
+    [
+      "/",
+      20
+    ],
+    [
+      "/pi-fleet",
+      7
+    ],
+    [
+      "/astro/astrocam",
+      5
+    ],
+    [
+      "/astro/canon",
+      4
+    ],
+    [
+      "/lambda-stats/data",
+      3
+    ],
+    [
+      "/astro/eclipticam",
+      2
+    ],
+    [
+      "/us-vs-the-machines",
+      2
+    ],
+    [
+      "/astro/canon/night/2026-08-10",
+      1
+    ],
+    [
+      "/skycam/clouds",
+      1
+    ],
+    [
+      "/astro/astrocam/night/2026-08-12",
+      1
+    ],
+    [
+      "/astro/astrocam/night/2026-08-22",
+      1
+    ],
+    [
+      "/astro/eclipticam/month/2026-07",
+      1
+    ],
+    [
+      "/astro/colour-max-test",
+      1
+    ],
+    [
+      "/astro/eclipticam/week/2026-08-06",
+      1
+    ],
+    [
+      "/astro/astrocam/night/2026-08-28",
+      1
+    ],
+    [
+      "/astro",
+      1
+    ]
+  ],
+  "top_human_ua": [
+    [
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Sa",
+      23
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Sa",
+      15
+    ],
+    [
+      "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151",
+      15
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0",
+      14
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0",
+      10
+    ],
+    [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/14",
+      5
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Sa",
+      5
+    ],
+    [
+      "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150",
+      4
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64; Quest 2) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrow",
+      3
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0",
+      1
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Sa",
+      1
+    ],
+    [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/15",
+      1
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0",
+      1
+    ],
+    [
+      "Mozilla/5.0 (Linux; arm_64; Android 15; FP4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome",
+      1
+    ],
+    [
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Sa",
+      1
+    ]
+  ],
+  "top_referers": [
+    [
+      "https://www.petergrecian.co.uk/contents",
+      46
+    ],
+    [
+      "https://www.petergrecian.co.uk/",
+      24
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro",
+      9
+    ],
+    [
+      "https://www.petergrecian.co.uk/pi-fleet",
+      5
+    ],
+    [
+      "https://www.petergrecian.co.uk/lambda-stats",
+      3
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/astrocam",
+      2
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/eclipticam/nights",
+      2
+    ],
+    [
+      "https://w3.petergrecian.co.uk/contents",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/site-test",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/canon",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/eclipticam/night/2026-08-14",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/canon/night/2026-08-14",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/skycam/clouds",
+      1
+    ],
+    [
+      "https://www.petergrecian.co.uk/astro/astrocam/night/2026-08-12",
+      1
+    ],
+    [
+      "http://100.115.92.26:7699/",
+      1
+    ]
+  ],
+  "top_probe_paths": [
+    [
+      "/-stage-/event",
+      68
+    ],
+    [
+      "/-stage-/contents",
+      68
+    ],
+    [
+      "/-stage-/cv",
+      68
+    ],
+    [
+      "/-stage-/anything-else",
+      68
+    ],
+    [
+      "/.well-known/assetlinks.json",
+      63
+    ],
+    [
+      "/wp-content/plugins/hellopress/wp_filemanager.php",
+      40
+    ],
+    [
+      "/this_is_a_new_hello_world.php",
+      37
+    ],
+    [
+      "/admin.php",
+      36
+    ],
+    [
+      "/images.php",
+      31
+    ],
+    [
+      "/ops.php",
+      31
+    ],
+    [
+      "/1.php",
+      31
+    ],
+    [
+      "/3PJcpMFsD8B.php",
+      31
+    ],
+    [
+      "/BDKR28WP.php",
+      31
+    ],
+    [
+      "/4PJcpMFsD8B.php",
+      31
+    ],
+    [
+      "//av.php",
+      30
+    ],
+    [
+      "/media.php",
+      30
+    ],
+    [
+      "/mac.php",
+      30
+    ],
+    [
+      "/classwithtostring.php",
+      30
+    ],
+    [
+      "/222.php",
+      28
+    ],
+    [
+      "/coffexium.php",
+      28
+    ],
+    [
+      "/biufile.php",
+      23
+    ],
+    [
+      "/k.php",
+      23
+    ],
+    [
+      "/dex.php",
+      22
+    ],
+    [
+      "/sf.php",
+      22
+    ],
+    [
+      "/wp-login.php",
+      21
+    ]
+  ],
+  "top_bot_ua": [
+    [
+      "Amazon-Route53-Health-Check-Service (ref 0239d22f-11e9-45ae-9e61-556625182f77; report http",
+      1305219
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like ",
+      11762
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 7.0;) AppleWebKit/537.36 (HTML, like Gecko) Mobile Safari/537.",
+      2978
+    ],
+    [
+      "curl/8.7.1",
+      2614
+    ],
+    [
+      "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bi",
+      1729
+    ],
+    [
+      "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.4; +https://openai",
+      468
+    ],
+    [
+      "curl/8.14.1",
+      366
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 5.0) AppleWebKit/537.36 (KHTML, like Gecko) Mobile Safari/537.",
+      320
+    ],
+    [
+      "Mozilla/5.0 (compatible; MJ12bot/v1.4.8; http://mj12bot.com/)",
+      248
+    ],
+    [
+      "Mozilla/5.0 (compatible; DotBot/1.2; +https://opensiteexplorer.org/dotbot; help@moz.com)",
+      234
+    ],
+    [
+      "Mozilla/5.0 (compatible; jscrawler/0.1; +https://github.com/)",
+      223
+    ],
+    [
+      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      116
+    ],
+    [
+      "GoogleAssociationService",
+      63
+    ],
+    [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0",
+      61
+    ],
+    [
+      "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; PerplexityBot/1.0; +https:",
+      48
+    ]
+  ]
+}
