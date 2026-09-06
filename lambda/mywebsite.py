@@ -2614,7 +2614,76 @@ def render_404_page(path):
 </html>"""
 
 
+def _access_log(event, context, response, duration_ms, error=None):
+    """Emit exactly one structured JSON line per request.
+
+    One line, one request, every field joinable without a second record —
+    the old free-text prints put path and source IP in separate CloudWatch
+    records, joinable only on @requestId. Those prints are kept because
+    tools/backfill_*.py still parse them; this is the format to query.
+    """
+    try:
+        headers = event.get('headers', {}) or {}
+
+        def h(*names, default=''):
+            for n in names:
+                v = headers.get(n)
+                if v is not None:
+                    return v
+            return default
+
+        rc = event.get('requestContext', {}) or {}
+        method = (rc.get('http', {}) or {}).get('method') or rc.get('httpMethod') or event.get('httpMethod', '')
+        path = event.get('rawPath') or event.get('path', '')
+        qs = event.get('rawQueryString') or urllib.parse.urlencode(event.get('queryStringParameters') or {})
+
+        # X-Forwarded-For is a chain; the client is the first entry.
+        ip = h('X-Forwarded-For', 'x-forwarded-for').split(',')[0].strip()
+
+        body = (response or {}).get('body') or ''
+        record = {
+            'evt': 'access',
+            'ts': datetime.now(timezone.utc).isoformat(),
+            'req': getattr(context, 'aws_request_id', ''),
+            'method': method,
+            'path': path,
+            'qs': qs,
+            'status': (response or {}).get('statusCode', 500),
+            'ms': round(duration_ms, 1),
+            'bytes': len(body),
+            'ip': ip,
+            'ua': h('User-Agent', 'user-agent')[:400],
+            'ref': h('Referer', 'referer')[:400],
+            'host': h('Host', 'host'),
+            'stage': rc.get('stage', ''),
+            'country': h('CF-IPCountry', 'cf-ipcountry'),
+            'ray': h('CF-Ray', 'cf-ray'),
+        }
+        if error is not None:
+            record['error'] = f'{type(error).__name__}: {error}'[:400]
+        print(json.dumps(record, separators=(',', ':'), default=str))
+    except Exception as e:                      # logging must never break a page
+        print(f'access log failed: {e}')
+
+
 def lambda_handler(event, context):
+    """Thin wrapper: time the dispatch, then emit the access log line.
+
+    The dispatcher returns from ~64 places, so the single exit point that a
+    per-request log needs has to live out here rather than at its end.
+    """
+    import time
+    wrapper_start = time.time()
+    try:
+        response = _dispatch(event, context)
+    except Exception as e:
+        _access_log(event, context, None, (time.time() - wrapper_start) * 1000, error=e)
+        raise
+    _access_log(event, context, response, (time.time() - wrapper_start) * 1000)
+    return response
+
+
+def _dispatch(event, context):
     import time
     start_time = time.time()
 
