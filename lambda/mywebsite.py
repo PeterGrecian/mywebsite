@@ -655,52 +655,6 @@ def get_image_dimensions(s3_client, key):
         return None
 
 
-def get_latest_skycam_images(count=3):
-    """Get presigned URLs for the latest N skycam hourly stills.
-
-    Skycam-only — points at the sky, no privacy concern. Keys are of the form
-    skycam/YYYY/MM/DD/sky_YYYYMMDD_HHMMSS.jpg. Returns newest first.
-    """
-    if not BOTO3_AVAILABLE:
-        return []
-    s3 = s3_client()
-    objs = []
-    for back in range(7):
-        d = (datetime.utcnow() - timedelta(days=back))
-        prefix = f"skycam/{d.strftime('%Y/%m/%d')}/"
-        try:
-            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
-        except Exception:
-            continue
-        for o in resp.get("Contents", []):
-            k = o["Key"]
-            name = k.rsplit("/", 1)[-1]
-            if name.startswith("sky_") and name.endswith(".jpg") and "_stacked" not in name:
-                objs.append(o)
-        if len(objs) >= count:
-            break
-    objs.sort(key=lambda x: x["Key"], reverse=True)
-    images = []
-    for o in objs[:count]:
-        k = o["Key"]
-        name = k.rsplit("/", 1)[-1]
-        ts_part = name[len("sky_"):-len(".jpg")]
-        try:
-            ts = datetime.strptime(ts_part, "%Y%m%d_%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            ts = o["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
-        url = get_presigned_url(k)
-        images.append({
-            'url': url,
-            'full_url': url,
-            'timestamp': ts,
-            'key': k,
-            'resolution': '',
-            'stats_display': '',
-        })
-    return images
-
-
 def get_latest_gardencam_images(count=3):
     """Get presigned URLs for the latest N images from S3.
 
@@ -871,47 +825,6 @@ def skycam_thumb_key(key):
     return f"{folder}/thumb_800px_{basename}"
 
 
-def get_latest_skycam_images(count=3):
-    """Get presigned URLs for the latest N skycam images from S3."""
-    if not BOTO3_AVAILABLE:
-        return []
-
-    import time
-    t0 = time.time()
-    all_objects = find_latest_objects('skycam', count * 2)
-
-    if not all_objects:
-        return []
-
-    objects = sorted(
-        [o for o in all_objects if o["Key"].endswith('.jpg')],
-        key=lambda x: x["LastModified"], reverse=True
-    )
-
-    images = []
-    for obj in objects[:count * 4]:
-        key = obj["Key"]
-        thumb_key = skycam_thumb_key(key)
-        # Use thumbnail if it exists, otherwise fall back to full image
-        try:
-            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=thumb_key)
-            thumb_url = get_presigned_url(thumb_key)
-        except Exception:
-            thumb_url = get_presigned_url(key)
-        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
-        images.append({
-            'url': thumb_url,
-            'full_url': get_presigned_url(key),
-            'timestamp': timestamp,
-            'key': key,
-        })
-        if len(images) >= count:
-            break
-
-    print(f"[TIMING] get_latest_skycam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
-    return images
-
-
 _skycam_images_cache = None
 _skycam_images_cache_time = 0
 _SKYCAM_CACHE_TTL = 600  # 10 minutes
@@ -997,41 +910,6 @@ def starcam_thumb_key(key):
     """
     folder, _, basename = key.rpartition('/')
     return f"{folder}/thumb_800px_{basename}"
-
-
-def get_latest_starcam_images(count=3):
-    """Get presigned URLs for the latest N starcam images from S3."""
-    if not BOTO3_AVAILABLE:
-        return []
-
-    import time
-    t0 = time.time()
-    all_objects = find_latest_objects('starcam', count * 2)
-
-    if not all_objects:
-        return []
-
-    objects = sorted(
-        [o for o in all_objects if o["Key"].endswith('.jpg')],
-        key=lambda x: x["Key"], reverse=True
-    )
-
-    images = []
-    for obj in objects[:count * 4]:
-        key = obj["Key"]
-        thumb_key = starcam_thumb_key(key)
-        timestamp = parse_timestamp_from_key(key) or obj["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
-        images.append({
-            'url': get_presigned_url(thumb_key, bucket=STARCAM_BUCKET),
-            'full_url': get_presigned_url(key, bucket=STARCAM_BUCKET),
-            'timestamp': timestamp,
-            'key': key,
-        })
-        if len(images) >= count:
-            break
-
-    print(f"[TIMING] get_latest_starcam_images: {(time.time()-t0)*1000:.0f}ms, {len(images)} images")
-    return images
 
 
 def get_all_starcam_images(max_keys=None):
@@ -4942,20 +4820,6 @@ def lambda_handler(event, context):
                                           latest_path='../starcam', gallery_path='gallery')
         else:
             html += '<p>No image specified.</p>'
-
-    elif path == f'/{stage}/skycam' or path == '/skycam':
-        images = get_latest_skycam_images(3)
-        if images:
-            from routes.camera import render_camera_latest
-            html += render_camera_latest('Sky Camera', images, theme_css_js=THEME_CSS_JS,
-                                         gallery_path='skycam/gallery', fullres_path='skycam/fullres',
-                                         videos_path='skycam/videos', starcam_path='skycam/starcam')
-        else:
-            return {
-                'statusCode': 502,
-                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Sky Camera</h1><p>No images yet.</p></body></html>',
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
 
     elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}

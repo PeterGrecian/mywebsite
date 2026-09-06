@@ -9,3 +9,4 @@ __pycache__/
 favicon.png64
 lambda/gitinfo.html
 lambda/build_info.py
+.venv/
