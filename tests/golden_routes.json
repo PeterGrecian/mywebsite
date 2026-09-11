@@ -21,8 +21,104 @@
   "sha": "2725932d569ee7c2",
   "status": 200
  },
+ "/-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1427,
+  "sha": "646767b940173bea",
+  "status": 404
+ },
+ "//": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1421,
+  "sha": "2bc61157997c6a4d",
+  "status": 404
+ },
+ "//child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1426,
+  "sha": "12201010501807ea",
+  "status": 404
+ },
+ "//child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "8977ba18ecc9c868",
+  "status": 404
+ },
  "/ai-config": {
   "exception": "TypeError"
+ },
+ "/ai-config-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "440791582405c265",
+  "status": 404
+ },
+ "/ai-config/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "fef17fda2c878168",
+  "status": 404
+ },
+ "/ai-config/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "af02ffc3c495e429",
+  "status": 404
+ },
+ "/ai-config/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "85157fe270bfe312",
+  "status": 404
  },
  "/astro": {
   "b64": false,
@@ -35,6 +131,30 @@
   "sha": "11b14d386b667fa5",
   "status": 200
  },
+ "/astro-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "a84f75456a867368",
+  "status": 404
+ },
+ "/astro/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1426,
+  "sha": "a0c5fdf50a634e69",
+  "status": 404
+ },
  "/astro/(?:photos": {
   "b64": false,
   "cache": "public, max-age=300",
@@ -45,6 +165,66 @@
   ],
   "len": 1435,
   "sha": "81a39109f1a3cca9",
+  "status": 404
+ },
+ "/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1466,
+  "sha": "c06fe95a4958b362",
+  "status": 404
+ },
+ "/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1473,
+  "sha": "90c9cb142366be82",
+  "status": 404
+ },
+ "/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1467,
+  "sha": "cdeb628865a5743c",
+  "status": 404
+ },
+ "/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1472,
+  "sha": "5a897c8b8381a1ee",
+  "status": 404
+ },
+ "/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1483,
+  "sha": "318bbb5c3c0e5cc9",
   "status": 404
  },
  "/astro/(astrocam": {
@@ -59,6 +239,266 @@
   "sha": "22eceee0563898c1",
   "status": 404
  },
+ "/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1502,
+  "sha": "9f22f559f572203c",
+  "status": 404
+ },
+ "/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1509,
+  "sha": "19298af9a2de3b11",
+  "status": 404
+ },
+ "/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1503,
+  "sha": "b47b3247598bb33f",
+  "status": 404
+ },
+ "/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1508,
+  "sha": "bce415e1e8a2825d",
+  "status": 404
+ },
+ "/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1519,
+  "sha": "2629c76f3a3fbf5d",
+  "status": 404
+ },
+ "/astro/(astrocam|eclipticam|canon)": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "0d5d44aa32542abc",
+  "status": 404
+ },
+ "/astro/(astrocam|eclipticam|canon)-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1460,
+  "sha": "0935d6d8f7beec6f",
+  "status": 404
+ },
+ "/astro/(astrocam|eclipticam|canon)/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "ff5cf6b398e61f78",
+  "status": 404
+ },
+ "/astro/(astrocam|eclipticam|canon)/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "8b1833cae8283dc0",
+  "status": 404
+ },
+ "/astro/(astrocam|eclipticam|canon)/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1470,
+  "sha": "4042419ca335ce13",
+  "status": 404
+ },
+ "/astro/astrocam": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4485,
+  "sha": "97ec7191edd13cd4",
+  "status": 200
+ },
+ "/astro/astrocam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "32a0c8ad4a70679b",
+  "status": 404
+ },
+ "/astro/astrocam/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4485,
+  "sha": "97ec7191edd13cd4",
+  "status": 200
+ },
+ "/astro/astrocam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "c907af57633c68db",
+  "status": 404
+ },
+ "/astro/astrocam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "bf82c932817a92b1",
+  "status": 404
+ },
+ "/astro/canon": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4481,
+  "sha": "3ec796a44b6f14b3",
+  "status": 200
+ },
+ "/astro/canon-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "61afa52a52ce053a",
+  "status": 404
+ },
+ "/astro/canon/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4481,
+  "sha": "3ec796a44b6f14b3",
+  "status": 200
+ },
+ "/astro/canon/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "5bf436b83e3442df",
+  "status": 404
+ },
+ "/astro/canon/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "27507f0773152171",
+  "status": 404
+ },
+ "/astro/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "17e944728f0468ed",
+  "status": 404
+ },
+ "/astro/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "f3ce345f5bbdf811",
+  "status": 404
+ },
  "/astro/color-max-test": {
   "b64": false,
   "cache": "",
@@ -69,6 +509,54 @@
   "len": 10126,
   "sha": "f0c793f62c054a62",
   "status": 200
+ },
+ "/astro/color-max-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "e08dc85964b579bf",
+  "status": 404
+ },
+ "/astro/color-max-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "fc41e481d2e3d842",
+  "status": 404
+ },
+ "/astro/color-max-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "d8b4ea8e556d6036",
+  "status": 404
+ },
+ "/astro/color-max-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "354203790a661d87",
+  "status": 404
  },
  "/astro/colour-max-test": {
   "b64": false,
@@ -81,7 +569,78 @@
   "sha": "f0c793f62c054a62",
   "status": 200
  },
+ "/astro/colour-max-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "6a838ef52a7a05b9",
+  "status": 404
+ },
+ "/astro/colour-max-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "d90612e380cb5b56",
+  "status": 404
+ },
+ "/astro/colour-max-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "86432272ea259f72",
+  "status": 404
+ },
+ "/astro/colour-max-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "67fad012d605913c",
+  "status": 404
+ },
  "/astro/disks": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5394,
+  "sha": "6f5dd7e49b7914de",
+  "status": 200
+ },
+ "/astro/disks-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "237b3e1a56edf040",
+  "status": 404
+ },
+ "/astro/disks/": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -104,6 +663,136 @@
   "sha": "e67db08349c8624c",
   "status": 404
  },
+ "/astro/disks/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "500f17d305e5c5da",
+  "status": 404
+ },
+ "/astro/disks/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "d5287b7104674e08",
+  "status": 404
+ },
+ "/astro/disks/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "330a3f0de79849ac",
+  "status": 404
+ },
+ "/astro/disks/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "e95e3b81d4acf660",
+  "status": 404
+ },
+ "/astro/disks/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "1a1149de66ec9f84",
+  "status": 404
+ },
+ "/astro/disks/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "e8dc3f34bbb45279",
+  "status": 404
+ },
+ "/astro/eclipticam": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4491,
+  "sha": "a33c4ea252ec3e76",
+  "status": 200
+ },
+ "/astro/eclipticam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "ba2fd3f8c78722f4",
+  "status": 404
+ },
+ "/astro/eclipticam/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4491,
+  "sha": "a33c4ea252ec3e76",
+  "status": 200
+ },
+ "/astro/eclipticam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "0148423e9091333b",
+  "status": 404
+ },
+ "/astro/eclipticam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "11939cda1e511e6b",
+  "status": 404
+ },
  "/astro/photos": {
   "b64": false,
   "cache": "",
@@ -114,6 +803,52 @@
   "len": 11295,
   "sha": "bd8b221cf1dd68e0",
   "status": 200
+ },
+ "/astro/photos-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "87a5032c230ea0ac",
+  "status": 404
+ },
+ "/astro/photos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11295,
+  "sha": "bd8b221cf1dd68e0",
+  "status": 200
+ },
+ "/astro/photos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/astro/photos/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "aebd0e474f90ace7",
+  "status": 404
  },
  "/astro/showcase": {
   "b64": false,
@@ -126,6 +861,52 @@
   "sha": "bd8b221cf1dd68e0",
   "status": 200
  },
+ "/astro/showcase-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "80d72b53887a9f91",
+  "status": 404
+ },
+ "/astro/showcase/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11295,
+  "sha": "bd8b221cf1dd68e0",
+  "status": 200
+ },
+ "/astro/showcase/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/astro/showcase/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "2c8c1bdb14b65986",
+  "status": 404
+ },
  "/astro/starcam": {
   "b64": false,
   "cache": "",
@@ -136,6 +917,54 @@
   "len": 0,
   "sha": "e3b0c44298fc1c14",
   "status": 302
+ },
+ "/astro/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "d56199d304ba2765",
+  "status": 404
+ },
+ "/astro/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "0919129602e04178",
+  "status": 404
+ },
+ "/astro/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "638121a9164dd93a",
+  "status": 404
+ },
+ "/astro/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "f0f502626fab6dfa",
+  "status": 404
  },
  "/astro/storage": {
   "b64": false,
@@ -160,6 +989,77 @@
   "sha": "be65dff297476817",
   "status": 404
  },
+ "/astro/storage(/\\d{4}-\\d{2})?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "6199601ed6b69089",
+  "status": 404
+ },
+ "/astro/storage(/\\d{4}-\\d{2})?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "e2599397c2d6a4e1",
+  "status": 404
+ },
+ "/astro/storage(/\\d{4}-\\d{2})?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "29721c55eb16967d",
+  "status": 404
+ },
+ "/astro/storage(/\\d{4}-\\d{2})?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1468,
+  "sha": "c446c72b5ac00068",
+  "status": 404
+ },
+ "/astro/storage-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "657a557bf62ff7c8",
+  "status": 404
+ },
+ "/astro/storage/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11818,
+  "sha": "5d199d552b8f7df7",
+  "status": 200
+ },
  "/astro/storage/2026-01": {
   "b64": false,
   "cache": "",
@@ -170,6 +1070,30 @@
   "len": 11818,
   "sha": "5d199d552b8f7df7",
   "status": 200
+ },
+ "/astro/storage/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "451838a124a97f91",
+  "status": 404
+ },
+ "/astro/storage/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "b681ec83fa2f4f7b",
+  "status": 404
  },
  "/astro/transients": {
   "b64": false,
@@ -194,7 +1118,149 @@
   "sha": "af343745b99c310f",
   "status": 404
  },
+ "/astro/transients(?:/([a-z0-9-]+))?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1464,
+  "sha": "32193c08b59dbe8f",
+  "status": 404
+ },
+ "/astro/transients(?:/([a-z0-9-]+))?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "7d8f5de861b4b289",
+  "status": 404
+ },
+ "/astro/transients(?:/([a-z0-9-]+))?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1463,
+  "sha": "6a152f2c4a8a4397",
+  "status": 404
+ },
+ "/astro/transients(?:/([a-z0-9-]+))?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1474,
+  "sha": "d9eb1d9a3f439efd",
+  "status": 404
+ },
+ "/astro/transients-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "5b7179499f9043a6",
+  "status": 404
+ },
+ "/astro/transients/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 7279,
+  "sha": "30745465462f79fb",
+  "status": 200
+ },
+ "/astro/transients/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/astro/transients/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "4400b9b92d78db03",
+  "status": 404
+ },
  "/calendaralarm": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/calendaralarm-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/calendaralarm/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/calendaralarm/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/calendaralarm/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -229,6 +1295,54 @@
   "sha": "2725932d569ee7c2",
   "status": 200
  },
+ "/contents-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "53708d22da20bee9",
+  "status": 404
+ },
+ "/contents/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "6b2a04041db58a0a",
+  "status": 404
+ },
+ "/contents/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "60c496af197de9d4",
+  "status": 404
+ },
+ "/contents/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "35f57eb1d75ce901",
+  "status": 404
+ },
  "/cv": {
   "b64": false,
   "cache": "",
@@ -239,6 +1353,54 @@
   "len": 7923,
   "sha": "d833be3ec50ba9dd",
   "status": 200
+ },
+ "/cv-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "2db2fe83812ce7c8",
+  "status": 404
+ },
+ "/cv/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1423,
+  "sha": "ebda1fce88e6dbe7",
+  "status": 404
+ },
+ "/cv/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1428,
+  "sha": "c49f943878212c3b",
+  "status": 404
+ },
+ "/cv/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "55f79bb0e33cf83e",
+  "status": 404
  },
  "/default": {
   "b64": false,
@@ -262,8 +1424,104 @@
   "sha": "2725932d569ee7c2",
   "status": 200
  },
+ "/default/-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "77afb9b492c9f227",
+  "status": 404
+ },
+ "/default//": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "120d5cb60c0eea4d",
+  "status": 404
+ },
+ "/default//child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "0817775e822802ca",
+  "status": 404
+ },
+ "/default//child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "a2189410374899f6",
+  "status": 404
+ },
  "/default/ai-config": {
   "exception": "TypeError"
+ },
+ "/default/ai-config-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "b667a6f199bc0ead",
+  "status": 404
+ },
+ "/default/ai-config/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "8e5b83bceb4f74c4",
+  "status": 404
+ },
+ "/default/ai-config/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "273f56d0bcffe5b7",
+  "status": 404
+ },
+ "/default/ai-config/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "b784c253108a5d4f",
+  "status": 404
  },
  "/default/astro": {
   "b64": false,
@@ -276,6 +1534,30 @@
   "sha": "11b14d386b667fa5",
   "status": 200
  },
+ "/default/astro-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "dd846e2c14e079d0",
+  "status": 404
+ },
+ "/default/astro/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "b6f2bf812fea9a44",
+  "status": 404
+ },
  "/default/astro/(?:photos": {
   "b64": false,
   "cache": "public, max-age=300",
@@ -286,6 +1568,66 @@
   ],
   "len": 1443,
   "sha": "1e484b1c275257dd",
+  "status": 404
+ },
+ "/default/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1474,
+  "sha": "2cfc1e738aa06a01",
+  "status": 404
+ },
+ "/default/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1481,
+  "sha": "719db95c9b3c82b6",
+  "status": 404
+ },
+ "/default/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1475,
+  "sha": "a6394898b86fa29e",
+  "status": 404
+ },
+ "/default/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1480,
+  "sha": "83cd638007a7b4a9",
+  "status": 404
+ },
+ "/default/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1491,
+  "sha": "71c44a512dc48020",
   "status": 404
  },
  "/default/astro/(astrocam": {
@@ -300,6 +1642,266 @@
   "sha": "f003798ded21bcb3",
   "status": 404
  },
+ "/default/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1510,
+  "sha": "7d5f35f4ea48da59",
+  "status": 404
+ },
+ "/default/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1517,
+  "sha": "bd29453ff89276df",
+  "status": 404
+ },
+ "/default/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1511,
+  "sha": "78bf5cc19d85288a",
+  "status": 404
+ },
+ "/default/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1516,
+  "sha": "e249e312a9f89f71",
+  "status": 404
+ },
+ "/default/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\\d{4}-\\d{2}-\\d{2})/player/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1527,
+  "sha": "dd3934e11e71c41a",
+  "status": 404
+ },
+ "/default/astro/(astrocam|eclipticam|canon)": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1461,
+  "sha": "c2e9f7b0040cb888",
+  "status": 404
+ },
+ "/default/astro/(astrocam|eclipticam|canon)-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1468,
+  "sha": "79d83bda79375f3f",
+  "status": 404
+ },
+ "/default/astro/(astrocam|eclipticam|canon)/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1462,
+  "sha": "514402cb03dd3d56",
+  "status": 404
+ },
+ "/default/astro/(astrocam|eclipticam|canon)/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1467,
+  "sha": "9f42e2e93f0ebbd5",
+  "status": 404
+ },
+ "/default/astro/(astrocam|eclipticam|canon)/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1478,
+  "sha": "8b66ca4ff3f65b2c",
+  "status": 404
+ },
+ "/default/astro/astrocam": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4485,
+  "sha": "97ec7191edd13cd4",
+  "status": 200
+ },
+ "/default/astro/astrocam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "1396c10fe4e419e3",
+  "status": 404
+ },
+ "/default/astro/astrocam/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4485,
+  "sha": "97ec7191edd13cd4",
+  "status": 200
+ },
+ "/default/astro/astrocam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "b6703c8e605ed60f",
+  "status": 404
+ },
+ "/default/astro/astrocam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "98111cb5cd2a9969",
+  "status": 404
+ },
+ "/default/astro/canon": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4481,
+  "sha": "3ec796a44b6f14b3",
+  "status": 200
+ },
+ "/default/astro/canon-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "46a63668cdbef5dd",
+  "status": 404
+ },
+ "/default/astro/canon/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4481,
+  "sha": "3ec796a44b6f14b3",
+  "status": 200
+ },
+ "/default/astro/canon/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "7a34caa5fea6a6fa",
+  "status": 404
+ },
+ "/default/astro/canon/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "5fe105dd020635ae",
+  "status": 404
+ },
+ "/default/astro/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "58fbe3d693411e29",
+  "status": 404
+ },
+ "/default/astro/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "8641b96821756e05",
+  "status": 404
+ },
  "/default/astro/color-max-test": {
   "b64": false,
   "cache": "",
@@ -311,6 +1913,54 @@
   "sha": "f0c793f62c054a62",
   "status": 200
  },
+ "/default/astro/color-max-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "2f088672171f7aa5",
+  "status": 404
+ },
+ "/default/astro/color-max-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "5b175ff602faeb47",
+  "status": 404
+ },
+ "/default/astro/color-max-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "e9eb9ad08b6fda7d",
+  "status": 404
+ },
+ "/default/astro/color-max-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1465,
+  "sha": "3c23664dfeeaa21f",
+  "status": 404
+ },
  "/default/astro/colour-max-test": {
   "b64": false,
   "cache": "",
@@ -320,6 +1970,88 @@
   ],
   "len": 10126,
   "sha": "f0c793f62c054a62",
+  "status": 200
+ },
+ "/default/astro/colour-max-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "d6161b9d80383db4",
+  "status": 404
+ },
+ "/default/astro/colour-max-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "72aa1e456cfcaaf1",
+  "status": 404
+ },
+ "/default/astro/colour-max-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "9e73dea4f4642db5",
+  "status": 404
+ },
+ "/default/astro/colour-max-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1466,
+  "sha": "eb2568193493ae2b",
+  "status": 404
+ },
+ "/default/astro/disks": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5394,
+  "sha": "6f5dd7e49b7914de",
+  "status": 200
+ },
+ "/default/astro/disks-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "4c3807cde9c297ff",
+  "status": 404
+ },
+ "/default/astro/disks/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5394,
+  "sha": "6f5dd7e49b7914de",
   "status": 200
  },
  "/default/astro/disks/?$": {
@@ -334,6 +2066,136 @@
   "sha": "fad61b1aa75b43d6",
   "status": 404
  },
+ "/default/astro/disks/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "d3727ac303d249e9",
+  "status": 404
+ },
+ "/default/astro/disks/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "8f64057ce2b08062",
+  "status": 404
+ },
+ "/default/astro/disks/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "75b37e923bd8364c",
+  "status": 404
+ },
+ "/default/astro/disks/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "a67e118e9a972689",
+  "status": 404
+ },
+ "/default/astro/disks/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "151f380acf55b30e",
+  "status": 404
+ },
+ "/default/astro/disks/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "d8a0aa087734ddbf",
+  "status": 404
+ },
+ "/default/astro/eclipticam": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4491,
+  "sha": "a33c4ea252ec3e76",
+  "status": 200
+ },
+ "/default/astro/eclipticam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "4dd9697ea2e52f63",
+  "status": 404
+ },
+ "/default/astro/eclipticam/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4491,
+  "sha": "a33c4ea252ec3e76",
+  "status": 200
+ },
+ "/default/astro/eclipticam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "050a18b48e5f34ec",
+  "status": 404
+ },
+ "/default/astro/eclipticam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1461,
+  "sha": "54a6c4f1e6ad4a67",
+  "status": 404
+ },
  "/default/astro/photos": {
   "b64": false,
   "cache": "",
@@ -345,6 +2207,109 @@
   "sha": "bd8b221cf1dd68e0",
   "status": 200
  },
+ "/default/astro/photos-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "fad5c7907bd3e331",
+  "status": 404
+ },
+ "/default/astro/photos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11295,
+  "sha": "bd8b221cf1dd68e0",
+  "status": 200
+ },
+ "/default/astro/photos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/default/astro/photos/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "caff9a0e3b5ef60f",
+  "status": 404
+ },
+ "/default/astro/showcase": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11295,
+  "sha": "bd8b221cf1dd68e0",
+  "status": 200
+ },
+ "/default/astro/showcase-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "76ea8aee679dbffd",
+  "status": 404
+ },
+ "/default/astro/showcase/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11295,
+  "sha": "bd8b221cf1dd68e0",
+  "status": 200
+ },
+ "/default/astro/showcase/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/default/astro/showcase/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "b6e5b613dcd0cdbd",
+  "status": 404
+ },
  "/default/astro/starcam": {
   "b64": false,
   "cache": "",
@@ -355,6 +2320,65 @@
   "len": 0,
   "sha": "e3b0c44298fc1c14",
   "status": 302
+ },
+ "/default/astro/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "9222687ab9303093",
+  "status": 404
+ },
+ "/default/astro/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "7a423223aaacd452",
+  "status": 404
+ },
+ "/default/astro/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "e745dadb260fde57",
+  "status": 404
+ },
+ "/default/astro/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "9ea35ea446052c91",
+  "status": 404
+ },
+ "/default/astro/storage": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11818,
+  "sha": "5d199d552b8f7df7",
+  "status": 200
  },
  "/default/astro/storage(/\\d{4}-\\d{2})?/?$": {
   "b64": false,
@@ -368,6 +2392,112 @@
   "sha": "4fd646e1f6721d2c",
   "status": 404
  },
+ "/default/astro/storage(/\\d{4}-\\d{2})?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1466,
+  "sha": "355a988a7756d3ec",
+  "status": 404
+ },
+ "/default/astro/storage(/\\d{4}-\\d{2})?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1460,
+  "sha": "d85bf08d2a237ef7",
+  "status": 404
+ },
+ "/default/astro/storage(/\\d{4}-\\d{2})?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1465,
+  "sha": "59670b20de5a35a7",
+  "status": 404
+ },
+ "/default/astro/storage(/\\d{4}-\\d{2})?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1476,
+  "sha": "50a1db931ec146bd",
+  "status": 404
+ },
+ "/default/astro/storage-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "72de9530882ea9f6",
+  "status": 404
+ },
+ "/default/astro/storage/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 11818,
+  "sha": "5d199d552b8f7df7",
+  "status": 200
+ },
+ "/default/astro/storage/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "84f9d1c3cf1295e6",
+  "status": 404
+ },
+ "/default/astro/storage/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "7134984b22c96937",
+  "status": 404
+ },
+ "/default/astro/transients": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 7279,
+  "sha": "30745465462f79fb",
+  "status": 200
+ },
  "/default/astro/transients(?:/([a-z0-9-]+))?/?$": {
   "b64": false,
   "cache": "public, max-age=300",
@@ -380,7 +2510,149 @@
   "sha": "d9eac0b2b52423a5",
   "status": 404
  },
+ "/default/astro/transients(?:/([a-z0-9-]+))?/?$-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1472,
+  "sha": "426c6b5805f5591b",
+  "status": 404
+ },
+ "/default/astro/transients(?:/([a-z0-9-]+))?/?$/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1466,
+  "sha": "884f8bb317e121ef",
+  "status": 404
+ },
+ "/default/astro/transients(?:/([a-z0-9-]+))?/?$/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1471,
+  "sha": "a6ccbea0c54f50b2",
+  "status": 404
+ },
+ "/default/astro/transients(?:/([a-z0-9-]+))?/?$/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1482,
+  "sha": "b48981fc08afdab6",
+  "status": 404
+ },
+ "/default/astro/transients-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "df46e8441a4792e6",
+  "status": 404
+ },
+ "/default/astro/transients/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 7279,
+  "sha": "30745465462f79fb",
+  "status": 200
+ },
+ "/default/astro/transients/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "",
+  "hdrs": [
+   "Location"
+  ],
+  "len": 0,
+  "sha": "e3b0c44298fc1c14",
+  "status": 302
+ },
+ "/default/astro/transients/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1461,
+  "sha": "0c0ff8bba3c8b275",
+  "status": 404
+ },
  "/default/calendaralarm": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/calendaralarm-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/calendaralarm/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/calendaralarm/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/calendaralarm/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -415,6 +2687,54 @@
   "sha": "2725932d569ee7c2",
   "status": 200
  },
+ "/default/contents-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "4c8910a981154f0f",
+  "status": 404
+ },
+ "/default/contents/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "48283e6758807b3d",
+  "status": 404
+ },
+ "/default/contents/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "3195f4e289afb2c5",
+  "status": 404
+ },
+ "/default/contents/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "c23c1bca9e0d201d",
+  "status": 404
+ },
  "/default/cv": {
   "b64": false,
   "cache": "",
@@ -425,6 +2745,54 @@
   "len": 7923,
   "sha": "d833be3ec50ba9dd",
   "status": 200
+ },
+ "/default/cv-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "c3d1d4d72a3fce22",
+  "status": 404
+ },
+ "/default/cv/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "9aef748ebf0ca5de",
+  "status": 404
+ },
+ "/default/cv/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "23019c2cef384197",
+  "status": 404
+ },
+ "/default/cv/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "58e3b9d0a06cc56b",
+  "status": 404
  },
  "/default/default": {
   "b64": false,
@@ -449,6 +2817,54 @@
   "sha": "300634dd49b2c5e9",
   "status": 200
  },
+ "/default/event-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "a3c988e51eec514f",
+  "status": 404
+ },
+ "/default/event/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "f80332d3086d8023",
+  "status": 404
+ },
+ "/default/event/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "e0e559c3d9425083",
+  "status": 404
+ },
+ "/default/event/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "6bc5387095f7b75b",
+  "status": 404
+ },
  "/default/favicon.ico": {
   "b64": true,
   "cache": "public, max-age=86400",
@@ -460,6 +2876,54 @@
   "len": 4836,
   "sha": "604cccdc36d0f273",
   "status": 200
+ },
+ "/default/favicon.ico-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "49058aaf53e44055",
+  "status": 404
+ },
+ "/default/favicon.ico/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "03292d2f26674dc6",
+  "status": 404
+ },
+ "/default/favicon.ico/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "12e10ea42dbdd483",
+  "status": 404
+ },
+ "/default/favicon.ico/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "692a67bff325d746",
+  "status": 404
  },
  "/default/favicon.png": {
   "b64": true,
@@ -473,6 +2937,54 @@
   "sha": "a2d9117ee193e5fa",
   "status": 200
  },
+ "/default/favicon.png-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "558b2e59f3b8d67b",
+  "status": 404
+ },
+ "/default/favicon.png/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "0431fcf059e901da",
+  "status": 404
+ },
+ "/default/favicon.png/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "a334183f52c06175",
+  "status": 404
+ },
+ "/default/favicon.png/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "d7a61c94a02dde5d",
+  "status": 404
+ },
  "/default/favicon.svg": {
   "b64": false,
   "cache": "public, max-age=86400",
@@ -485,6 +2997,54 @@
   "sha": "de5d38d598eb1298",
   "status": 200
  },
+ "/default/favicon.svg-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "3deb2a0c5c8fd1c9",
+  "status": 404
+ },
+ "/default/favicon.svg/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "6f175fd745a14bba",
+  "status": 404
+ },
+ "/default/favicon.svg/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "0e63e2f58d360d4e",
+  "status": 404
+ },
+ "/default/favicon.svg/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "a31282ed42d97554",
+  "status": 404
+ },
  "/default/gardencam": {
   "b64": false,
   "cache": "",
@@ -496,7 +3056,79 @@
   "sha": "e3b0c44298fc1c14",
   "status": 301
  },
+ "/default/gardencam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "d636073b99996425",
+  "status": 404
+ },
+ "/default/gardencam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "3ab7e9831b15e197",
+  "status": 404
+ },
  "/default/gardencam/capture": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/gardencam/capture-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/gardencam/capture/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/gardencam/capture/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/gardencam/capture/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -520,7 +3152,79 @@
   "sha": "ee3cf315d0fbfe54",
   "status": 401
  },
+ "/default/gardencam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "5ab136fc44141ef3",
+  "status": 404
+ },
+ "/default/gardencam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "963bde3fe1528444",
+  "status": 404
+ },
  "/default/gardencam/display": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/display-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/display/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/display/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/display/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -556,6 +3260,54 @@
   "sha": "6b467e5d17b0c797",
   "status": 401
  },
+ "/default/gardencam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/fullres/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
  "/default/gardencam/fullres/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -569,6 +3321,54 @@
   "status": 401
  },
  "/default/gardencam/gallery": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/gallery/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -604,6 +3404,54 @@
   "sha": "6b467e5d17b0c797",
   "status": 401
  },
+ "/default/gardencam/s3-stats-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/s3-stats/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/s3-stats/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/default/gardencam/s3-stats/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
  "/default/gardencam/s3-stats/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -627,6 +3475,50 @@
   "sha": "5d25b3653363e8cf",
   "status": 200
  },
+ "/default/gardencam/stats-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/default/gardencam/stats/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/default/gardencam/stats/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/default/gardencam/stats/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
  "/default/gardencam/stats/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -639,10 +3531,70 @@
   "status": 200
  },
  "/default/gardencam/timing": {
-  "exception": "UnboundLocalError"
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/default/gardencam/timing-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/default/gardencam/timing/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/default/gardencam/timing/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/default/gardencam/timing/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
  },
  "/default/gardencam/timing/sample-item.jpg": {
-  "exception": "UnboundLocalError"
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
  },
  "/default/gardencam/videos": {
   "b64": false,
@@ -667,7 +3619,103 @@
   "sha": "ba012724e14a3bd9",
   "status": 200
  },
+ "/default/gitinfo-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "399da528f29220cd",
+  "status": 404
+ },
+ "/default/gitinfo/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "b03439784becd980",
+  "status": 404
+ },
+ "/default/gitinfo/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "1365f35f24a89325",
+  "status": 404
+ },
+ "/default/gitinfo/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "2e2845bb17a9facf",
+  "status": 404
+ },
  "/default/glacier": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/glacier-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/glacier/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/glacier/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/default/glacier/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -702,6 +3750,54 @@
   "sha": "95a017f07fd83041",
   "status": 200
  },
+ "/default/gotg-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "30dfd760e3108a3b",
+  "status": 404
+ },
+ "/default/gotg/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "ac75906f27c186fa",
+  "status": 404
+ },
+ "/default/gotg/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "7a5535f7d62c7d86",
+  "status": 404
+ },
+ "/default/gotg/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "52ebb2718ffcd57f",
+  "status": 404
+ },
  "/default/gotg/manifest.json": {
   "b64": false,
   "cache": "",
@@ -712,6 +3808,54 @@
   "len": 828,
   "sha": "ae5e89520602ad3e",
   "status": 200
+ },
+ "/default/gotg/manifest.json-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "0ddfc2ed9fda275f",
+  "status": 404
+ },
+ "/default/gotg/manifest.json/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "42b491cf0ef6c124",
+  "status": 404
+ },
+ "/default/gotg/manifest.json/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "8349ee279e4e1718",
+  "status": 404
+ },
+ "/default/gotg/manifest.json/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1463,
+  "sha": "b66fe4704c219921",
+  "status": 404
  },
  "/default/lambda-stats": {
   "b64": false,
@@ -724,6 +3868,54 @@
   "sha": "d0a3db85d1a002e8",
   "status": 200
  },
+ "/default/lambda-stats-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "07cc439a88b72448",
+  "status": 404
+ },
+ "/default/lambda-stats/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "689ca5756ee778ff",
+  "status": 404
+ },
+ "/default/lambda-stats/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "e64a935bd52fd980",
+  "status": 404
+ },
+ "/default/lambda-stats/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "452d12b30337c4b7",
+  "status": 404
+ },
  "/default/lambda-stats/data": {
   "b64": false,
   "cache": "",
@@ -735,6 +3927,54 @@
   "sha": "c53b26dac2d1dd69",
   "status": 200
  },
+ "/default/lambda-stats/data-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "5862489ef693815e",
+  "status": 404
+ },
+ "/default/lambda-stats/data/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "32d2f447b2c04f9b",
+  "status": 404
+ },
+ "/default/lambda-stats/data/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "0896d63254e85db3",
+  "status": 404
+ },
+ "/default/lambda-stats/data/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1462,
+  "sha": "89e041ecaf055602",
+  "status": 404
+ },
  "/default/manim": {
   "b64": false,
   "cache": "",
@@ -745,6 +3985,54 @@
   "len": 5805,
   "sha": "997059cfe5a328b2",
   "status": 200
+ },
+ "/default/manim-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "cd4f23dd18d6038f",
+  "status": 404
+ },
+ "/default/manim/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "cbef369cf4b7e399",
+  "status": 404
+ },
+ "/default/manim/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "f963d2a05b6d3fb0",
+  "status": 404
+ },
+ "/default/manim/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "2301803f6dcfbfa0",
+  "status": 404
  },
  "/default/memspeed": {
   "b64": false,
@@ -758,7 +4046,103 @@
   "sha": "6b467e5d17b0c797",
   "status": 401
  },
+ "/default/memspeed-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "333548d4b56111fa",
+  "status": 404
+ },
+ "/default/memspeed/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "a24bac274fef7992",
+  "status": 404
+ },
+ "/default/memspeed/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "a1312ff90bac2f79",
+  "status": 404
+ },
+ "/default/memspeed/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "47f263832a1e8841",
+  "status": 404
+ },
  "/default/memspeed/data": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/data-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/data/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/data/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/data/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -794,6 +4178,54 @@
   "sha": "ee3cf315d0fbfe54",
   "status": 401
  },
+ "/default/memspeed/download-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/download/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/download/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/download/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
  "/default/memspeed/download/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -807,6 +4239,54 @@
   "status": 401
  },
  "/default/memspeed/upload": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/upload-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/upload/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/upload/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/default/memspeed/upload/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -853,6 +4333,54 @@
   "sha": "acdde2d6b8c883d9",
   "status": 200
  },
+ "/default/pi-fleet-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "70c488c45f795504",
+  "status": 404
+ },
+ "/default/pi-fleet/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "77f2d67c4f7776b4",
+  "status": 404
+ },
+ "/default/pi-fleet/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "84ddcc5a530cfac2",
+  "status": 404
+ },
+ "/default/pi-fleet/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "dd8025545c0135e9",
+  "status": 404
+ },
  "/default/privacy": {
   "b64": false,
   "cache": "",
@@ -863,6 +4391,54 @@
   "len": 9655,
   "sha": "4a96f76a62746e88",
   "status": 200
+ },
+ "/default/privacy-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "554927cb2ee7c338",
+  "status": 404
+ },
+ "/default/privacy/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "f90fdb2566449f7f",
+  "status": 404
+ },
+ "/default/privacy/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "3ef16d5fe26f5ebd",
+  "status": 404
+ },
+ "/default/privacy/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "70cfb7650a1be9a2",
+  "status": 404
  },
  "/default/rcr": {
   "b64": false,
@@ -875,6 +4451,54 @@
   "sha": "e3b0c44298fc1c14",
   "status": 302
  },
+ "/default/rcr-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "5f7adaf534bf03b3",
+  "status": 404
+ },
+ "/default/rcr/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "ae88794cdba8c84c",
+  "status": 404
+ },
+ "/default/rcr/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "7611cb0063af5b95",
+  "status": 404
+ },
+ "/default/rcr/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "f785a08e6132a9cf",
+  "status": 404
+ },
  "/default/robots.txt": {
   "b64": false,
   "cache": "",
@@ -885,6 +4509,54 @@
   "len": 268,
   "sha": "3b910100d3fc72f5",
   "status": 200
+ },
+ "/default/robots.txt-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "6926681ebc7eed02",
+  "status": 404
+ },
+ "/default/robots.txt/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "67265751f05a6f7c",
+  "status": 404
+ },
+ "/default/robots.txt/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "ac693c734cf5f9e3",
+  "status": 404
+ },
+ "/default/robots.txt/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "4086657c935d4c48",
+  "status": 404
  },
  "/default/site-test": {
   "b64": false,
@@ -897,6 +4569,54 @@
   "sha": "2c223cf48ad184a3",
   "status": 200
  },
+ "/default/site-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "f45ed210ecf8274b",
+  "status": 404
+ },
+ "/default/site-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "1c03af4586340fd4",
+  "status": 404
+ },
+ "/default/site-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "291e3504b8172334",
+  "status": 404
+ },
+ "/default/site-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "ec30b97f54bd2a72",
+  "status": 404
+ },
  "/default/skycam": {
   "b64": false,
   "cache": "",
@@ -907,6 +4627,30 @@
   "len": 8109,
   "sha": "81e51be59c984551",
   "status": 200
+ },
+ "/default/skycam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "9841e3fc009dcbd3",
+  "status": 404
+ },
+ "/default/skycam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "762657afe081d8d4",
+  "status": 404
  },
  "/default/skycam/build-info": {
   "b64": false,
@@ -919,6 +4663,78 @@
   "sha": "e49046c8f0a7df75",
   "status": 200
  },
+ "/default/skycam/build-info-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "df3a07b17bf45732",
+  "status": 404
+ },
+ "/default/skycam/build-info/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "75daee363b3ee34b",
+  "status": 404
+ },
+ "/default/skycam/build-info/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "d64cfa08eeb609fe",
+  "status": 404
+ },
+ "/default/skycam/build-info/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1462,
+  "sha": "f0eebcf15279609e",
+  "status": 404
+ },
+ "/default/skycam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "8c96913ef8dba5d1",
+  "status": 404
+ },
+ "/default/skycam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "390ef486d876e164",
+  "status": 404
+ },
  "/default/skycam/clouds": {
   "b64": false,
   "cache": "",
@@ -930,7 +4746,99 @@
   "sha": "4aa7267d2a9ed4bc",
   "status": 200
  },
+ "/default/skycam/clouds-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "95ebf47b002fe065",
+  "status": 404
+ },
+ "/default/skycam/clouds/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "75edacf860d70da5",
+  "status": 404
+ },
+ "/default/skycam/clouds/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "a5c8737e2482aca2",
+  "status": 404
+ },
+ "/default/skycam/clouds/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "5dcb7156d30360e7",
+  "status": 404
+ },
  "/default/skycam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/skycam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/skycam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/skycam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/skycam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -963,6 +4871,50 @@
   "sha": "2abd65544240da44",
   "status": 200
  },
+ "/default/skycam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/default/skycam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/default/skycam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/default/skycam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
  "/default/skycam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -975,6 +4927,50 @@
   "status": 200
  },
  "/default/skycam/play": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/play/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1018,6 +5014,94 @@
   "sha": "da8ffb58d8af35ea",
   "status": 200
  },
+ "/default/skycam/player-poc-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player-poc/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player-poc/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player-poc/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/default/skycam/player/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
  "/default/skycam/starcam": {
   "b64": false,
   "cache": "",
@@ -1029,7 +5113,99 @@
   "sha": "15ef652d58fe699a",
   "status": 200
  },
+ "/default/skycam/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "db453e815cb03941",
+  "status": 404
+ },
+ "/default/skycam/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "91a4cfc7e5f88c12",
+  "status": 404
+ },
+ "/default/skycam/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "44a502fc500e29ce",
+  "status": 404
+ },
+ "/default/skycam/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "e1c426353f58d09a",
+  "status": 404
+ },
  "/default/skycam/starcam/night": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/default/skycam/starcam/night-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/default/skycam/starcam/night/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/default/skycam/starcam/night/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/default/skycam/starcam/night/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1073,7 +5249,147 @@
   "sha": "0b9e6f62a03843e8",
   "status": 400
  },
+ "/default/skycam/timelapse-day-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "31a37bcad5b12a8b",
+  "status": 404
+ },
+ "/default/skycam/timelapse-day/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "1c776268f1a859b6",
+  "status": 404
+ },
+ "/default/skycam/timelapse-day/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "df9528c78e638115",
+  "status": 404
+ },
+ "/default/skycam/timelapse-day/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1465,
+  "sha": "8059701c568cd6f8",
+  "status": 404
+ },
+ "/default/skycam/timelapse-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "06d8e3499f51b2a8",
+  "status": 404
+ },
+ "/default/skycam/timelapse/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "b336274676c38c90",
+  "status": 404
+ },
+ "/default/skycam/timelapse/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "7c269e37da0f200d",
+  "status": 404
+ },
+ "/default/skycam/timelapse/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1461,
+  "sha": "a5843e464cdcb20c",
+  "status": 404
+ },
  "/default/skycam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/default/skycam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/default/skycam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/default/skycam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/default/skycam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1106,7 +5422,99 @@
   "sha": "cfa60820d32da88f",
   "status": 502
  },
+ "/default/springcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "ffa48db85fb2019d",
+  "status": 404
+ },
+ "/default/springcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "761dd86d0d0ff2a5",
+  "status": 404
+ },
+ "/default/springcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "2ed28391646c75af",
+  "status": 404
+ },
+ "/default/springcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "e3426ccf01bfcd71",
+  "status": 404
+ },
  "/default/springcam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/springcam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/springcam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/springcam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/springcam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1139,6 +5547,50 @@
   "sha": "8e06f25876f7efcc",
   "status": 200
  },
+ "/default/springcam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/default/springcam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/default/springcam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/default/springcam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
  "/default/springcam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1161,6 +5613,50 @@
   "sha": "d61630f2a6974546",
   "status": 200
  },
+ "/default/springcam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/springcam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/springcam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/springcam/play/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
  "/default/springcam/play/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1173,6 +5669,50 @@
   "status": 200
  },
  "/default/springcam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/default/springcam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/default/springcam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/default/springcam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/default/springcam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1206,6 +5746,30 @@
   "sha": "77127858ad4ed46c",
   "status": 401
  },
+ "/default/srfcplus-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "c5583b9ee5da58cd",
+  "status": 404
+ },
+ "/default/srfcplus/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "c43ccd35e1b594c2",
+  "status": 404
+ },
  "/default/srfcplus/bookings": {
   "b64": false,
   "cache": "",
@@ -1217,6 +5781,78 @@
   "len": 25,
   "sha": "ee3cf315d0fbfe54",
   "status": 401
+ },
+ "/default/srfcplus/bookings-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "59e2f1ab20860c50",
+  "status": 404
+ },
+ "/default/srfcplus/bookings/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "4d247e36603244e9",
+  "status": 404
+ },
+ "/default/srfcplus/bookings/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "0f42da4a7844105a",
+  "status": 404
+ },
+ "/default/srfcplus/bookings/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1462,
+  "sha": "90b1423964a6b00f",
+  "status": 404
+ },
+ "/default/srfcplus/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "63e78efe9fcf1e4a",
+  "status": 404
+ },
+ "/default/srfcplus/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "d9121f2dc9fefb5a",
+  "status": 404
  },
  "/default/srfcplus/update-cookie": {
   "b64": false,
@@ -1230,6 +5866,54 @@
   "sha": "77127858ad4ed46c",
   "status": 401
  },
+ "/default/srfcplus/update-cookie-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "55dc4a9d75e63a07",
+  "status": 404
+ },
+ "/default/srfcplus/update-cookie/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "6c556e4823e98a0e",
+  "status": 404
+ },
+ "/default/srfcplus/update-cookie/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "681da1b361740373",
+  "status": 404
+ },
+ "/default/srfcplus/update-cookie/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1467,
+  "sha": "144753beecc04f18",
+  "status": 404
+ },
  "/default/starcam": {
   "b64": false,
   "cache": "",
@@ -1241,7 +5925,99 @@
   "sha": "c1acaee33ed202bd",
   "status": 200
  },
+ "/default/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "341c4b9fa4bbe8c1",
+  "status": 404
+ },
+ "/default/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "4f7571327e4fabcf",
+  "status": 404
+ },
+ "/default/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "e6aa010b3f8d20f8",
+  "status": 404
+ },
+ "/default/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "ee07b87a0fec6ed8",
+  "status": 404
+ },
  "/default/starcam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/starcam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/starcam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/starcam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/default/starcam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1274,6 +6050,50 @@
   "sha": "e3d5fae7461f7d39",
   "status": 200
  },
+ "/default/starcam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/default/starcam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/default/starcam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/default/starcam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
  "/default/starcam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1286,6 +6106,50 @@
   "status": 200
  },
  "/default/starcam/night/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/default/starcam/night/-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/default/starcam/night//": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/default/starcam/night//child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/default/starcam/night//child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -1318,6 +6182,30 @@
   "sha": "c1acaee33ed202bd",
   "status": 200
  },
+ "/default/starcam/nights-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "0ea4df06b97bb6af",
+  "status": 404
+ },
+ "/default/starcam/nights/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "14e28ba2bfca06dc",
+  "status": 404
+ },
  "/default/starcam/nights/all": {
   "b64": false,
   "cache": "",
@@ -1329,7 +6217,123 @@
   "sha": "32cd0c3e4e612ede",
   "status": 200
  },
+ "/default/starcam/nights/all-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "9cf92b5885341514",
+  "status": 404
+ },
+ "/default/starcam/nights/all/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "c24502f478636d21",
+  "status": 404
+ },
+ "/default/starcam/nights/all/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "6007011095cc389c",
+  "status": 404
+ },
+ "/default/starcam/nights/all/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1463,
+  "sha": "fb5f6c83a35f7b79",
+  "status": 404
+ },
+ "/default/starcam/nights/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "8defb9e43d150844",
+  "status": 404
+ },
+ "/default/starcam/nights/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "302d888c94a2327d",
+  "status": 404
+ },
  "/default/starcam/play": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/play/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1362,6 +6366,50 @@
   "sha": "fc26c33ea103999e",
   "status": 400
  },
+ "/default/starcam/player-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/player/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/player/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/default/starcam/player/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
  "/default/starcam/timelapse": {
   "b64": false,
   "cache": "",
@@ -1384,7 +6432,147 @@
   "sha": "0b9e6f62a03843e8",
   "status": 400
  },
+ "/default/starcam/timelapse-day-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1456,
+  "sha": "a71e9a283be868ed",
+  "status": 404
+ },
+ "/default/starcam/timelapse-day/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "391b2f800384feb6",
+  "status": 404
+ },
+ "/default/starcam/timelapse-day/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "de9d6d39cd4a730b",
+  "status": 404
+ },
+ "/default/starcam/timelapse-day/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1466,
+  "sha": "3ac437518ddacfc5",
+  "status": 404
+ },
+ "/default/starcam/timelapse-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "ee8be1de6e57781d",
+  "status": 404
+ },
+ "/default/starcam/timelapse/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "e9f3e5242f32ad47",
+  "status": 404
+ },
+ "/default/starcam/timelapse/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "a5a7904b439b93b7",
+  "status": 404
+ },
+ "/default/starcam/timelapse/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1462,
+  "sha": "cfcdf10eadd7b831",
+  "status": 404
+ },
  "/default/starcam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/default/starcam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/default/starcam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/default/starcam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/default/starcam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -1429,6 +6617,102 @@
   "sha": "a61396da5bae0280",
   "status": 200
  },
+ "/default/stereo-nav-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "b2b0f4ec57e71537",
+  "status": 404
+ },
+ "/default/stereo-nav/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "cd84665f2be6e4fe",
+  "status": 404
+ },
+ "/default/stereo-nav/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "0e3322a17844aa47",
+  "status": 404
+ },
+ "/default/stereo-nav/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "6947d7f7ac746b73",
+  "status": 404
+ },
+ "/default/stereo-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "fa90c2159d4001cd",
+  "status": 404
+ },
+ "/default/stereo/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "dfccf013ea356978",
+  "status": 404
+ },
+ "/default/stereo/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "59dfa441c83b5dfb",
+  "status": 404
+ },
+ "/default/stereo/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "1563dbd8900ad784",
+  "status": 404
+ },
  "/default/t3": {
   "b64": false,
   "cache": "",
@@ -1439,6 +6723,54 @@
   "len": 172,
   "sha": "43bdf7124f0e68d6",
   "status": 502
+ },
+ "/default/t3-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "a073946618b35bc1",
+  "status": 404
+ },
+ "/default/t3/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "b58943cb5274bf6d",
+  "status": 404
+ },
+ "/default/t3/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "7c33e25a313af35a",
+  "status": 404
+ },
+ "/default/t3/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "f111705feca49ddd",
+  "status": 404
  },
  "/default/tick.png": {
   "b64": true,
@@ -1452,6 +6784,54 @@
   "sha": "a2d9117ee193e5fa",
   "status": 200
  },
+ "/default/tick.png-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "30471343e3392133",
+  "status": 404
+ },
+ "/default/tick.png/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "de2a0a1dd2be0d2b",
+  "status": 404
+ },
+ "/default/tick.png/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "2cb15f42667631f5",
+  "status": 404
+ },
+ "/default/tick.png/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "b028469f6020aed5",
+  "status": 404
+ },
  "/default/us-vs-the-machines": {
   "b64": false,
   "cache": "",
@@ -1462,6 +6842,54 @@
   "len": 0,
   "sha": "e3b0c44298fc1c14",
   "status": 302
+ },
+ "/default/us-vs-the-machines-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "7b4d3eaa0ebca129",
+  "status": 404
+ },
+ "/default/us-vs-the-machines/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "dd4887c134a1f3b4",
+  "status": 404
+ },
+ "/default/us-vs-the-machines/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1452,
+  "sha": "8a4304db8c35e0c7",
+  "status": 404
+ },
+ "/default/us-vs-the-machines/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1463,
+  "sha": "27a69be8ec8ddb6c",
+  "status": 404
  },
  "/default/wp-login.php": {
   "b64": false,
@@ -1486,6 +6914,54 @@
   "sha": "2bf07530ebd18d86",
   "status": 200
  },
+ "/event-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "f2014a03ae9e130a",
+  "status": 404
+ },
+ "/event/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1426,
+  "sha": "27178fc41cfa1c9a",
+  "status": 404
+ },
+ "/event/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "bf623b2f53bb8dbe",
+  "status": 404
+ },
+ "/event/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "492416c51e888e31",
+  "status": 404
+ },
  "/favicon.ico": {
   "b64": true,
   "cache": "public, max-age=86400",
@@ -1497,6 +6973,54 @@
   "len": 4836,
   "sha": "604cccdc36d0f273",
   "status": 200
+ },
+ "/favicon.ico-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "40e5d0badaa236c2",
+  "status": 404
+ },
+ "/favicon.ico/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "47e3f23636dd7fa2",
+  "status": 404
+ },
+ "/favicon.ico/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "dabb53a75c31f6eb",
+  "status": 404
+ },
+ "/favicon.ico/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "309389daf3a4ccf5",
+  "status": 404
  },
  "/favicon.png": {
   "b64": true,
@@ -1510,6 +7034,54 @@
   "sha": "a2d9117ee193e5fa",
   "status": 200
  },
+ "/favicon.png-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "c0addf040d3d3f72",
+  "status": 404
+ },
+ "/favicon.png/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "5ab81255c425e48b",
+  "status": 404
+ },
+ "/favicon.png/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "1a929c1c3fbec933",
+  "status": 404
+ },
+ "/favicon.png/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "a2ea0c3f8f376e5a",
+  "status": 404
+ },
  "/favicon.svg": {
   "b64": false,
   "cache": "public, max-age=86400",
@@ -1522,6 +7094,54 @@
   "sha": "de5d38d598eb1298",
   "status": 200
  },
+ "/favicon.svg-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "0d2c9c15a20b9171",
+  "status": 404
+ },
+ "/favicon.svg/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "af93b2d967e173af",
+  "status": 404
+ },
+ "/favicon.svg/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "ae94bf00088d7324",
+  "status": 404
+ },
+ "/favicon.svg/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "c091b416fdacc8e9",
+  "status": 404
+ },
  "/gardencam": {
   "b64": false,
   "cache": "",
@@ -1533,7 +7153,79 @@
   "sha": "e3b0c44298fc1c14",
   "status": 301
  },
+ "/gardencam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "142994682c27425c",
+  "status": 404
+ },
+ "/gardencam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "89e21eea4ad32cca",
+  "status": 404
+ },
  "/gardencam/capture": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/gardencam/capture-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/gardencam/capture/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/gardencam/capture/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/gardencam/capture/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -1557,7 +7249,79 @@
   "sha": "ee3cf315d0fbfe54",
   "status": 401
  },
+ "/gardencam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "a829627901bdff5f",
+  "status": 404
+ },
+ "/gardencam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "ed6c5623591e63a0",
+  "status": 404
+ },
  "/gardencam/display": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/display-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/display/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/display/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/display/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -1582,6 +7346,54 @@
   "status": 401
  },
  "/gardencam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -1629,6 +7441,54 @@
   "sha": "6b467e5d17b0c797",
   "status": 401
  },
+ "/gardencam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
  "/gardencam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1642,6 +7502,54 @@
   "status": 401
  },
  "/gardencam/s3-stats": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/s3-stats-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/s3-stats/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/s3-stats/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 72,
+  "sha": "6b467e5d17b0c797",
+  "status": 401
+ },
+ "/gardencam/s3-stats/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -1676,6 +7584,50 @@
   "sha": "5d25b3653363e8cf",
   "status": 200
  },
+ "/gardencam/stats-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/gardencam/stats/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/gardencam/stats/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
+ "/gardencam/stats/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 5821,
+  "sha": "5d25b3653363e8cf",
+  "status": 200
+ },
  "/gardencam/stats/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1700,10 +7652,70 @@
   "status": 404
  },
  "/gardencam/timing": {
-  "exception": "UnboundLocalError"
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/gardencam/timing-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/gardencam/timing/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/gardencam/timing/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
+ },
+ "/gardencam/timing/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
  },
  "/gardencam/timing/sample-item.jpg": {
-  "exception": "UnboundLocalError"
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 579,
+  "sha": "7f539cc8991f9fdc",
+  "status": 200
  },
  "/gardencam/videos": {
   "b64": false,
@@ -1728,7 +7740,103 @@
   "sha": "ba012724e14a3bd9",
   "status": 200
  },
+ "/gitinfo-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "f04295ade0a3ab5d",
+  "status": 404
+ },
+ "/gitinfo/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1428,
+  "sha": "488e91cf4b4582a8",
+  "status": 404
+ },
+ "/gitinfo/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "2bf75a9bfa16d457",
+  "status": 404
+ },
+ "/gitinfo/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "941922b97f8c2814",
+  "status": 404
+ },
  "/glacier": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/glacier-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/glacier/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/glacier/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
+ },
+ "/glacier/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -1763,6 +7871,54 @@
   "sha": "95a017f07fd83041",
   "status": 200
  },
+ "/gotg-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "c277fe42d9750916",
+  "status": 404
+ },
+ "/gotg/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1425,
+  "sha": "c2ab03d3f5a8439b",
+  "status": 404
+ },
+ "/gotg/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "2c651c482f48e400",
+  "status": 404
+ },
+ "/gotg/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "b90d4642e090b83c",
+  "status": 404
+ },
  "/gotg/manifest.json": {
   "b64": false,
   "cache": "",
@@ -1773,6 +7929,54 @@
   "len": 828,
   "sha": "ae5e89520602ad3e",
   "status": 200
+ },
+ "/gotg/manifest.json-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "0e24bd27098b2afb",
+  "status": 404
+ },
+ "/gotg/manifest.json/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "f7cd02f7f2f3b7e8",
+  "status": 404
+ },
+ "/gotg/manifest.json/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "bbc2619d17fe8d10",
+  "status": 404
+ },
+ "/gotg/manifest.json/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "b26772a3855fabf9",
+  "status": 404
  },
  "/lambda-stats": {
   "b64": false,
@@ -1785,6 +7989,54 @@
   "sha": "d0a3db85d1a002e8",
   "status": 200
  },
+ "/lambda-stats-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "37e9f7987f5f7c95",
+  "status": 404
+ },
+ "/lambda-stats/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "4559a3acf6fcf806",
+  "status": 404
+ },
+ "/lambda-stats/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "dfaad8c06c39f435",
+  "status": 404
+ },
+ "/lambda-stats/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "be94fd5b504216c4",
+  "status": 404
+ },
  "/lambda-stats/data": {
   "b64": false,
   "cache": "",
@@ -1796,6 +8048,54 @@
   "sha": "c53b26dac2d1dd69",
   "status": 200
  },
+ "/lambda-stats/data-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "abf9e86942c06ae9",
+  "status": 404
+ },
+ "/lambda-stats/data/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "f342bb07b072cd83",
+  "status": 404
+ },
+ "/lambda-stats/data/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "bd34195bd72f96ed",
+  "status": 404
+ },
+ "/lambda-stats/data/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "70688bfb26251544",
+  "status": 404
+ },
  "/manim": {
   "b64": false,
   "cache": "",
@@ -1806,6 +8106,54 @@
   "len": 5805,
   "sha": "997059cfe5a328b2",
   "status": 200
+ },
+ "/manim-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "756e426bc3a44b16",
+  "status": 404
+ },
+ "/manim/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1426,
+  "sha": "edf310981776f7fb",
+  "status": 404
+ },
+ "/manim/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "5c303537ed20936c",
+  "status": 404
+ },
+ "/manim/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "e5c1ebd64c1d5c0c",
+  "status": 404
  },
  "/memspeed": {
   "b64": false,
@@ -1819,7 +8167,103 @@
   "sha": "6b467e5d17b0c797",
   "status": 401
  },
+ "/memspeed-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "8d38fe29c1341dad",
+  "status": 404
+ },
+ "/memspeed/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "a6b6433648b242d3",
+  "status": 404
+ },
+ "/memspeed/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "2ddab8cdd57a8ee7",
+  "status": 404
+ },
+ "/memspeed/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "d2486441f4b39263",
+  "status": 404
+ },
  "/memspeed/data": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/data-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/data/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/data/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/data/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -1855,6 +8299,54 @@
   "sha": "ee3cf315d0fbfe54",
   "status": 401
  },
+ "/memspeed/download-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/download/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/download/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/download/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
  "/memspeed/download/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -1868,6 +8360,54 @@
   "status": 401
  },
  "/memspeed/upload": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/upload-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/upload/": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/upload/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "application/json",
+  "hdrs": [
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 25,
+  "sha": "ee3cf315d0fbfe54",
+  "status": 401
+ },
+ "/memspeed/upload/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "application/json",
@@ -1914,6 +8454,54 @@
   "sha": "acdde2d6b8c883d9",
   "status": 200
  },
+ "/pi-fleet-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "38f609adea754fc5",
+  "status": 404
+ },
+ "/pi-fleet/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "cd0292fafb584c51",
+  "status": 404
+ },
+ "/pi-fleet/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "f3862253e5d4e7de",
+  "status": 404
+ },
+ "/pi-fleet/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "ec4f9159826a9970",
+  "status": 404
+ },
  "/privacy": {
   "b64": false,
   "cache": "",
@@ -1924,6 +8512,54 @@
   "len": 9655,
   "sha": "4a96f76a62746e88",
   "status": 200
+ },
+ "/privacy-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "fb91c77bbb7ad182",
+  "status": 404
+ },
+ "/privacy/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1428,
+  "sha": "b529cf1523ce410d",
+  "status": 404
+ },
+ "/privacy/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "4d1e8ee4afd556b2",
+  "status": 404
+ },
+ "/privacy/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "d94c0f61338319ae",
+  "status": 404
  },
  "/rcr": {
   "b64": false,
@@ -1936,6 +8572,54 @@
   "sha": "e3b0c44298fc1c14",
   "status": 302
  },
+ "/rcr-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "664adbd3e970579c",
+  "status": 404
+ },
+ "/rcr/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1424,
+  "sha": "2ca05c6cf7c484ae",
+  "status": 404
+ },
+ "/rcr/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "142790d59489c74e",
+  "status": 404
+ },
+ "/rcr/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "fafb86e271f6db3a",
+  "status": 404
+ },
  "/robots.txt": {
   "b64": false,
   "cache": "",
@@ -1946,6 +8630,54 @@
   "len": 268,
   "sha": "3b910100d3fc72f5",
   "status": 200
+ },
+ "/robots.txt-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "d76edeffb130a07a",
+  "status": 404
+ },
+ "/robots.txt/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "894fc33700885885",
+  "status": 404
+ },
+ "/robots.txt/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "ad77dd076ed890b0",
+  "status": 404
+ },
+ "/robots.txt/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "3639d9d68e71e6fd",
+  "status": 404
  },
  "/site-test": {
   "b64": false,
@@ -1958,6 +8690,54 @@
   "sha": "2c223cf48ad184a3",
   "status": 200
  },
+ "/site-test-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "e2d945cc4cfb1a3c",
+  "status": 404
+ },
+ "/site-test/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "b234c3c941355d8f",
+  "status": 404
+ },
+ "/site-test/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "70b28bdb93ffb50c",
+  "status": 404
+ },
+ "/site-test/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "7264b2e860a6ba6b",
+  "status": 404
+ },
  "/skycam": {
   "b64": false,
   "cache": "",
@@ -1968,6 +8748,30 @@
   "len": 8109,
   "sha": "81e51be59c984551",
   "status": 200
+ },
+ "/skycam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "67326cf83bd0b7fc",
+  "status": 404
+ },
+ "/skycam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1427,
+  "sha": "f4fba7ffba4753b6",
+  "status": 404
  },
  "/skycam/build-info": {
   "b64": false,
@@ -1980,6 +8784,78 @@
   "sha": "e49046c8f0a7df75",
   "status": 200
  },
+ "/skycam/build-info-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "d99af29f04942aa8",
+  "status": 404
+ },
+ "/skycam/build-info/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "999cee9e00e0b234",
+  "status": 404
+ },
+ "/skycam/build-info/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "21b1ce7e10bd7119",
+  "status": 404
+ },
+ "/skycam/build-info/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "f9100a18b98a12b8",
+  "status": 404
+ },
+ "/skycam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "227bd4d2db0f5085",
+  "status": 404
+ },
+ "/skycam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "8dc2198919211fda",
+  "status": 404
+ },
  "/skycam/clouds": {
   "b64": false,
   "cache": "",
@@ -1991,7 +8867,99 @@
   "sha": "4aa7267d2a9ed4bc",
   "status": 200
  },
+ "/skycam/clouds-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "f546cad8ad98d7c9",
+  "status": 404
+ },
+ "/skycam/clouds/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "bad4958b44990864",
+  "status": 404
+ },
+ "/skycam/clouds/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "fe945e2c895ed1ba",
+  "status": 404
+ },
+ "/skycam/clouds/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1450,
+  "sha": "cc172114bd19bd8e",
+  "status": 404
+ },
  "/skycam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/skycam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/skycam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/skycam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/skycam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2024,7 +8992,51 @@
   "sha": "2abd65544240da44",
   "status": 200
  },
+ "/skycam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/skycam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
  "/skycam/gallery/2026-01-01": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/skycam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3467,
+  "sha": "2abd65544240da44",
+  "status": 200
+ },
+ "/skycam/gallery/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2047,6 +9059,50 @@
   "status": 200
  },
  "/skycam/play": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/play/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2090,6 +9146,94 @@
   "sha": "da8ffb58d8af35ea",
   "status": 200
  },
+ "/skycam/player-poc-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player-poc/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player-poc/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player-poc/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
+ "/skycam/player/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6950,
+  "sha": "5bf70adc31b1c5ae",
+  "status": 200
+ },
  "/skycam/starcam": {
   "b64": false,
   "cache": "",
@@ -2101,7 +9245,99 @@
   "sha": "15ef652d58fe699a",
   "status": 200
  },
+ "/skycam/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "84c8ba8e00bcdb31",
+  "status": 404
+ },
+ "/skycam/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "b01538c65bf31fd5",
+  "status": 404
+ },
+ "/skycam/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "ad744071084ca9c9",
+  "status": 404
+ },
+ "/skycam/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "6420f4dba712fcf1",
+  "status": 404
+ },
  "/skycam/starcam/night": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/skycam/starcam/night-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/skycam/starcam/night/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/skycam/starcam/night/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 643,
+  "sha": "a942b347f69c87cf",
+  "status": 200
+ },
+ "/skycam/starcam/night/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2145,7 +9381,147 @@
   "sha": "0b9e6f62a03843e8",
   "status": 400
  },
+ "/skycam/timelapse-day-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "bece89ff05d1d53b",
+  "status": 404
+ },
+ "/skycam/timelapse-day/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "3ebd71569caba958",
+  "status": 404
+ },
+ "/skycam/timelapse-day/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "815858931dfac8b3",
+  "status": 404
+ },
+ "/skycam/timelapse-day/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1457,
+  "sha": "56815895510de6f7",
+  "status": 404
+ },
+ "/skycam/timelapse-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "fcada303298db848",
+  "status": 404
+ },
+ "/skycam/timelapse/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "c21a3f531e70e86f",
+  "status": 404
+ },
+ "/skycam/timelapse/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "e1502692807063c3",
+  "status": 404
+ },
+ "/skycam/timelapse/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1453,
+  "sha": "50b1f3c897e3acf6",
+  "status": 404
+ },
  "/skycam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/skycam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/skycam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/skycam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4110,
+  "sha": "6459c35404a8da51",
+  "status": 200
+ },
+ "/skycam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2178,7 +9554,99 @@
   "sha": "cfa60820d32da88f",
   "status": 502
  },
+ "/springcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "690731376f7c905c",
+  "status": 404
+ },
+ "/springcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1430,
+  "sha": "1dc4cca666ca3ba4",
+  "status": 404
+ },
+ "/springcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "8aa36d82d0379edf",
+  "status": 404
+ },
+ "/springcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1446,
+  "sha": "12b638eb2cf24fad",
+  "status": 404
+ },
  "/springcam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/springcam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/springcam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/springcam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/springcam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2211,6 +9679,50 @@
   "sha": "8e06f25876f7efcc",
   "status": 200
  },
+ "/springcam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/springcam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/springcam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
+ "/springcam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3443,
+  "sha": "8e06f25876f7efcc",
+  "status": 200
+ },
  "/springcam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -2233,6 +9745,50 @@
   "sha": "d61630f2a6974546",
   "status": 200
  },
+ "/springcam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/springcam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/springcam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/springcam/play/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
  "/springcam/play/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -2245,6 +9801,50 @@
   "status": 200
  },
  "/springcam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/springcam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/springcam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/springcam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4116,
+  "sha": "8bfe51fbe5d1c857",
+  "status": 200
+ },
+ "/springcam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2278,6 +9878,30 @@
   "sha": "77127858ad4ed46c",
   "status": 401
  },
+ "/srfcplus-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "269c034a71468f86",
+  "status": 404
+ },
+ "/srfcplus/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "dcfccc6e2da3df9e",
+  "status": 404
+ },
  "/srfcplus/bookings": {
   "b64": false,
   "cache": "",
@@ -2289,6 +9913,78 @@
   "len": 25,
   "sha": "ee3cf315d0fbfe54",
   "status": 401
+ },
+ "/srfcplus/bookings-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "823ec34b4cfc26c2",
+  "status": 404
+ },
+ "/srfcplus/bookings/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "ccea12c42bc01919",
+  "status": 404
+ },
+ "/srfcplus/bookings/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "b3890e8f81ce57c2",
+  "status": 404
+ },
+ "/srfcplus/bookings/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "9916c1069fd9850d",
+  "status": 404
+ },
+ "/srfcplus/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "80e19c0c85da6fa8",
+  "status": 404
+ },
+ "/srfcplus/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "d76791986a3aae22",
+  "status": 404
  },
  "/srfcplus/update-cookie": {
   "b64": false,
@@ -2302,6 +9998,54 @@
   "sha": "77127858ad4ed46c",
   "status": 401
  },
+ "/srfcplus/update-cookie-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1449,
+  "sha": "339e8aee95dd4cba",
+  "status": 404
+ },
+ "/srfcplus/update-cookie/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "35ea07a7f888d9b2",
+  "status": 404
+ },
+ "/srfcplus/update-cookie/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "3ecc82abc2dcc251",
+  "status": 404
+ },
+ "/srfcplus/update-cookie/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1459,
+  "sha": "ca1519dc5792c3f7",
+  "status": 404
+ },
  "/starcam": {
   "b64": false,
   "cache": "",
@@ -2313,7 +10057,99 @@
   "sha": "c1acaee33ed202bd",
   "status": 200
  },
+ "/starcam-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "471df15fece06c08",
+  "status": 404
+ },
+ "/starcam/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1428,
+  "sha": "ee1e1eb600368825",
+  "status": 404
+ },
+ "/starcam/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "3db548b869a4f342",
+  "status": 404
+ },
+ "/starcam/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "1f4a1a14b20ea140",
+  "status": 404
+ },
  "/starcam/fullres": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/starcam/fullres-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/starcam/fullres/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/starcam/fullres/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 605,
+  "sha": "f6287aa60775622a",
+  "status": 200
+ },
+ "/starcam/fullres/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2346,6 +10182,50 @@
   "sha": "e3d5fae7461f7d39",
   "status": 200
  },
+ "/starcam/gallery-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/starcam/gallery/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/starcam/gallery/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
+ "/starcam/gallery/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 3439,
+  "sha": "e3d5fae7461f7d39",
+  "status": 200
+ },
  "/starcam/gallery/sample-item.jpg": {
   "b64": false,
   "cache": "",
@@ -2358,6 +10238,50 @@
   "status": 200
  },
  "/starcam/night/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/starcam/night/-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/starcam/night//": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/starcam/night//child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 20,
+  "sha": "7f39432d1d5d0d43",
+  "status": 400
+ },
+ "/starcam/night//child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html",
@@ -2390,6 +10314,30 @@
   "sha": "c1acaee33ed202bd",
   "status": 200
  },
+ "/starcam/nights-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1441,
+  "sha": "d836644b7693b6db",
+  "status": 404
+ },
+ "/starcam/nights/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "3b936ba05ab410ed",
+  "status": 404
+ },
  "/starcam/nights/all": {
   "b64": false,
   "cache": "",
@@ -2401,7 +10349,123 @@
   "sha": "32cd0c3e4e612ede",
   "status": 200
  },
+ "/starcam/nights/all-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "eab49342f7a5570d",
+  "status": 404
+ },
+ "/starcam/nights/all/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "e9c7bdf5f590025c",
+  "status": 404
+ },
+ "/starcam/nights/all/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "9d177e49c50b57c7",
+  "status": 404
+ },
+ "/starcam/nights/all/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "29ea3ace72cb2129",
+  "status": 404
+ },
+ "/starcam/nights/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1440,
+  "sha": "5dfa8a23cb88acec",
+  "status": 404
+ },
+ "/starcam/nights/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1451,
+  "sha": "5bdf5804b06c72c2",
+  "status": 404
+ },
  "/starcam/play": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/play-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/play/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/play/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/play/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2434,6 +10498,50 @@
   "sha": "fc26c33ea103999e",
   "status": 400
  },
+ "/starcam/player-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/player/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/player/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
+ "/starcam/player/child/grandchild": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 6916,
+  "sha": "d61630f2a6974546",
+  "status": 200
+ },
  "/starcam/timelapse": {
   "b64": false,
   "cache": "",
@@ -2456,7 +10564,147 @@
   "sha": "0b9e6f62a03843e8",
   "status": 400
  },
+ "/starcam/timelapse-day-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1448,
+  "sha": "05b2739e602ad80f",
+  "status": 404
+ },
+ "/starcam/timelapse-day/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1442,
+  "sha": "78c40b9aef9a33f6",
+  "status": 404
+ },
+ "/starcam/timelapse-day/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "d3e22d2cb8ae9eab",
+  "status": 404
+ },
+ "/starcam/timelapse-day/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1458,
+  "sha": "cfc0d02dedd3b262",
+  "status": 404
+ },
+ "/starcam/timelapse-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "533d7efc9897b43e",
+  "status": 404
+ },
+ "/starcam/timelapse/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1438,
+  "sha": "5b9db654ee2f3cd3",
+  "status": 404
+ },
+ "/starcam/timelapse/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "55f78481d9c09270",
+  "status": 404
+ },
+ "/starcam/timelapse/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1454,
+  "sha": "da9feeda086e54ed",
+  "status": 404
+ },
  "/starcam/videos": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/starcam/videos-suffix": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/starcam/videos/": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/starcam/videos/child": {
+  "b64": false,
+  "cache": "",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Content-Type"
+  ],
+  "len": 4112,
+  "sha": "5cad2a6ad18b1d65",
+  "status": 200
+ },
+ "/starcam/videos/child/grandchild": {
   "b64": false,
   "cache": "",
   "ct": "text/html; charset=utf-8",
@@ -2501,6 +10749,102 @@
   "sha": "a61396da5bae0280",
   "status": 200
  },
+ "/stereo-nav-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1437,
+  "sha": "0eb41b1de998b34e",
+  "status": 404
+ },
+ "/stereo-nav/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1431,
+  "sha": "6f2ae4b8998d6c6d",
+  "status": 404
+ },
+ "/stereo-nav/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1436,
+  "sha": "32bede2ff303c826",
+  "status": 404
+ },
+ "/stereo-nav/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1447,
+  "sha": "69ba740649ae1bb5",
+  "status": 404
+ },
+ "/stereo-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1433,
+  "sha": "5f4842d6740697b2",
+  "status": 404
+ },
+ "/stereo/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1427,
+  "sha": "7e9ddcf07e13d3c6",
+  "status": 404
+ },
+ "/stereo/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1432,
+  "sha": "d7bbc52238d45888",
+  "status": 404
+ },
+ "/stereo/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1443,
+  "sha": "0c79f6b5f5de3b90",
+  "status": 404
+ },
  "/t3": {
   "b64": false,
   "cache": "",
@@ -2511,6 +10855,54 @@
   "len": 172,
   "sha": "43bdf7124f0e68d6",
   "status": 502
+ },
+ "/t3-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "73d108b5ed56c96e",
+  "status": 404
+ },
+ "/t3/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1423,
+  "sha": "e8cde4cc0ec90547",
+  "status": 404
+ },
+ "/t3/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1428,
+  "sha": "e49ef12d9fe7ec9a",
+  "status": 404
+ },
+ "/t3/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "10310c680e42f0ec",
+  "status": 404
  },
  "/tick.png": {
   "b64": true,
@@ -2524,6 +10916,54 @@
   "sha": "a2d9117ee193e5fa",
   "status": 200
  },
+ "/tick.png-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1435,
+  "sha": "b1d23347fcb1fa4d",
+  "status": 404
+ },
+ "/tick.png/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1429,
+  "sha": "8795c94eaf7858c3",
+  "status": 404
+ },
+ "/tick.png/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1434,
+  "sha": "d18925caaec53941",
+  "status": 404
+ },
+ "/tick.png/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "08df8ae97eca12b3",
+  "status": 404
+ },
  "/us-vs-the-machines": {
   "b64": false,
   "cache": "",
@@ -2534,6 +10974,54 @@
   "len": 0,
   "sha": "e3b0c44298fc1c14",
   "status": 302
+ },
+ "/us-vs-the-machines-suffix": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1445,
+  "sha": "945905837a760390",
+  "status": 404
+ },
+ "/us-vs-the-machines/": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1439,
+  "sha": "64610b5c279b3cd2",
+  "status": 404
+ },
+ "/us-vs-the-machines/child": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1444,
+  "sha": "16c7f9f0529a6602",
+  "status": 404
+ },
+ "/us-vs-the-machines/child/grandchild": {
+  "b64": false,
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type"
+  ],
+  "len": 1455,
+  "sha": "5794fd56dc181725",
+  "status": 404
  },
  "/wp-login.php": {
   "b64": false,

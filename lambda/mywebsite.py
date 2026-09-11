@@ -2666,6 +2666,3280 @@ def _access_log(event, context, response, duration_ms, error=None):
         print(f'access log failed: {e}')
 
 
+# ---------------------------------------------------------------------------
+# Route handlers, extracted from the old _dispatch if/elif chain.
+#
+# Each takes the request bundle `rq` and returns EITHER a complete response
+# dict (returned to API Gateway unchanged) OR an HTML string, which the
+# epilogue in _dispatch wraps with the favicon and the standard headers.
+# Both conventions existed in the original chain -- 41 branches returned a
+# dict, 41 accumulated into `html` and fell through -- and both are kept.
+# ---------------------------------------------------------------------------
+
+
+class _Request:
+    """Everything _dispatch's prelude computed, handed to one handler.
+
+    __slots__ because this is built on every invocation; the handlers unpack
+    it into locals so the extracted bodies read exactly as they did when they
+    were branches of one long function.
+    """
+
+    __slots__ = ('event', 'context', 'path', 'route', 'stage', 'host',
+                 'root', 'ip', 'headers', 'fav', 'start_time')
+
+    def __init__(self, **kw):
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+
+_PREFIX = 'prefix'   # sentinels for the pattern table, compared with `is`
+_PRED = 'pred'
+
+
+def _route_favicon_ico(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'image/x-icon',
+            'Cache-Control': 'public, max-age=86400',
+        },
+        'isBase64Encoded': True,
+        'body': FAVICON_ICO_B64 or FAVICON_PNG_B64,
+    }
+
+
+def _route_favicon_png(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=86400',
+        },
+        'isBase64Encoded': True,
+        'body': FAVICON_PNG_B64,
+    }
+
+
+def _route_favicon_svg(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'image/svg+xml',
+            'Cache-Control': 'public, max-age=86400',
+        },
+        'body': FAVICON_SVG,
+    }
+
+
+def _route_robots_txt(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'text/plain'},
+        'body': (
+            'User-agent: *\n'
+            'Allow: /\n'
+            'Allow: /cv\n'
+            'Allow: /contents\n'
+            'Allow: /privacy\n'
+            'Disallow: /event\n'
+            'Disallow: /gitinfo\n'
+            'Disallow: /lambda-stats\n'
+            'Disallow: /gardencam\n'
+            'Disallow: /memspeed\n'
+            'Disallow: /pi-fleet\n'
+            'Disallow: /t3\n'
+            'Disallow: /rcr\n'
+            'Disallow: /us-vs-the-machines\n'
+            'Disallow: /ai-config\n'
+        )
+    }
+
+
+def _route_event(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html += '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>'
+    html += 'log_group = ' + context.log_group_name + '<br>'
+    html += 'log_stream = ' + context.log_stream_name + '<br>' 
+    html += 'path = ' + path + '<br>'
+    html += 'stage = ' + stage + '<br>'
+    html += 'root = ' + root + '<br>'
+    html += 'pwd = ' + os.getcwd() + '<br>'
+    for ff in os.listdir(os.getcwd()):
+        html += ff + ', '
+    html += '<br>'
+    for key in event.keys():
+        html += "_______________________" + key + "_________________________<br>"
+        html += pformat(event[key]).replace(',', ',<br>') + "<br><br>"
+    return html
+
+
+def _route_gitinfo(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html = open("gitinfo.html", "r").read()
+    return html
+
+
+def _route_cv(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html += open('cv.html', 'r').read()
+    return html
+
+
+def _route_contents(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html += render_contents_page()
+    return html
+
+
+def _route_site_test(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html = render_site_test_page()
+    return html
+
+
+def _route_privacy(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html = render_privacy_page()
+    return html
+
+
+def _route_calendaralarm(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, CALENDARALARM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="calendaralarm"'
+            }
+        }
+    from routes import calendaralarm as _ca
+    # Strip the optional /{stage} prefix, then the /calendaralarm root.
+    rel = path
+    if rel.startswith(f'/{stage}/calendaralarm'):
+        rel = rel[len(f'/{stage}'):]
+    subpath = rel[len('/calendaralarm'):]  # '' | '/api/rules' | '/api/rules/<id>'
+    method = event.get('requestContext', {}).get('http', {}).get('method') \
+        or event.get('httpMethod', 'GET')
+    if subpath.startswith('/api'):
+        body = event.get('body', '') or ''
+        if event.get('isBase64Encoded', False):
+            body = base64.b64decode(body).decode('utf-8')
+        return _ca.handle_api(method, subpath[len('/api'):], body)
+    # Page (GET); anything non-GET on the page path is not meaningful.
+    return _ca.render_page()
+
+
+def _route_glacier(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GLACIER_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="Glacier Archive"'
+            }
+        }
+    subpath = path.split('/glacier', 1)[1]
+    s3_glacier = s3_client(GLACIER_REGION)
+    if subpath.startswith('/thumbs/'):
+        rel = subpath[len('/thumbs/'):]
+        # users/peter/thumbs/<archive>/<nn>.jpg — refuse traversal
+        if '..' in rel or not rel.endswith('.jpg'):
+            return {'statusCode': 404, 'body': 'not found',
+                    'headers': {'Content-Type': 'text/plain'}}
+        url = s3_glacier.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': GLACIER_BUCKET,
+                    'Key': f'{GLACIER_PREFIX}thumbs/{rel}'},
+            ExpiresIn=300)
+        return {'statusCode': 302,
+                'headers': {'Location': url,
+                            'Cache-Control': 'private, max-age=290'}}
+    try:
+        page = s3_glacier.get_object(
+            Bucket=GLACIER_BUCKET,
+            Key=f'{GLACIER_PREFIX}site/index.html')['Body'].read()
+        return {'statusCode': 200, 'body': page.decode('utf-8'),
+                'headers': {'Content-Type': 'text/html',
+                            'Cache-Control': 'private, max-age=300'}}
+    except Exception as e:
+        print(f"glacier page fetch failed: {e}")
+        return {'statusCode': 503,
+                'body': '<html><body><h1>Glacier page not generated yet'
+                        '</h1><p>Run glacier-app site/render.py.</p>'
+                        '</body></html>',
+                'headers': {'Content-Type': 'text/html'}}
+
+
+def _route_gardencam_capture(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'WWW-Authenticate': 'Basic realm="Garden Camera"'
+            }
+        }
+
+    # Write command to DynamoDB
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+        table = dynamodb.Table('gardencam-commands')
+
+        command_id = f"capture_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        item = {
+            'command_id': command_id,
+            'command': 'take_picture',
+            'status': 'pending',
+            'created_at': datetime.utcnow().isoformat(),
+            'requested_by': event['headers'].get('X-Forwarded-For', 'unknown')
+        }
+
+        table.put_item(Item=item)
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'Capture command sent! Image will appear shortly.', 'command_id': command_id}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+    except Exception as e:
+        print(f"Error writing capture command: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Failed to send capture command'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
+
+def _route_gardencam_timing(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    # `method` used to be read here without ever being assigned on this path.
+    # It worked as far as the interpreter was concerned only because other
+    # branches of the old 2,700-line _dispatch assigned it, making it a
+    # function-local -- so every request to /gardencam/timing raised
+    # UnboundLocalError and returned 500. Verified live before the fix.
+    method = (event.get('requestContext', {}).get('http', {}).get('method')
+              or event.get('httpMethod', 'GET'))
+    if method == 'POST':
+        try:
+            from decimal import Decimal
+
+            body = event.get('body', '{}')
+            timing_data = json.loads(body)
+
+            # Log to DynamoDB
+            if BOTO3_AVAILABLE:
+                dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+                table = dynamodb.Table('gardencam-page-timing')
+
+                item = {
+                    'timestamp': timing_data.get('timestamp', datetime.utcnow().isoformat()),
+                    'page_load_ms': Decimal(str(timing_data.get('pageLoadTime', 0))),
+                    'dom_ready_ms': Decimal(str(timing_data.get('domReadyTime', 0))),
+                    'server_response_ms': Decimal(str(timing_data.get('serverResponseTime', 0))),
+                    'user_agent': timing_data.get('userAgent', '')[:500],
+                    'ip': event.get('requestContext', {}).get('identity', {}).get('sourceIp', 'unknown')
+                }
+
+                table.put_item(Item=item)
+
+            return {
+                'statusCode': 200,
+                'body': json.dumps({'status': 'logged'}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+        except Exception as e:
+            print(f"Error logging timing: {e}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': str(e)}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+    return html
+
+
+def _route_gardencam_stats(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    stats = get_gardencam_stats(limit=2000)
+
+    # Get current time and define 8 time windows (last 24h + 7 previous days)
+    now = datetime.now(timezone.utc)
+
+    # Define 8 windows: today (last 24h), yesterday, day before, etc.
+    windows = []
+    for i in range(8):
+        window_end = now - timedelta(days=i)
+        window_start = window_end - timedelta(days=1)
+        windows.append({
+            'start': window_start,
+            'end': window_end,
+            'label': f'{window_start.strftime("%Y-%m-%d")} to {window_end.strftime("%Y-%m-%d")}' if i > 0 else 'Last 24 Hours',
+            'data': []
+        })
+
+    # Group stats into windows
+    for item in stats:
+        ts_str = item.get('timestamp', '')
+        if not ts_str:
+            continue
+
+        try:
+            # Parse ISO timestamp
+            ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+
+            # Find which window this belongs to
+            for window in windows:
+                if window['start'] <= ts < window['end']:
+                    window['data'].append({
+                        'timestamp': ts,
+                        'timestamp_str': ts.strftime('%H:%M'),
+                        'avg_brightness': float(item.get('avg_brightness', 0)),
+                        'mode': item.get('mode', 'unknown')
+                    })
+                    break
+        except Exception as e:
+            print(f"Error parsing timestamp {ts_str}: {e}")
+            continue
+
+    # Sort data within each window by timestamp
+    for window in windows:
+        window['data'].sort(key=lambda x: x['timestamp'])
+
+    # Calculate summary stats
+    total_images = sum(len(w['data']) for w in windows)
+    all_modes = [d['mode'] for w in windows for d in w['data']]
+    day_count = sum(1 for m in all_modes if m == 'day')
+    night_count = sum(1 for m in all_modes if m == 'night')
+    stacking_count = sum(1 for m in all_modes if m == 'stacking')
+    all_brightness = [d['avg_brightness'] for w in windows for d in w['data']]
+    avg_brightness = sum(all_brightness) / len(all_brightness) if all_brightness else 0
+
+    from routes.gardencam import render_gardencam_stats
+    summary = {
+        'total_images': total_images, 'day_count': day_count,
+        'night_count': night_count, 'stacking_count': stacking_count,
+        'avg_brightness': avg_brightness
+    }
+    html += render_gardencam_stats(windows, summary)
+    return html
+
+
+def _route_gardencam_fullres(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="Garden Camera"'
+            }
+        }
+
+    # Get image key from query string
+    query_params = event.get('queryStringParameters', {}) or {}
+    image_key = query_params.get('key', '')
+
+    if image_key:
+        timestamp = parse_timestamp_from_key(image_key) or 'Unknown'
+        image_url = get_presigned_url(image_key)
+
+        # Fetch stats for this image
+        stats = get_image_stats_by_filename(image_key)
+        stats_display = format_stats_for_display(stats)
+
+        from routes.gardencam import render_gardencam_fullres
+        html += render_gardencam_fullres(timestamp, image_url, stats_display)
+    else:
+        html += '<h1>Error: No image specified</h1>'
+    return html
+
+
+def _route_gardencam_display(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="Garden Camera"'
+            }
+        }
+
+    # Get image key from query string
+    query_params = event.get('queryStringParameters', {}) or {}
+    image_key = query_params.get('key', '')
+
+    if image_key:
+        timestamp = parse_timestamp_from_key(image_key) or 'Unknown'
+        image_url = get_presigned_url(image_key)
+
+        # Fetch stats for this image
+        stats = get_image_stats_by_filename(image_key)
+        stats_display = format_stats_for_display(stats)
+
+        from routes.gardencam import render_gardencam_display
+        html += render_gardencam_display(timestamp, image_url, image_key, stats_display)
+    else:
+        html += '<h1>Error: No image specified</h1>'
+    return html
+
+
+def _route_gardencam_gallery(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="Garden Camera"'
+            }
+        }
+
+    # Get query parameters
+    query_params = event.get('queryStringParameters', {}) or {}
+    week_param = query_params.get('week', '')
+    day_param = query_params.get('day', '')
+
+    # Three-level navigation: Weeks → Days → Images
+    # OPTIMIZED: Only load S3 data when needed
+    if not week_param:
+        # Week index - generate deterministically, NO S3 queries
+        weeks = generate_week_list()
+
+        from routes.gardencam import render_gallery_week_index
+        html += render_gallery_week_index(weeks)
+
+    elif week_param and not day_param:
+        # Show days in the selected week - OPTIMIZED: only load images for this week
+        current_week_images = get_images_for_week(week_param)
+
+        if not current_week_images:
+            html += '<h1>Week not found</h1><p><a href="gallery">Back to Gallery Index</a></p>'
+        else:
+            # Group week's images by day
+            days = group_images_by_days(current_week_images)
+
+            from routes.gardencam import render_gallery_days
+            html += render_gallery_days(week_param, days)
+
+    else:
+        # Show images for a specific day - OPTIMIZED: only fetch images for this day
+        # Extract date from day_param: "2026-02-15 (Saturday)" → "2026-02-15"
+        try:
+            date_only = day_param.split(' ')[0]  # Get YYYY-MM-DD part
+            current_day_images = get_images_for_date(date_only)
+        except:
+            current_day_images = []
+
+        if not current_day_images:
+            html += f'<h1>No images found for {day_param}</h1><p><a href="gallery?week={week_param}">Back to {week_param}</a></p>'
+        else:
+            # Get days in this week for prev/next navigation
+            # Only load week data if needed for navigation
+            current_week_images = get_images_for_week(week_param)
+            days = group_images_by_days(current_week_images) if current_week_images else []
+            day_index = None
+            for idx, (day_name, _) in enumerate(days):
+                if day_name == day_param:
+                    day_index = idx
+                    break
+
+            if day_index is None:
+                day_index = 0  # Fallback
+
+            # Build navigation links
+            prev_link = ''
+            next_link = ''
+            if day_index > 0:
+                prev_day = days[day_index - 1][0]
+                prev_link = f'<a href="gallery?week={week_param}&day={prev_day}">← Previous Day</a>'
+            if day_index < len(days) - 1:
+                next_day = days[day_index + 1][0]
+                next_link = f'<a href="gallery?week={week_param}&day={next_day}">Next Day →</a>'
+
+            from routes.gardencam import render_gallery_images_header
+            html += render_gallery_images_header(day_param, week_param, prev_link, next_link)
+
+            html += '<div class="thumbnails">'
+
+            displayed_count = 0
+            displayed_images = []  # Track displayed images for delta calculation
+
+            for img in current_day_images:
+                # Fetch stats for this image
+                stats = get_image_stats_by_filename(img['key'])
+
+                # Skip images that don't meet display criteria
+                if not should_display_image(stats):
+                    continue
+
+                thumb_url = get_presigned_url(img['key'])
+                time_only = img['timestamp'].split()[1] if ' ' in img['timestamp'] else img['timestamp']
+                stats_display = format_stats_for_display(stats)
+
+                # Calculate time delta from previous displayed image
+                time_delta = ""
+                if displayed_images:
+                    previous_img = displayed_images[-1]
+                    time_delta = calculate_time_delta(img['timestamp'], previous_img['timestamp'])
+                    if time_delta:
+                        time_delta = f"{time_delta} "  # Add space after delta
+
+                html += f'''
+                <div class="thumb-container">
+                    <a href="display?key={img['key']}">
+                        <img src="{thumb_url}" alt="{img['timestamp']}">
+                    </a>
+                    <div class="thumb-time">{time_delta}{time_only}{stats_display}</div>
+                </div>
+                '''
+                displayed_count += 1
+                displayed_images.append(img)
+
+            html += '</div>'
+    return html
+
+
+def _route_gardencam_s3_stats(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="Garden Camera"'
+            }
+        }
+
+    # Read cached summary from S3 (updated hourly by gardencam-storage-summary Lambda)
+    s3 = s3_client()
+    cache_key = "stats/s3-storage-summary.json"
+    cache_error = None
+
+    try:
+        response = s3.get_object(Bucket=GARDENCAM_BUCKET, Key=cache_key)
+        summary = json.loads(response['Body'].read().decode('utf-8'))
+    except Exception as e:
+        cache_error = str(e)
+        summary = None
+
+    if summary:
+        # Extract data from cached summary
+        total_files = summary.get('total_count', 0)
+        total_size_gb = summary.get('total_size_gb', 0)
+        costs = summary.get('costs', {})
+        storage_cost = costs.get('monthly_storage_cost_usd', 0)
+        put_cost = costs.get('monthly_put_cost_usd', 0)
+        get_cost = costs.get('monthly_get_cost_usd', 0)
+        total_monthly = costs.get('total_monthly_cost_usd', storage_cost)
+        yearly_total = costs.get('yearly_total_cost_usd', total_monthly * 12)
+        weekly_stats = summary.get('weekly_stats', {})
+        generated_at = summary.get('generated_at', 'Unknown')
+
+        # Sort weeks
+        sorted_weeks = sorted(weekly_stats.items(), reverse=True)
+
+        # Prepare chart data (last 12 weeks, oldest first)
+        chart_weeks = []
+        chart_counts = []
+        chart_sizes = []
+
+        for week, data in reversed(sorted_weeks[:12]):
+            chart_weeks.append(week)
+            chart_counts.append(data['count'])
+            chart_sizes.append(data.get('size_gb', 0))
+
+        from routes.gardencam import render_s3_stats
+        summary_data = {
+            'total_files': total_files, 'total_size_gb': total_size_gb,
+            'total_monthly': total_monthly, 'yearly_total': yearly_total,
+            'storage_cost': storage_cost, 'put_cost': put_cost,
+            'get_cost': get_cost, 'generated_at': generated_at
+        }
+        html += render_s3_stats(summary_data, sorted_weeks, chart_weeks, chart_counts, chart_sizes)
+    else:
+        from routes.gardencam import render_s3_stats_error
+        html += render_s3_stats_error(cache_error)
+    return html
+
+
+def _route_gardencam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    target = '/skycam' if path == '/gardencam' else f'/{stage}/skycam'
+    return {
+        'statusCode': 301,
+        'body': '',
+        'headers': {'Location': target},
+    }
+
+
+def _route_skycam_build_info(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_build_info_page
+    _init_theme(THEME_CSS_JS)
+    return {'statusCode': 200, 'body': render_build_info_page(),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_skycam_timelapse(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_timelapse_index
+    _init_theme(THEME_CSS_JS)
+    qs = event.get('queryStringParameters') or {}
+    focus = qs.get('date')
+    return {'statusCode': 200, 'body': render_timelapse_index(focus_date=focus),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_skycam_timelapse_day(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import render_timelapse_day_fragment
+    qs = event.get('queryStringParameters') or {}
+    date = (qs.get('date') or '').strip()
+    frag = render_timelapse_day_fragment(date) if date else None
+    if frag is None:
+        return {'statusCode': 400,
+                'body': '<p>invalid date</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    return {'statusCode': 200, 'body': frag,
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_skycam_player_poc(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_player_poc_landing
+    _init_theme(THEME_CSS_JS)
+    return {'statusCode': 200, 'body': render_player_poc_landing(),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_skycam_player(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_skycam_player
+    _init_theme(THEME_CSS_JS)
+    qs = event.get('queryStringParameters') or {}
+    mvqs = event.get('multiValueQueryStringParameters') or {}
+    key = qs.get('key', '')
+    src = qs.get('src')
+    srcs = mvqs.get('src') if mvqs and len(mvqs.get('src') or []) > 1 else None
+    def _f(name):
+        v = qs.get(name)
+        if v in (None, ''): return None
+        try: return float(v)
+        except (TypeError, ValueError): return None
+    # Parse ?clip=a-b,c-d,... into [(a,b),(c,d),...].
+    clip_param = qs.get('clip') or ''
+    clips_arg = []
+    for piece in clip_param.split(','):
+        piece = piece.strip()
+        if not piece or '-' not in piece:
+            continue
+        a, _, b = piece.partition('-')
+        try:
+            clips_arg.append((float(a), float(b)))
+        except ValueError:
+            continue
+    page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
+                                src=src, srcs=srcs,
+                                clips=clips_arg or None)
+    if page is None:
+        return {'statusCode': 400,
+                'body': '<h1>400</h1><p>Invalid key.</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    return {'statusCode': 200, 'body': page,
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_skycam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_gardencam_main
+    _init_theme(THEME_CSS_JS)
+    html += render_gardencam_main(images=[], image_cards='',
+                                   poc_banner_html='')
+    return html
+
+
+def _route_lambda_stats_data(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    all_lambda_metrics = get_all_lambda_metrics(days=30)
+
+    # Calculate aggregated stats
+    total_cw_invocations = sum(m['invocations'] for m in all_lambda_metrics.values())
+    total_cw_errors = sum(m['errors'] for m in all_lambda_metrics.values())
+    total_cw_throttles = sum(m['throttles'] for m in all_lambda_metrics.values())
+
+    # Calculate weighted average duration
+    total_duration_weighted = sum(m['avg_duration'] * m['invocations'] for m in all_lambda_metrics.values())
+    avg_cw_duration = total_duration_weighted / total_cw_invocations if total_cw_invocations > 0 else 0
+    max_cw_duration = max((m['max_duration'] for m in all_lambda_metrics.values()), default=0)
+
+    error_rate = (total_cw_errors / total_cw_invocations * 100) if total_cw_invocations > 0 else 0
+
+    # Free tier usage
+    total_gb_seconds = sum(m['gb_seconds'] for m in all_lambda_metrics.values())
+    FREE_TIER_REQUESTS = 1_000_000
+    FREE_TIER_GB_SECONDS = 400_000
+    free_tier = {
+        'requests_used': int(total_cw_invocations),
+        'requests_limit': FREE_TIER_REQUESTS,
+        'requests_pct': round(total_cw_invocations / FREE_TIER_REQUESTS * 100, 3),
+        'gb_seconds_used': round(total_gb_seconds, 1),
+        'gb_seconds_limit': FREE_TIER_GB_SECONDS,
+        'gb_seconds_pct': round(total_gb_seconds / FREE_TIER_GB_SECONDS * 100, 3),
+    }
+
+    # Sort functions by invocation count
+    sorted_functions = sorted(all_lambda_metrics.items(), key=lambda x: x[1]['invocations'], reverse=True)
+
+    # Load DynamoDB logs for IP/User-Agent and path analysis
+    from collections import Counter, defaultdict
+    stats = get_lambda_execution_stats()
+
+    ip_data = defaultdict(lambda: {'count': 0, 'paths': Counter(), 'timestamps': [], 'user_agents': Counter()})
+    ua_data = Counter()
+
+    for item in stats:
+        ip = item.get('ip_address', 'Unknown')
+        ua = item.get('user_agent', 'Unknown')
+        path_item = item.get('path', 'unknown')
+        timestamp = item.get('timestamp', '')
+
+        if ip and ip != 'Unknown':
+            ip_data[ip]['count'] += 1
+            ip_data[ip]['paths'][path_item] += 1
+            ip_data[ip]['user_agents'][ua] += 1
+            if timestamp:
+                try:
+                    ts = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    ip_data[ip]['timestamps'].append(ts)
+                except:
+                    pass
+
+        if ua and ua != 'Unknown':
+            ua_data[ua] += 1
+
+    # Get geolocation for top IPs (limit to 10 to avoid rate limits)
+    import time as time_module
+    top_ips = sorted(ip_data.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
+    ip_geo_data = []
+    country_counts = Counter()
+
+    for ip, data in top_ips:
+        time_module.sleep(0.15)  # Rate limit
+        geo = get_ip_geolocation(ip)
+        top_path = data['paths'].most_common(1)[0] if data['paths'] else ('unknown', 0)
+        top_ua = data['user_agents'].most_common(1)[0] if data['user_agents'] else ('Unknown', 0)
+
+        ip_geo_data.append({
+            'ip': ip,
+            'count': data['count'],
+            'country': geo['country'],
+            'city': geo['city'],
+            'top_path': top_path[0],
+            'top_ua': top_ua[0]
+        })
+        country_counts[geo['country']] += data['count']
+
+    top_uas = ua_data.most_common(10)
+
+    # Path analysis (DynamoDB only, filter out empty paths from backfill)
+    path_counts = Counter(item.get('path') for item in stats if item.get('path'))
+    total_requests = sum(path_counts.values())
+    top_paths = path_counts.most_common(10)
+
+    # Generate histogram data for last 7 days with 28 buckets (6-hour intervals)
+    # Aligned to midnight, 6am, noon, 6pm
+    now = datetime.utcnow()
+
+    # Find midnight 7 days ago
+    seven_days_ago = now - timedelta(days=7)
+    midnight_7_days_ago = seven_days_ago.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    bucket_duration = timedelta(hours=6)  # 6-hour buckets: 0-6, 6-12, 12-18, 18-24
+
+    # Create 28 time buckets aligned to 0, 6, 12, 18 hours
+    buckets = []
+    for i in range(28):
+        bucket_start = midnight_7_days_ago + (i * bucket_duration)
+        bucket_end = bucket_start + bucket_duration
+        # Calculate days ago from the middle of the bucket
+        bucket_mid = bucket_start + (bucket_duration / 2)
+        days_ago = (now - bucket_mid).total_seconds() / 86400
+        buckets.append({
+            'start': bucket_start,
+            'end': bucket_end,
+            'label': f'{days_ago:.1f}',
+            'paths': Counter()
+        })
+
+    # Assign items to buckets
+    for item in stats:
+        timestamp_str = item.get('timestamp', '')
+        path = item.get('path', '')
+        if not timestamp_str or not path:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            if ts < midnight_7_days_ago:
+                continue  # Skip items older than 7 days (before midnight)
+
+            # Find the correct bucket
+            for bucket in buckets:
+                if bucket['start'] <= ts < bucket['end']:
+                    bucket['paths'][path] += 1
+                    break
+        except:
+            continue
+
+    # Get top 10 paths overall for the legend
+    recent_path_counts = Counter()
+    for bucket in buckets:
+        recent_path_counts.update(bucket['paths'])
+    top_recent_paths = [path for path, _ in recent_path_counts.most_common(10)]
+
+    # Prepare histogram data
+    histogram_data = {
+        'labels': [bucket['label'] for bucket in buckets],
+        'datasets': []
+    }
+
+    # Create a dataset for each top path
+    colors = [
+        '#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b',
+        '#fa709a', '#fee140', '#30cfd0', '#a8edea', '#fed6e3'
+    ]
+
+    for i, path in enumerate(top_recent_paths):
+        dataset = {
+            'label': path if path else '(root)',
+            'data': [bucket['paths'].get(path, 0) for bucket in buckets],
+            'backgroundColor': colors[i % len(colors)]
+        }
+        histogram_data['datasets'].append(dataset)
+
+    # Return JSON data
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'summary': {
+                'total_invocations': int(total_cw_invocations),
+                'total_errors': int(total_cw_errors),
+                'total_throttles': int(total_cw_throttles),
+                'error_rate': round(error_rate, 2),
+                'avg_duration': round(avg_cw_duration, 0),
+                'max_duration': round(max_cw_duration, 0)
+            },
+            'free_tier': free_tier,
+            'functions': [
+                {
+                    'name': func_name,
+                    'invocations': int(func_metrics['invocations']),
+                    'errors': int(func_metrics['errors']),
+                    'error_rate': round(func_metrics['error_rate'], 2),
+                    'avg_duration': round(func_metrics['avg_duration'], 0),
+                    'max_duration': round(func_metrics['max_duration'], 0),
+                    'memory_mb': func_metrics['memory_mb'],
+                    'gb_seconds': round(func_metrics['gb_seconds'], 1)
+                }
+                for func_name, func_metrics in sorted_functions
+            ],
+            'paths': [
+                {
+                    'path': path,
+                    'count': count,
+                    'percentage': round((count / total_requests * 100) if total_requests > 0 else 0, 1)
+                }
+                for path, count in top_paths
+            ],
+            'ips': ip_geo_data,
+            'user_agents': [
+                {'user_agent': ua, 'count': count}
+                for ua, count in top_uas
+            ],
+            'histogram': histogram_data
+        }),
+        'headers': {'Content-Type': 'application/json'}
+    }
+
+
+def _route_lambda_stats(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.lambda_stats import render_lambda_stats_page
+    html += render_lambda_stats_page(theme_css_js=THEME_CSS_JS)
+    return html
+
+
+def _route_memspeed_upload(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'WWW-Authenticate': 'Basic realm="memspeed"'
+            }
+        }
+
+    try:
+        body = event.get('body', '{}')
+        if event.get('isBase64Encoded', False):
+            body = base64.b64decode(body).decode('utf-8')
+        data = json.loads(body)
+        success, result = save_memspeed_result(data)
+        if success:
+            return {
+                'statusCode': 200,
+                'body': json.dumps({'message': 'Upload successful', 'key': result}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+        else:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': result}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+    except json.JSONDecodeError as e:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': f'Invalid JSON: {str(e)}'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
+
+def _route_memspeed_download(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'WWW-Authenticate': 'Basic realm="memspeed"'
+            }
+        }
+
+    query_params = event.get('queryStringParameters', {}) or {}
+    filename = query_params.get('file', '')
+    if not filename:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Missing file parameter'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
+    key = f"{MEMSPEED_DOWNLOADS_PREFIX}{filename}"
+    url = get_memspeed_download_url(key)
+    if url:
+        return {
+            'statusCode': 302,
+            'body': '',
+            'headers': {'Location': url}
+        }
+    else:
+        return {
+            'statusCode': 404,
+            'body': json.dumps({'error': 'File not found'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
+
+def _route_memspeed_data(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'WWW-Authenticate': 'Basic realm="memspeed"'
+            }
+        }
+
+    results = get_memspeed_results()
+    # Remove internal _key field
+    for r in results:
+        r.pop('_key', None)
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({'results': results}),
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        }
+    }
+
+
+def _route_memspeed(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
+            'headers': {
+                'Content-Type': 'text/html',
+                'WWW-Authenticate': 'Basic realm="memspeed"'
+            }
+        }
+
+    results = get_memspeed_results()
+    downloads = get_memspeed_downloads()
+    html += render_memspeed_page(results, downloads)
+    return html
+
+
+def _route_rcr(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 302,
+        'headers': {'Location': 'https://k7jrsyq5zi2jexqbrt27zi4nbi0munoe.lambda-url.eu-west-1.on.aws/'},
+        'body': ''
+    }
+
+
+def _route_us_vs_the_machines(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 302,
+        'headers': {'Location': 'https://s3fsc6zzxyablo26kgpwcuhh3m0dqphd.lambda-url.eu-west-1.on.aws/'},
+        'body': ''
+    }
+
+
+def _route_gotg_manifest_json(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    manifest = json.dumps({
+        "name": "Götterdämmerung on the Go",
+        "short_name": "GotG",
+        "start_url": "/gotg",
+        "display": "standalone",
+        "background_color": "#000000",
+        "theme_color": "#000000",
+        "icons": [
+            {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+        ]
+    })
+    return {
+        'statusCode': 200,
+        'body': manifest,
+        'headers': {'Content-Type': 'application/manifest+json'}
+    }
+
+
+def _route_gotg(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'body': render_gotg_page(),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_stereo(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    qs = event.get('queryStringParameters', {}) or {}
+    return {
+        'statusCode': 200,
+        'body': render_stereo_page(
+            img_param=qs.get('img'),
+            video_param=qs.get('video'),
+            svideo_param=qs.get('svideo'),
+            place_param=qs.get('place'),
+            videos_param=qs.get('videos'),
+            beauty_param=qs.get('beauty'),
+        ),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_stereo_nav(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    import json as _j
+    from routes.stereo import get_neighbours
+    qs = event.get('queryStringParameters', {}) or {}
+    img_param = qs.get('img', '')
+    return {
+        'statusCode': 200,
+        'body': _j.dumps(get_neighbours(img_param)),
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+        }
+    }
+
+
+def _route_manim(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {
+        'statusCode': 200,
+        'body': render_manim_page(),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_ai_config(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
+    message = None
+    if method == 'POST':
+        body = event.get('body', '')
+        if event.get('isBase64Encoded'):
+            body = base64.b64decode(body).decode()
+        params = dict(p.split('=', 1) for p in body.split('&') if '=' in p)
+        action = urllib.parse.unquote_plus(params.get('action', 'set'))
+        valid_providers = [p['key'] for p in AI_PROVIDERS]
+
+        if action == 'reorder':
+            # Comma-separated provider keys, in the new order
+            order = urllib.parse.unquote_plus(params.get('order', ''))
+            keys = [k for k in order.split(',') if k in valid_providers]
+            if keys:
+                # Preserve the existing model for each provider; default to first model
+                existing = {e['provider']: e for e in get_failover_chain()}
+                new_chain = []
+                for k in keys:
+                    if k in existing:
+                        new_chain.append(existing[k])
+                    else:
+                        prov = next(p for p in AI_PROVIDERS if p['key'] == k)
+                        new_chain.append({"provider": k, "model": prov["models"][0]})
+                set_failover_chain(new_chain)
+                message = "Failover chain updated"
+        else:
+            app_key = urllib.parse.unquote_plus(params.get('app', ''))
+            provider = urllib.parse.unquote_plus(params.get('provider', ''))
+            model = urllib.parse.unquote_plus(params.get('model', ''))
+            valid_apps = [a['key'] for a in AI_APPS]
+            if app_key in valid_apps and provider in valid_providers:
+                set_ai_config(app_key, provider, model)
+                app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
+                prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
+                message = f"{app_name} switched to {prov_name}"
+
+    configs = get_ai_configs()
+    usage = get_ai_usage()
+    chain = get_failover_chain()
+    health = compute_provider_health(usage)
+    return {
+        'statusCode': 200,
+        'body': render_ai_config_page(configs, usage, message, chain, health),
+        'headers': {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store',
+        }
+    }
+
+
+def _route_pi_fleet(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    pis = get_pi_fleet_status()
+    html += render_pi_fleet_page(pis)
+    return html
+
+
+def _route_t3(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    api_key = TFL_API_KEY
+
+    # Get stop parameter (default to parklands)
+    query_params = event.get('queryStringParameters', {}) or {}
+    stop = query_params.get('stop', 'parklands').lower()
+    if stop not in T3_STOPS:
+        stop = 'parklands'
+
+    arrivals, error = t3_fetch_arrivals(api_key, stop)
+
+    # Check if JSON is requested
+    headers = event.get('headers', {}) or {}
+    accept = headers.get('Accept', headers.get('accept', 'text/html'))
+
+    if 'application/json' in accept:
+        # Return JSON for API consumers (e.g., Android app)
+        duration_ms = (time.time() - start_time) * 1000
+        ip = headers.get('X-Forwarded-For', headers.get('x-forwarded-for', 'Unknown'))
+        user_agent = headers.get('User-Agent', headers.get('user-agent', 'Unknown'))
+        log_execution_metrics(context, duration_ms, path, ip, user_agent)
+
+        if error:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': error}),
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            }
+        return {
+            'statusCode': 200,
+            'body': t3_format_json(arrivals, stop),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        }
+
+    # Return HTML for browsers
+    if error:
+        return {
+            'statusCode': 502,
+            'body': f'<html><body style="font-family:sans-serif;padding:2rem"><h1>T3 Error</h1><p>{error}</p></body></html>',
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+    html += t3_format_html(arrivals)
+    return html
+
+
+def _route_springcam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    images = get_latest_springcam_images(3)
+    if images:
+        from routes.camera import render_camera_latest
+        html += render_camera_latest('Spring Camera', images, theme_css_js=THEME_CSS_JS,
+                                     gallery_path='springcam/gallery', fullres_path='springcam/fullres',
+                                     videos_path='springcam/videos')
+    else:
+        return {
+            'statusCode': 502,
+            'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Spring Camera</h1><p>No images yet.</p></body></html>',
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+    return html
+
+
+def _route_springcam_gallery(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    day_param = query_params.get('day', '')
+    week_param = query_params.get('week', '')
+    month_param = query_params.get('month', '')
+    year_param = query_params.get('year', '')
+    page_param = int(query_params.get('page', '1'))
+    per_page = 20
+
+    if year_param:
+        # Year view: list months
+        months = _months_in_year(year_param, SPRINGCAM_EARLIEST_DATE)
+        # One listing for the whole year — this used to be one
+        # S3 round trip per day and timed the Lambda out (503).
+        counts = count_images_by_date('springcam', year_param)
+        months_with_counts = []
+        for m in reversed(months):
+            days = _days_in_month(m, SPRINGCAM_EARLIEST_DATE)
+            count = sum(counts.get(d, 0) for d in days)
+            if count > 0:
+                months_with_counts.append((m, count))
+        from routes.camera import render_gallery_year
+        html += render_gallery_year('Spring Camera', year_param, months_with_counts,
+                                    gallery_path='gallery', latest_path='../springcam')
+
+    elif month_param:
+        # Month view: weeks with their days
+        weeks = _weeks_in_month(month_param, SPRINGCAM_EARLIEST_DATE)
+        counts = count_images_by_date('springcam', month_param)
+        weeks_with_days = []
+        for w in reversed(weeks):
+            w_days = _days_in_week(w, SPRINGCAM_EARLIEST_DATE)
+            # Filter to only days in this month
+            w_days = [d for d in w_days if d[:7] == month_param]
+            day_counts = []
+            for d in reversed(w_days):
+                count = counts.get(d, 0)
+                if count > 0:
+                    day_counts.append((d, count))
+            if day_counts:
+                weeks_with_days.append((w, day_counts))
+        from routes.camera import render_gallery_month
+        html += render_gallery_month('Spring Camera', month_param, weeks_with_days,
+                                      gallery_path='gallery', latest_path='../springcam',
+                                      year_str=month_param[:4])
+
+    elif week_param:
+        # Week view: list days in this week
+        w_days = _days_in_week(week_param, SPRINGCAM_EARLIEST_DATE)
+        # A week can straddle a month boundary — one listing each.
+        counts = {}
+        for _period in sorted({d[:7] for d in w_days}):
+            counts.update(count_images_by_date('springcam', _period))
+        days_with_counts = []
+        for d in reversed(w_days):
+            count = counts.get(d, 0)
+            if count > 0:
+                days_with_counts.append((d, count))
+        # Determine month for zoom-out (use the Thursday of the week for ISO month)
+        from datetime import date as _date
+        iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+        thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+        month_str = thursday.strftime('%Y-%m')
+        from routes.camera import render_gallery_week
+        html += render_gallery_week('Spring Camera', week_param, days_with_counts,
+                                     gallery_path='gallery', latest_path='../springcam',
+                                     month_str=month_str)
+
+    else:
+        # Day view (default: today)
+        if not day_param:
+            day_param = _today_london()
+        all_day_images = get_springcam_images_for_date(day_param)
+        total = len(all_day_images)
+        total_pages = max(1, math.ceil(total / per_page))
+        page_param = max(1, min(page_param, total_pages))
+        page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+        week_iso = _iso_week_for_date(day_param)
+        from routes.camera import render_gallery_day
+        html += render_gallery_day(
+            'Spring Camera', day_param, page_images,
+            page=page_param, total_pages=total_pages, total_images=total,
+            thumb_key_fn=springcam_thumb_key,
+            gallery_path='gallery', latest_path='../springcam', fullres_path='../springcam/fullres',
+            week_iso=week_iso,
+        )
+    return html
+
+
+def _route_springcam_videos(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    s3 = s3_client()
+    videos = []
+    try:
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='springcam/videos/'):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if not key.endswith('.mp4'):
+                    continue
+                basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                videos.append({
+                    'key': key,
+                    'url': f"play?key={key}",
+                    'size_mb': obj['Size'] / 1048576,
+                    'label': basename,
+                    'is_daily': False,
+                })
+    except Exception as e:
+        print(f"Error listing springcam videos: {e}")
+
+    from routes.camera import render_videos_day
+    html += render_videos_day('Spring Camera', _today_london(), videos,
+                               latest_path='../springcam', gallery_path='gallery',
+                               videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
+    return html
+
+
+def _route_springcam_play(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    video_key = query_params.get('key', '')
+    s3 = s3_client()
+
+    try:
+        s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
+        video_url = s3.generate_presigned_url(
+            'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
+            ExpiresIn=7200)
+        basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
+        from routes.camera import render_skycam_player
+        html += render_skycam_player(video_url, basename, hours=[])
+    except Exception as e:
+        print(f"Error loading springcam video: {e}")
+        html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
+    return html
+
+
+def _route_springcam_fullres(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    params = event.get('queryStringParameters') or {}
+    image_key = params.get('key', '')
+    if image_key:
+        image_url = get_presigned_url(image_key)
+        ts = parse_timestamp_from_key(image_key) or image_key
+        from routes.camera import render_camera_fullres
+        html += render_camera_fullres('Spring Camera', image_url, ts,
+                                      latest_path='../springcam', gallery_path='gallery')
+    else:
+        html += '<p>No image specified.</p>'
+    return html
+
+
+def _route_astro(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.astro import render_astro_hub
+    return {
+        'statusCode': 200,
+        'body': render_astro_hub(theme_css_js=THEME_CSS_JS),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x48(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.astro import render_colour_max_test
+    img_names = [
+        'astrocam_2026-08-22_1_raw_lum.jpg',
+        'astrocam_2026-08-22_2_ratio_mean.jpg',
+        'astrocam_2026-08-22_3_ratio_median.jpg',
+        'astrocam_2026-08-22_4_diff_median.jpg',
+        'astrocam_2026-08-22_lum_keyed.jpg',
+        'astrocam_2026-08-22_per_channel.jpg',
+        'astrocam_2026-08-22_mono.jpg',
+        'canon_2026-08-10_lum_keyed.jpg',
+        'canon_2026-08-10_per_channel.jpg',
+        'canon_2026-08-10_mono.jpg',
+        'eclipticam-v3w_2026-08-22_1_raw_lum.jpg',
+        'eclipticam-v3w_2026-08-22_2_ratio_mean.jpg',
+        'eclipticam-v3w_2026-08-22_3_ratio_median.jpg',
+        'eclipticam-v3w_2026-08-22_4_diff_median.jpg',
+        'eclipticam-v3w_2026-08-22_lum_keyed.jpg',
+        'eclipticam-v3w_2026-08-22_per_channel.jpg',
+        'eclipticam-v3w_2026-08-22_mono.jpg',
+    ]
+    urls = {name: get_presigned_url(f'test/colour-max/{name}', expires_in=86400, bucket=ASTRO_BUCKET)
+            for name in img_names}
+    return {
+        'statusCode': 200,
+        'body': render_colour_max_test(theme_css_js=THEME_CSS_JS, urls=urls),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x49(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    import json as _json
+    m = re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', path)
+    slug = m.group(1)
+    from routes.astro_showcase import (
+        render_astro_showcase_gallery,
+        render_astro_showcase_detail,
+        showcase_category_counts,
+    )
+    items = []
+    try:
+        s3 = s3_client()
+        obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='showcase/index.json')
+        items = _json.loads(obj['Body'].read()).get('items', []) or []
+    except Exception as e:
+        print(f"showcase: no manifest ({e})")
+
+    # Check if slug matches a specific photo ID
+    item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
+    if slug and slug in item_by_id:
+        idx, item = item_by_id[slug]
+        item_copy = dict(item)
+        item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
+                                                    bucket=ASTRO_BUCKET)
+                                  if item_copy.get('image_key') else None)
+        item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
+                                                    bucket=ASTRO_BUCKET)
+                                  if item_copy.get('thumb_key') else None)
+        prev_item = items[idx - 1] if idx > 0 else None
+        next_item = items[idx + 1] if idx + 1 < len(items) else None
+        return {
+            'statusCode': 200,
+            'body': render_astro_showcase_detail(
+                theme_css_js=THEME_CSS_JS,
+                item=item_copy,
+                prev_item=prev_item,
+                next_item=next_item,
+            ),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    # Category filter or full gallery
+    counts = showcase_category_counts(items)
+    known_cats = {c[0] for c in counts}
+    if slug and slug not in known_cats:
+        return {'statusCode': 302,
+                'headers': {'Location': '/astro/photos'}, 'body': ''}
+
+    selected_cat = slug if slug in known_cats else None
+    shown = [e for e in items
+             if not selected_cat or (e.get('category') or 'other') == selected_cat]
+    for e in shown:
+        e['image_url'] = (get_presigned_url(e['image_key'],
+                                            bucket=ASTRO_BUCKET)
+                          if e.get('image_key') else None)
+        e['thumb_url'] = (get_presigned_url(e['thumb_key'],
+                                            bucket=ASTRO_BUCKET)
+                          if e.get('thumb_key') else None)
+    return {
+        'statusCode': 200,
+        'body': render_astro_showcase_gallery(
+            theme_css_js=THEME_CSS_JS,
+            items=shown,
+            counts=counts,
+            selected=selected_cat,
+        ),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x50(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    import json as _json
+    m = re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path)
+    selected = m.group(1)
+    from routes.astro import (render_astro_transients,
+                              render_astro_transient_detail,
+                              transient_category_counts)
+    items = []
+    try:
+        s3 = s3_client()
+        obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='transients/index.json')
+        items = _json.loads(obj['Body'].read()).get('items', []) or []
+    except Exception as e:
+        print(f"transients: no manifest ({e})")
+
+    # 1. Check if selected slug matches an individual picture ID
+    item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
+    if selected and selected in item_by_id:
+        idx, item = item_by_id[selected]
+        item_copy = dict(item)
+        item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
+                                                    bucket=ASTRO_BUCKET)
+                                  if item_copy.get('image_key') else None)
+        item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
+                                                    bucket=ASTRO_BUCKET)
+                                  if item_copy.get('thumb_key') else None)
+        prev_item = items[idx - 1] if idx > 0 else None
+        next_item = items[idx + 1] if idx + 1 < len(items) else None
+        return {
+            'statusCode': 200,
+            'body': render_astro_transient_detail(
+                theme_css_js=THEME_CSS_JS,
+                item=item_copy,
+                prev_item=prev_item,
+                next_item=next_item,
+            ),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    # 2. Category filter or full collection
+    counts = transient_category_counts(items)
+    known = {c[0] for c in counts}
+    if selected and selected not in known:
+        return {'statusCode': 302,
+                'headers': {'Location': '/astro/transients'}, 'body': ''}
+    shown = [e for e in items
+             if not selected or (e.get('category') or 'other') == selected]
+    for e in shown:
+        e['image_url'] = (get_presigned_url(e['image_key'],
+                                            bucket=ASTRO_BUCKET)
+                          if e.get('image_key') else None)
+        e['thumb_url'] = (get_presigned_url(e['thumb_key'],
+                                            bucket=ASTRO_BUCKET)
+                          if e.get('thumb_key') else None)
+    return {
+        'statusCode': 200,
+        'body': render_astro_transients(theme_css_js=THEME_CSS_JS,
+                                        items=shown, counts=counts,
+                                        selected=selected),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x51(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    m = re.search(r'/astro/storage/(\d{4}-\d{2})', path)
+    month = m.group(1) if m else None
+    qp = event.get('queryStringParameters', {}) or {}
+    show_all = str(qp.get('all', '')).lower() in ('1', 'true', 'yes')
+    from routes.astro import render_astro_storage
+    capacity, inventory = get_astro_storage_data()
+    return {
+        'statusCode': 200,
+        'body': render_astro_storage(theme_css_js=THEME_CSS_JS,
+                                     capacity=capacity, inventory=inventory,
+                                     month=month, show_all=show_all),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x52(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.astro import render_astro_disks
+    capacity, inventory = get_astro_storage_data()
+    return {
+        'statusCode': 200,
+        'body': render_astro_disks(theme_css_js=THEME_CSS_JS,
+                                   capacity=capacity, inventory=inventory),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_astro_starcam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
+
+
+def _route_x54(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    m = re.search(
+        r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+        path)
+    camera, night = m.group(1), m.group(2)
+    # The night PAGE is addressed by the logical camera ('eclipticam') and
+    # links here with that same name, but S3 was split by the
+    # unify-cameras change into PHYSICAL prefixes (eclipticam-v3w /
+    # eclipticam-v1). Listing 'eclipticam/nights/<n>/' therefore hit the
+    # dead PRE-SPLIT prefix (last data 2026-06-16, filenames like
+    # v3w_sweep-diff.mp4) and reported "no mp4s for this night yet" on
+    # nights that had eight. Resolve logical -> physical the same way the
+    # camera page does, and search every section so a night published by
+    # only one sub-camera still plays.
+    player_prefixes = {
+        'astrocam': ['astrocam'],
+        'canon': ['canon'],
+        'eclipticam': ['eclipticam-v3w', 'eclipticam-v1'],
+    }.get(camera, [camera])
+    try:
+        s3 = s3_client()
+        mp4_keys = []
+        for pfx in player_prefixes:
+            listing = s3.list_objects_v2(
+                Bucket=ASTRO_BUCKET, Prefix=f'{pfx}/nights/{night}/')
+            for item in listing.get('Contents', []) or []:
+                k = item['Key']
+                if not k.endswith('.mp4'):
+                    continue
+                mp4_keys.append(k)
+        # Prefer the -web encode of each sweep and drop the full-res twin:
+        # publish-night-cam builds sweep-<n>-web.mp4 (1280-wide, denoised,
+        # +faststart, ~4MB) precisely so the site serves that, keeping the
+        # full-res as the download/archive copy. Listing both put every
+        # clip in the player twice, full-res first — a 162MB file whose
+        # moov atom is at the END, so it cannot start until fully loaded.
+        web_stems = {k[:-len('-web.mp4')] for k in mp4_keys
+                     if k.endswith('-web.mp4')}
+        mp4_keys = [k for k in mp4_keys
+                    if k.endswith('-web.mp4') or k[:-4] not in web_stems]
+        # Order: night-root deliverables first (they're the "story of
+        # the night"), then experiments alphabetically.
+        mp4_keys.sort(
+            key=lambda k: (1 if '/experiments/' in k else 0, k))
+        urls = [get_presigned_url(k, bucket=ASTRO_BUCKET)
+                for k in mp4_keys]
+        if not urls:
+            return {'statusCode': 404,
+                    'body': '<p>no mp4s for this night yet</p>',
+                    'headers': {'Content-Type': 'text/html'}}
+        # The underlying render_skycam_player relies on CSS variables
+        # (--bg, --text, --accent, --divider) injected via _init_theme.
+        # Without this the HUD text disappears (text colour unset →
+        # black on dark overlay) and the timeline bar vanishes
+        # (background unset → transparent on white body).
+        from routes.gardencam import _init_theme
+        from routes.astro import render_astro_player
+        _init_theme(THEME_CSS_JS)
+        page = render_astro_player(camera=camera, night=night,
+                                   sources=urls)
+        return {'statusCode': 200, 'body': page,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+    except Exception as e:
+        return {'statusCode': 500,
+                'body': f'<p>error: {e}</p>',
+                'headers': {'Content-Type': 'text/html'}}
+
+
+def _route_x55(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    import json as _json
+    m = re.search(
+        r'/astro/(astrocam|eclipticam|canon)'
+        r'(?:/night/(\d{4}-\d{2}-\d{2})'
+        r'|/week/(\d{4}-\d{2}-\d{2})'
+        r'|/month/(\d{4}-\d{2})'
+        r'|(/all)'
+        r'|(/nights))?/?$',
+        path)
+    camera, night = m.group(1), m.group(2)
+    want_week, want_month = m.group(3), m.group(4)
+    want_all = m.group(5) is not None
+    want_index = m.group(6) is not None
+    is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
+    titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
+              'canon': 'EOS Camera'}
+    # unify-cameras split: each section is now its own top-level S3
+    # camera prefix (eclipticam-v3w / eclipticam-v1) with UN-prefixed
+    # filenames (max.jpg, not v3w_max.jpg). astrocam is a single camera.
+    # Each entry: (s3_camera_prefix, section_label).
+    cam_sections = {
+        'astrocam': [('astrocam', None)],
+        'canon': [('canon', None)],
+        'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
+                       ('eclipticam-v1', 'OV5647 (v1)')],
+    }[camera]
+    # The camera whose nights drive the calendar + thumbnails (the
+    # night camera for eclipticam).
+    primary_cam = cam_sections[0][0]
+    try:
+        s3 = s3_client()
+        paginator = s3.get_paginator('list_objects_v2')
+
+        def list_all_nights():
+            # Union of nights across all section cameras (v1 may publish
+            # nights v3w didn't, and vice versa). This is the O(N) listing
+            # the calendar used to do on every request; deferred so the
+            # manifest fast path skips it entirely.
+            night_set = set()
+            for s3_cam, _label in cam_sections:
+                for page_resp in paginator.paginate(
+                        Bucket=ASTRO_BUCKET, Prefix=f'{s3_cam}/nights/',
+                        Delimiter='/'):
+                    for cp in page_resp.get('CommonPrefixes') or []:
+                        night_set.add(cp['Prefix'].split('/')[-2])
+            return sorted(night_set, reverse=True)
+
+        nights = None  # populated lazily below (manifest path needs none)
+
+        if is_calendar:
+            # Fast path: a precomputed manifest at <camera>/index.json
+            # (written nightly by astro's build-calendar-index) lets us
+            # render the whole calendar from ONE S3 object — no per-night
+            # list/get/presign, which used to make this page slower every
+            # night. The manifest is keyed by the PUBLIC camera name and
+            # already merges the v3w+v1 union for eclipticam. Falls back
+            # to the per-night build below if it isn't published yet.
+            manifest = None
+            try:
+                obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                    Key=f'{camera}/index.json')
+                manifest = _json.loads(obj['Body'].read())
+            except Exception:
+                manifest = None
+
+            from routes.astro import astro_calendar_window
+
+            if want_index:
+                # Links only — no thumbnails, so no presigning at all.
+                # One S3 read and the page size is independent of how
+                # many nights the camera has published.
+                all_nights = (
+                    sorted((e['night'] for e in manifest.get('nights', [])
+                            if e.get('night')), reverse=True)
+                    if manifest is not None else list_all_nights())
+                _, _, weeks, months = astro_calendar_window(all_nights)
+                from routes.astro import render_astro_nights_index
+                return {
+                    'statusCode': 200,
+                    'body': render_astro_nights_index(
+                        theme_css_js=THEME_CSS_JS, title=titles[camera],
+                        camera=camera, weeks=weeks, months=months,
+                        total_nights=len(all_nights)),
+                    'headers': {
+                        'Content-Type': 'text/html; charset=utf-8'}}
+
+            if manifest is not None:
+                by_night = {e['night']: e
+                            for e in manifest.get('nights', [])
+                            if e.get('night')}
+                nights = sorted(by_night, reverse=True)
+                # Window FIRST, presign second: only the nights actually
+                # rendered cost a presign, so the page no longer gets
+                # slower with every night published.
+                selected, window_label, weeks, months = \
+                    astro_calendar_window(nights, week=want_week,
+                                          month=want_month,
+                                          show_all=want_all)
+                nights_meta = []
+                for n in selected:
+                    entry = by_night[n]
+                    tk = entry.get('thumb_key')
+                    if tk and camera == 'eclipticam' and tk.endswith('/thumb.jpg'):
+                        tk = tk[:-9] + 'max.jpg'
+                    thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
+                                 if tk else None)
+                    nights_meta.append({
+                        'night': n,
+                        'thumb_url': thumb_url,
+                        'summary': {
+                            'n_frames': entry.get('n_frames'),
+                            'n_stacked': entry.get('n_stacked'),
+                            'stops': entry.get('stops'),
+                            'verdict': entry.get('verdict'),
+                        }})
+
+            if manifest is None:
+                nights = list_all_nights()
+                if not nights:
+                    from routes.astro import render_astro_stub
+                    return {
+                        'statusCode': 200,
+                        'body': render_astro_stub(
+                            theme_css_js=THEME_CSS_JS,
+                            title=titles[camera]),
+                        'headers': {
+                            'Content-Type': 'text/html; charset=utf-8'}}
+                # Slow fallback (pre-manifest): build calendar cards from
+                # the primary (night) camera per night — thumbnail
+                # (max.jpg, falling back to thumb.jpg) + summary.json for
+                # the "X of Y frames stacked" line. Filenames are
+                # un-prefixed post-split.
+                selected, window_label, weeks, months = \
+                    astro_calendar_window(nights, week=want_week,
+                                          month=want_month,
+                                          show_all=want_all)
+                nights_meta = []
+                for n in selected:
+                    thumb_url = None
+                    summary = None
+                    listing_n = s3.list_objects_v2(
+                        Bucket=ASTRO_BUCKET,
+                        Prefix=f'{primary_cam}/nights/{n}/')
+                    names_n = {it['Key'].split('/')[-1]: it['Key']
+                               for it in listing_n.get('Contents', []) or []}
+                    # Prefer the all-night max stack (more representative of
+                    # the night, no clear/cloudy judgement needed).
+                    # Fall back to thumb.jpg for legacy nights.
+                    for thumb_key in ('max.jpg', 'thumb.jpg'):
+                        if thumb_key in names_n:
+                            thumb_url = get_presigned_url(
+                                names_n[thumb_key], bucket=ASTRO_BUCKET)
+                            break
+                    if 'summary.json' in names_n:
+                        try:
+                            obj = s3.get_object(
+                                Bucket=ASTRO_BUCKET,
+                                Key=names_n['summary.json'])
+                            summary = _json.loads(obj['Body'].read())
+                            if summary:
+                                anchor = summary.get('anchor') or {}
+                                if 'stops' in anchor and anchor['stops'] is not None:
+                                    summary['stops'] = anchor['stops']
+                                elif 'per_s' in anchor:
+                                    import math as _math
+                                    per_s = anchor['per_s']
+                                    pedestal = 2048.0 if camera == 'canon' else 50.0
+                                    exp_gain = 480.0 if camera == 'canon' else 59.9
+                                    hours = summary.get('hours') or []
+                                    min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
+                                    if min_hr is not None:
+                                        norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
+                                        if per_s < 10:
+                                            mean_adu = per_s * exp_gain
+                                        elif per_s > 1000:
+                                            mean_adu = per_s / 64.0
+                                        else:
+                                            if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
+                                                mean_adu = per_s * exp_gain
+                                            else:
+                                                mean_adu = per_s
+                                        summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
+                        except Exception:
+                            pass
+                    nights_meta.append({'night': n, 'thumb_url': thumb_url,
+                                        'summary': summary})
+            # Multi-night combined brightness curve sits at the
+            # primary camera's prefix root (un-prefixed filename),
+            # refreshed daily by combined-brightness.
+            combined_key = f'{primary_cam}/brightness-combined.png'
+            combined_url = None
+            try:
+                s3.head_object(Bucket=ASTRO_BUCKET, Key=combined_key)
+                combined_url = get_presigned_url(
+                    combined_key, bucket=ASTRO_BUCKET)
+            except Exception:
+                pass
+            # Accumulated moon/sun nets: the reference-night max-stack with
+            # Moon-net / sun-net display RETIRED 2026-07-06. The hand-marked
+            # moon/sun nets were scaffolding to bootstrap v3w astrometry,
+            # superseded by Altair-based star-ID (astro
+            # design/retire-moon-marking-v1.md). The pipeline no longer
+            # produces moon-net.png / sun-net.png. The astro template still
+            # guards on these URLs, so None hides both blocks cleanly.
+            moon_net_url = None
+            sun_net_url = None
+            from routes.astro import render_astro_camera_calendar
+            return {
+                'statusCode': 200,
+                'body': render_astro_camera_calendar(
+                    theme_css_js=THEME_CSS_JS, title=titles[camera],
+                    camera=camera, nights_with_meta=nights_meta,
+                    combined_brightness_url=combined_url,
+                    moon_net_url=moon_net_url,
+                    sun_net_url=sun_net_url,
+                    window_label=window_label, weeks=weeks,
+                    months=months),
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+        # Nights nav strip (nights[:14]). Prefer the precomputed manifest
+        # so a per-night page also skips the O(N) listing; fall back to
+        # listing if no manifest is published yet.
+        try:
+            idx_obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                    Key=f'{camera}/index.json')
+            manifest = _json.loads(idx_obj['Body'].read())
+            nights = [e.get('night') for e in manifest.get('nights', [])]
+        except Exception:
+            nights = list_all_nights()
+
+        # One section per camera prefix; each has its own listing with
+        # un-prefixed filenames (post unify-cameras split).
+        sections = []
+        for s3_cam, label in cam_sections:
+            listing = s3.list_objects_v2(
+                Bucket=ASTRO_BUCKET,
+                Prefix=f'{s3_cam}/nights/{night}/')
+            names = {item['Key'].split('/')[-1]: item['Key']
+                     for item in listing.get('Contents', []) or []}
+            summary = None
+            if 'summary.json' in names:
+                obj = s3.get_object(Bucket=ASTRO_BUCKET,
+                                    Key=names['summary.json'])
+                summary = _json.loads(obj['Body'].read())
+                if summary:
+                    anchor = summary.get('anchor') or {}
+                    if 'stops' in anchor and anchor['stops'] is not None:
+                        summary['stops'] = anchor['stops']
+                    elif 'per_s' in anchor:
+                        import math as _math
+                        per_s = anchor['per_s']
+                        pedestal = 2048.0 if camera == 'canon' else 50.0
+                        exp_gain = 480.0 if camera == 'canon' else 59.9
+                        hours = summary.get('hours') or []
+                        min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
+                        if min_hr is not None:
+                            norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
+                            if per_s < 10:
+                                mean_adu = per_s * exp_gain
+                            elif per_s > 1000:
+                                mean_adu = per_s / 64.0
+                            else:
+                                if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
+                                    mean_adu = per_s * exp_gain
+                                else:
+                                    mean_adu = per_s
+                            summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
+            urls = {}
+            for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
+                         'sweep-diff.mp4', 'sweep-detrans.mp4',
+                         'sweep-detrans-deep.mp4',
+                         # -web variants are what the page actually plays
+                         # (1280-wide, +faststart, ~5MB vs 130-180MB).
+                         # They must be presigned here or the route's
+                         # lookup silently falls back to full-res.
+                         'sweep-colour-web.mp4', 'sweep-mono-web.mp4',
+                         'sweep-diff-web.mp4', 'sweep-detrans-web.mp4',
+                         'sweep-detrans-deep-web.mp4',
+                         'poster-colour.jpg', 'poster-mono.jpg',
+                         'poster-diff.jpg', 'poster-detrans.jpg',
+                         'poster-detrans-deep.jpg',
+                         'derot.jpg', 'max.jpg', 'brightness.png',
+                         'thumb.jpg'):
+                if base in names:
+                    urls[base] = get_presigned_url(
+                        names[base], bucket=ASTRO_BUCKET)
+            if summary or urls:
+                sections.append({'label': label,
+                                 'summary': summary, 'urls': urls})
+    except Exception as e:
+        return {'statusCode': 500,
+                'body': f'<p>error: {e}</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    from routes.astro import render_astro_camera_page
+    return {
+        'statusCode': 200,
+        'body': render_astro_camera_page(
+            theme_css_js=THEME_CSS_JS, title=titles[camera],
+            camera=camera, night=night, sections=sections,
+            nights=nights, is_dashboard=False),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    is_dashboard = not path.endswith('/all')
+    import json as _json
+    try:
+        s3 = s3_client()
+        paginator = s3.get_paginator('list_objects_v2')
+        nights = []
+        for page_resp in paginator.paginate(
+                Bucket=STARCAM_BUCKET, Prefix='nights/',
+                Delimiter='/'):
+            for cp in page_resp.get('CommonPrefixes') or []:
+                night_str = cp['Prefix'].split('/')[-2]
+                try:
+                    obj = s3.get_object(
+                        Bucket=STARCAM_BUCKET,
+                        Key=f'nights/{night_str}/summary.json')
+                    s = _json.loads(obj['Body'].read())
+                    agg = s.get('aggregate', {}) or {}
+                    nights.append({
+                        'night': night_str,
+                        'verdict': s.get('verdict', 'no-data'),
+                        'hours_ok': agg.get('hours_ok', 0),
+                        'hours_total': agg.get('hours_total', 0),
+                        'pole_spread_px': agg.get('pole_spread_px'),
+                    })
+                except Exception:
+                    continue
+        nights.sort(key=lambda n: n['night'], reverse=True)
+        hero_url = None
+        hero_night = None
+        if is_dashboard:
+            # Hero plot lives at the bucket root (not under a date).
+            hero_url = get_presigned_url(
+                'nights/brightness.png', bucket=STARCAM_BUCKET)
+            hero_night = nights[0]['night'] if nights else None
+    except Exception as e:
+        return {'statusCode': 500,
+                'body': f'<p>error: {e}</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    from routes.camera import render_starcam_nights_index
+    kwargs = {}
+    if is_dashboard:
+        kwargs = {'weeks_limit': 3, 'hero_url': hero_url,
+                  'hero_night': hero_night}
+    return {'statusCode': 200,
+            'body': render_starcam_nights_index(nights, **kwargs),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam_night(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    import json as _json
+    import re as _re
+    night_str = path.rstrip('/').rsplit('/', 1)[-1]
+    if not _re.fullmatch(r'\d{4}-\d{2}-\d{2}', night_str):
+        return {'statusCode': 400,
+                'body': '<p>invalid night</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    key_prefix = f'nights/{night_str}/'
+    try:
+        s3 = s3_client()
+        obj = s3.get_object(Bucket=STARCAM_BUCKET,
+                            Key=f'{key_prefix}summary.json')
+        summary = _json.loads(obj['Body'].read())
+        # List the night's objects to pick up sum_*.jpg etc.
+        listing = s3.list_objects_v2(Bucket=STARCAM_BUCKET,
+                                     Prefix=key_prefix)
+        urls = {}
+        for item in listing.get('Contents', []) or []:
+            name = item['Key'].split('/')[-1]
+            urls[name] = get_presigned_url(
+                item['Key'], bucket=STARCAM_BUCKET)
+    except s3.exceptions.NoSuchKey:
+        return {'statusCode': 404,
+                'body': f'<p>no data for {night_str}</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    except Exception as e:
+        return {'statusCode': 500,
+                'body': f'<p>error: {e}</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    from routes.camera import render_starcam_night_results
+    return {'statusCode': 200,
+            'body': render_starcam_night_results(night_str, summary, urls),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam_gallery(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    day_param = query_params.get('day', '')
+    week_param = query_params.get('week', '')
+    month_param = query_params.get('month', '')
+    year_param = query_params.get('year', '')
+    page_param = int(query_params.get('page', '1'))
+    per_page = 20
+
+    if year_param:
+        months = _months_in_year(year_param, STARCAM_EARLIEST_DATE)
+        # One listing for the whole year — this used to be one
+        # S3 round trip per day and timed the Lambda out (503).
+        counts = count_images_by_date('starcam', year_param)
+        months_with_counts = []
+        for m in reversed(months):
+            days = _days_in_month(m, STARCAM_EARLIEST_DATE)
+            count = sum(counts.get(d, 0) for d in days)
+            if count > 0:
+                months_with_counts.append((m, count))
+        from routes.camera import render_gallery_year
+        html += render_gallery_year('Star Camera', year_param, months_with_counts,
+                                    gallery_path='gallery', latest_path='../starcam')
+
+    elif month_param:
+        weeks = _weeks_in_month(month_param, STARCAM_EARLIEST_DATE)
+        counts = count_images_by_date('starcam', month_param)
+        weeks_with_days = []
+        for w in reversed(weeks):
+            w_days = _days_in_week(w, STARCAM_EARLIEST_DATE)
+            w_days = [d for d in w_days if d[:7] == month_param]
+            day_counts = []
+            for d in reversed(w_days):
+                count = counts.get(d, 0)
+                if count > 0:
+                    day_counts.append((d, count))
+            if day_counts:
+                weeks_with_days.append((w, day_counts))
+        from routes.camera import render_gallery_month
+        html += render_gallery_month('Star Camera', month_param, weeks_with_days,
+                                      gallery_path='gallery', latest_path='../starcam',
+                                      year_str=month_param[:4])
+
+    elif week_param:
+        w_days = _days_in_week(week_param, STARCAM_EARLIEST_DATE)
+        # A week can straddle a month boundary — one listing each.
+        counts = {}
+        for _period in sorted({d[:7] for d in w_days}):
+            counts.update(count_images_by_date('starcam', _period))
+        days_with_counts = []
+        for d in reversed(w_days):
+            count = counts.get(d, 0)
+            if count > 0:
+                days_with_counts.append((d, count))
+        from datetime import date as _date
+        iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+        thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+        month_str = thursday.strftime('%Y-%m')
+        from routes.camera import render_gallery_week
+        html += render_gallery_week('Star Camera', week_param, days_with_counts,
+                                     gallery_path='gallery', latest_path='../starcam',
+                                     month_str=month_str)
+
+    else:
+        if not day_param:
+            day_param = _today_london()
+        all_day_images = get_starcam_images_for_date(day_param)
+        total = len(all_day_images)
+        total_pages = max(1, math.ceil(total / per_page))
+        page_param = max(1, min(page_param, total_pages))
+        page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+        week_iso = _iso_week_for_date(day_param)
+        from routes.camera import render_gallery_day
+        html += render_gallery_day(
+            'Star Camera', day_param, page_images,
+            page=page_param, total_pages=total_pages, total_images=total,
+            thumb_key_fn=starcam_thumb_key,
+            gallery_path='gallery', latest_path='../starcam', fullres_path='../starcam/fullres',
+            week_iso=week_iso,
+        )
+    return html
+
+
+def _route_starcam_timelapse(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_timelapse_index
+    _init_theme(THEME_CSS_JS)
+    qs = event.get('queryStringParameters') or {}
+    focus = qs.get('date')
+    return {'statusCode': 200,
+            'body': render_timelapse_index(focus_date=focus, camera='starcam'),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam_timelapse_day(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import render_timelapse_day_fragment
+    qs = event.get('queryStringParameters') or {}
+    date = (qs.get('date') or '').strip()
+    frag = render_timelapse_day_fragment(date, camera='starcam') if date else None
+    if frag is None:
+        return {'statusCode': 400, 'body': '<p>invalid date</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    return {'statusCode': 200, 'body': frag,
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam_player(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    from routes.gardencam import _init_theme, render_skycam_player
+    _init_theme(THEME_CSS_JS)
+    qs = event.get('queryStringParameters') or {}
+    mvqs = event.get('multiValueQueryStringParameters') or {}
+    key = qs.get('key', '')
+    src = qs.get('src')
+    srcs = mvqs.get('src') if mvqs and len(mvqs.get('src') or []) > 1 else None
+    def _f(name):
+        v = qs.get(name)
+        if v in (None, ''): return None
+        try: return float(v)
+        except (TypeError, ValueError): return None
+    clip_param = qs.get('clip') or ''
+    clips_arg = []
+    for piece in clip_param.split(','):
+        piece = piece.strip()
+        if not piece or '-' not in piece:
+            continue
+        a, _, b = piece.partition('-')
+        try:
+            clips_arg.append((float(a), float(b)))
+        except ValueError:
+            continue
+    page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
+                                src=src, srcs=srcs,
+                                clips=clips_arg or None)
+    if page is None:
+        return {'statusCode': 400, 'body': '<h1>400</h1><p>Invalid key.</p>',
+                'headers': {'Content-Type': 'text/html'}}
+    return {'statusCode': 200, 'body': page,
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_starcam_videos(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    s3 = s3_client()
+    videos = []
+    try:
+        paginator = s3.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix='videos/'):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if not key.endswith('.mp4'):
+                    continue
+                basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                videos.append({
+                    'key': key,
+                    'url': f"play?key={key}",
+                    'size_mb': obj['Size'] / 1048576,
+                    'label': basename,
+                    'is_daily': False,
+                })
+    except Exception as e:
+        print(f"Error listing starcam videos: {e}")
+
+    from routes.camera import render_videos_day
+    html += render_videos_day('Star Camera', _today_london(), videos,
+                               latest_path='../starcam', gallery_path='gallery',
+                               videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
+    return html
+
+
+def _route_starcam_play(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    video_key = query_params.get('key', '')
+    s3 = s3_client()
+
+    try:
+        s3.head_object(Bucket=STARCAM_BUCKET, Key=video_key)
+        video_url = s3.generate_presigned_url(
+            'get_object', Params={'Bucket': STARCAM_BUCKET, 'Key': video_key},
+            ExpiresIn=7200)
+        basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
+        from routes.camera import render_skycam_player
+        html += render_skycam_player(video_url, basename, hours=[])
+    except Exception as e:
+        print(f"Error loading starcam video: {e}")
+        html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
+    return html
+
+
+def _route_starcam_fullres(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    params = event.get('queryStringParameters') or {}
+    image_key = params.get('key', '')
+    if image_key:
+        image_url = get_presigned_url(image_key, bucket=STARCAM_BUCKET)
+        ts = parse_timestamp_from_key(image_key) or image_key
+        from routes.camera import render_camera_fullres
+        html += render_camera_fullres('Star Camera', image_url, ts,
+                                      latest_path='../starcam', gallery_path='gallery')
+    else:
+        html += '<p>No image specified.</p>'
+    return html
+
+
+def _route_skycam_gallery(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    day_param = query_params.get('day', '')
+    week_param = query_params.get('week', '')
+    month_param = query_params.get('month', '')
+    year_param = query_params.get('year', '')
+    page_param = int(query_params.get('page', '1'))
+    per_page = 20
+
+    if year_param:
+        months = _months_in_year(year_param, SKYCAM_EARLIEST_DATE)
+        # One listing for the whole year — this used to be one
+        # S3 round trip per day and timed the Lambda out (503).
+        counts = count_images_by_date('skycam', year_param)
+        months_with_counts = []
+        for m in reversed(months):
+            days = _days_in_month(m, SKYCAM_EARLIEST_DATE)
+            count = sum(counts.get(d, 0) for d in days)
+            if count > 0:
+                months_with_counts.append((m, count))
+        from routes.camera import render_gallery_year
+        html += render_gallery_year('Sky Camera', year_param, months_with_counts,
+                                    gallery_path='gallery', latest_path='../skycam',
+                                    videos_path='videos')
+
+    elif month_param:
+        weeks = _weeks_in_month(month_param, SKYCAM_EARLIEST_DATE)
+        counts = count_images_by_date('skycam', month_param)
+        weeks_with_days = []
+        for w in reversed(weeks):
+            w_days = _days_in_week(w, SKYCAM_EARLIEST_DATE)
+            w_days = [d for d in w_days if d[:7] == month_param]
+            day_counts = []
+            for d in reversed(w_days):
+                count = counts.get(d, 0)
+                if count > 0:
+                    day_counts.append((d, count))
+            if day_counts:
+                weeks_with_days.append((w, day_counts))
+        from routes.camera import render_gallery_month
+        html += render_gallery_month('Sky Camera', month_param, weeks_with_days,
+                                      gallery_path='gallery', latest_path='../skycam',
+                                      year_str=month_param[:4], videos_path='videos')
+
+    elif week_param:
+        w_days = _days_in_week(week_param, SKYCAM_EARLIEST_DATE)
+        # A week can straddle a month boundary — one listing each.
+        counts = {}
+        for _period in sorted({d[:7] for d in w_days}):
+            counts.update(count_images_by_date('skycam', _period))
+        days_with_counts = []
+        for d in reversed(w_days):
+            count = counts.get(d, 0)
+            if count > 0:
+                days_with_counts.append((d, count))
+        from datetime import date as _date
+        iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+        thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+        month_str = thursday.strftime('%Y-%m')
+        from routes.camera import render_gallery_week
+        html += render_gallery_week('Sky Camera', week_param, days_with_counts,
+                                     gallery_path='gallery', latest_path='../skycam',
+                                     month_str=month_str, videos_path='videos')
+
+    else:
+        if not day_param:
+            day_param = _today_london()
+        all_day_images = get_skycam_images_for_date(day_param)
+        total = len(all_day_images)
+        total_pages = max(1, math.ceil(total / per_page))
+        page_param = max(1, min(page_param, total_pages))
+        page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
+        week_iso = _iso_week_for_date(day_param)
+        skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
+        from routes.camera import render_gallery_day
+        html += render_gallery_day(
+            'Sky Camera', day_param, page_images,
+            page=page_param, total_pages=total_pages, total_images=total,
+            thumb_key_fn=skycam_thumb_key,
+            gallery_path='gallery', latest_path='../skycam', fullres_path='../skycam/fullres',
+            week_iso=week_iso, videos_path='videos',
+            exposure_data=skycam_stats,
+        )
+    return html
+
+
+def _route_skycam_fullres(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    params = event.get('queryStringParameters') or {}
+    image_key = params.get('key', '')
+    if image_key:
+        image_url = get_presigned_url(image_key)
+        ts = parse_timestamp_from_key(image_key) or image_key
+        from routes.camera import render_camera_fullres
+        html += render_camera_fullres('Sky Camera', image_url, ts,
+                                      latest_path='../skycam', gallery_path='gallery')
+    else:
+        html += '<p>No image specified.</p>'
+    return html
+
+
+def _route_skycam_videos(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+
+    s3 = s3_client()
+
+    def _presign_vid(key):
+        return s3.generate_presigned_url(
+            'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
+
+    def _list_videos_for_prefix(prefix):
+        """List mp4 videos under an S3 prefix, return sorted newest-first."""
+        vids = []
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.mp4'):
+                        continue
+                    basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
+                    ts_part = basename.replace('sky_', '')
+                    is_daily = ts_part.endswith('_daily')
+                    is_combined = ts_part.endswith('_combined')
+                    is_night = ts_part.endswith('_night')
+                    is_special = is_daily or is_combined or is_night
+                    if is_daily:
+                        date_part = ts_part.replace('_daily', '')
+                        try:
+                            dt = datetime.strptime(date_part, '%Y%m%d')
+                        except ValueError:
+                            dt = obj['LastModified'].replace(tzinfo=None)
+                        label = 'Full Day'
+                    elif is_combined:
+                        date_part = ts_part.replace('_combined', '')
+                        try:
+                            dt = datetime.strptime(date_part, '%Y%m%d')
+                        except ValueError:
+                            dt = obj['LastModified'].replace(tzinfo=None)
+                        label = 'Full Day (sky + garden)'
+                    elif is_night:
+                        date_part = ts_part.replace('_night', '')
+                        try:
+                            dt = datetime.strptime(date_part, '%Y%m%d')
+                        except ValueError:
+                            dt = obj['LastModified'].replace(tzinfo=None)
+                        label = 'Night Sky'
+                    else:
+                        try:
+                            dt = datetime.strptime(ts_part, '%Y%m%d_%H')
+                            label = dt.strftime('%H:00')
+                        except ValueError:
+                            label = ts_part
+                            dt = obj['LastModified'].replace(tzinfo=None)
+                    vids.append({
+                        'key': key,
+                        'url': f"play?key={key}",
+                        'size_mb': obj['Size'] / 1048576,
+                        'label': label, 'dt': dt,
+                        'is_daily': is_special,
+                    })
+        except Exception as e:
+            print(f"Error listing skycam videos ({prefix}): {e}")
+        vids.sort(key=lambda v: (not v.get('is_daily'), v['dt']), reverse=True)
+        return vids
+
+    def _count_videos_for_day(day_str):
+        """Count videos for a specific day via S3 prefix."""
+        try:
+            day_dt = datetime.strptime(day_str, '%Y-%m-%d')
+        except ValueError:
+            return 0
+        prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+        count = 0
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
+        except Exception:
+            pass
+        return count
+
+    def _count_videos_for_month(month_str):
+        """Count videos for a month."""
+        try:
+            month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
+        except ValueError:
+            return 0
+        prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
+        count = 0
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
+        except Exception:
+            pass
+        return count
+
+    def _days_with_videos_in_month(month_str):
+        """Return list of (day_str, count) for days with videos, newest first."""
+        try:
+            month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
+        except ValueError:
+            return []
+        prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
+        days_seen = {}
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if not key.endswith('.mp4'):
+                        continue
+                    parts = key.split('/')
+                    if len(parts) >= 5:
+                        day_str = f"{parts[2]}-{parts[3]}-{parts[4]}"
+                        days_seen[day_str] = days_seen.get(day_str, 0) + 1
+        except Exception as e:
+            print(f"Error listing skycam videos for month {month_str}: {e}")
+        return sorted(days_seen.items(), reverse=True)
+
+    day_param = query_params.get('day', '')
+    week_param = query_params.get('week', '')
+    month_param = query_params.get('month', '')
+    year_param = query_params.get('year', '')
+    # Video earliest date matches skycam images
+    VIDEO_EARLIEST = SKYCAM_EARLIEST_DATE
+
+    if year_param:
+        months = _months_in_year(year_param, VIDEO_EARLIEST)
+        months_with_counts = []
+        for m in reversed(months):
+            count = _count_videos_for_month(m)
+            if count > 0:
+                months_with_counts.append((m, count))
+        from routes.camera import render_videos_year
+        html += render_videos_year('Sky Camera', year_param, months_with_counts,
+                                   latest_path='../skycam', gallery_path='gallery', videos_path='videos')
+
+    elif month_param:
+        days_list = _days_with_videos_in_month(month_param)
+        from routes.camera import render_videos_month
+        html += render_videos_month('Sky Camera', month_param, days_list,
+                                     latest_path='../skycam', gallery_path='gallery',
+                                     videos_path='videos', year_str=month_param[:4])
+
+    elif week_param:
+        w_days = _days_in_week(week_param, VIDEO_EARLIEST)
+        days_with_counts = []
+        for d in reversed(w_days):
+            count = _count_videos_for_day(d)
+            if count > 0:
+                days_with_counts.append((d, count))
+        from datetime import date as _date
+        iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
+        thursday = _date.fromisocalendar(iso_year, iso_week, 4)
+        month_str = thursday.strftime('%Y-%m')
+        from routes.camera import render_videos_week
+        html += render_videos_week('Sky Camera', week_param, days_with_counts,
+                                    latest_path='../skycam', gallery_path='gallery',
+                                    videos_path='videos', month_str=month_str)
+
+    else:
+        # Day view (default: today, falling back to most recent day with videos)
+        if not day_param:
+            day_param = _today_london()
+            try:
+                day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+            except ValueError:
+                day_dt = datetime.utcnow()
+                day_param = day_dt.strftime('%Y-%m-%d')
+            prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+            videos = _list_videos_for_prefix(prefix)
+            # If today is empty, find the most recent day with videos using
+            # delimiter-based S3 listing (3 requests: year→month→day) rather
+            # than scanning backwards one day at a time (up to 30 requests).
+            if not videos:
+                def _most_recent_prefix(prefix):
+                    """Return the lexicographically last common prefix under prefix/."""
+                    resp = s3.list_objects_v2(
+                        Bucket=GARDENCAM_BUCKET, Prefix=prefix, Delimiter='/')
+                    prefixes = [p['Prefix'] for p in resp.get('CommonPrefixes', [])]
+                    return prefixes[-1] if prefixes else None
+                year_pfx  = _most_recent_prefix('skycam/videos/')
+                month_pfx = _most_recent_prefix(year_pfx)  if year_pfx  else None
+                day_pfx   = _most_recent_prefix(month_pfx) if month_pfx else None
+                if day_pfx:
+                    videos = _list_videos_for_prefix(day_pfx)
+                    # Parse YYYY/MM/DD from the prefix
+                    parts = day_pfx.rstrip('/').split('/')
+                    if len(parts) >= 3:
+                        day_param = f"{parts[-3]}-{parts[-2]}-{parts[-1]}"
+        else:
+            try:
+                day_dt = datetime.strptime(day_param, '%Y-%m-%d')
+            except ValueError:
+                day_dt = datetime.utcnow()
+                day_param = day_dt.strftime('%Y-%m-%d')
+            prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
+            videos = _list_videos_for_prefix(prefix)
+        week_iso = _iso_week_for_date(day_param)
+        try:
+            skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
+        except Exception as e:
+            print(f"skycam stats unavailable: {e}")
+            skycam_stats = []
+        from routes.camera import render_videos_day
+        html += render_videos_day('Sky Camera', day_param, videos,
+                                   latest_path='../skycam', gallery_path='gallery',
+                                   videos_path='videos', week_iso=week_iso,
+                                   exposure_data=skycam_stats)
+    return html
+
+
+def _route_skycam_starcam(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    s3 = s3_client()
+    from collections import defaultdict
+    nights = defaultdict(int)  # evening_date -> count
+
+    paginator = s3.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/stacked/'):
+        for obj in page.get('Contents', []):
+            key = obj['Key']
+            # Extract timestamp from filename: sky_YYYYMMDD_HHMMSS_stacked.jpg
+            fname = key.rsplit('/', 1)[-1]
+            if not fname.endswith('_stacked.jpg'):
+                continue
+            ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
+            try:
+                ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
+                # Heuristic: UTC hour < 12 = belongs to previous evening
+                if ts.hour < 12:
+                    evening = (ts - timedelta(days=1)).strftime('%Y-%m-%d')
+                else:
+                    evening = ts.strftime('%Y-%m-%d')
+                nights[evening] += 1
+            except ValueError:
+                pass
+
+    sorted_nights = sorted(nights.items(), reverse=True)
+    from routes.camera import render_starcam_index
+    html += render_starcam_index(sorted_nights)
+    return html
+
+
+def _route_skycam_starcam_night(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    evening_date = query_params.get('date', '')
+    if not evening_date:
+        html += '<p style="color:#888; text-align:center;">No date specified.</p>'
+    else:
+        s3 = s3_client()
+        from zoneinfo import ZoneInfo
+        ev_dt = datetime.strptime(evening_date, '%Y-%m-%d')
+        morning_dt = ev_dt + timedelta(days=1)
+
+        # Search evening date (hours >= 12 UTC) and morning date (hours < 12 UTC)
+        stacked = []
+        for search_date, hour_filter in [(ev_dt, lambda h: h >= 12), (morning_dt, lambda h: h < 12)]:
+            prefix = f"skycam/{search_date.strftime('%Y/%m/%d')}/"
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
+                    for obj in page.get('Contents', []):
+                        key = obj['Key']
+                        if '_stacked.jpg' not in key:
+                            continue
+                        fname = key.rsplit('/', 1)[-1]
+                        ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
+                        try:
+                            ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
+                            if hour_filter(ts.hour):
+                                local_ts = ts.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/London"))
+                                url = s3.generate_presigned_url(
+                                    'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
+                                    ExpiresIn=7200)
+                                # Read S3 metadata for stats
+                                meta = {}
+                                try:
+                                    head = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
+                                    meta = head.get('Metadata', {})
+                                except Exception:
+                                    pass
+                                local_h = local_ts.hour + local_ts.minute / 60
+                                delta = local_h if local_h < 12 else local_h - 24
+                                stacked.append({
+                                    'url': url,
+                                    'key': key,
+                                    'timestamp': local_ts.strftime('%H:%M BST'),
+                                    'sort_key': ts.isoformat(),
+                                    'stack_count': meta.get('stack-count', ''),
+                                    'darkest_100_avg': meta.get('darkest-100-avg', ''),
+                                    'delta': round(delta, 2),
+                                })
+                        except ValueError:
+                            pass
+            except Exception:
+                pass
+
+        stacked.sort(key=lambda x: x.get('sort_key', x['timestamp']))
+
+        # Query DynamoDB for hourly brightness through the night
+        # Filenames are predictable: sky_YYYYMMDD_HH0000.jpg
+        brightness_data = []
+        try:
+            from zoneinfo import ZoneInfo
+            dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
+            stats_table = dynamodb.Table('gardencam-stats')
+            # Evening hours (18-23 UTC on evening date) + morning hours (00-11 UTC on morning date)
+            hours = [(ev_dt, h) for h in range(18, 24)] + [(morning_dt, h) for h in range(0, 12)]
+            for dt, h in hours:
+                filename = f"sky_{dt.strftime('%Y%m%d')}_{h:02d}0000.jpg"
+                try:
+                    resp = stats_table.get_item(Key={'filename': filename})
+                    item = resp.get('Item')
+                    if item:
+                        avg_b = float(item.get('avg_brightness', 0))
+                        utc_ts = datetime(dt.year, dt.month, dt.day, h, tzinfo=timezone.utc)
+                        local_ts = utc_ts.astimezone(ZoneInfo("Europe/London"))
+                        local_h = local_ts.hour + local_ts.minute / 60
+                        delta = local_h if local_h < 12 else local_h - 24
+                        brightness_data.append({
+                            'time': local_ts.strftime('%H:%M'),
+                            'value': round(avg_b, 1),
+                            'sort_key': utc_ts.isoformat(),
+                            'delta': round(delta, 2),
+                        })
+                except Exception:
+                    pass
+            brightness_data.sort(key=lambda x: x['sort_key'])
+        except Exception as e:
+            print(f"Starcam brightness query failed: {e}")
+
+        from routes.camera import render_starcam_night
+        html += render_starcam_night(evening_date, stacked, brightness_data)
+    return html
+
+
+def _route_skycam_clouds(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    s3 = s3_client()
+    days = []
+    today = datetime.utcnow()
+    miss_streak = 0
+    for back in range(0, 365):
+        d = today - timedelta(days=back)
+        ymd_path = d.strftime("%Y/%m/%d")
+        ymd_flat = d.strftime("%Y%m%d")
+        prefix = f"skycam/videos/{ymd_path}/"
+        try:
+            resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
+        except Exception:
+            resp = {}
+        hours = []
+        for obj in resp.get("Contents", []):
+            k = obj["Key"]
+            name = k.rsplit("/", 1)[-1]
+            # sky_YYYYMMDD_HH.mp4 — the per-hour clips
+            if not (name.startswith(f"sky_{ymd_flat}_") and name.endswith(".mp4")):
+                continue
+            tag = name[len(f"sky_{ymd_flat}_"):-len(".mp4")]
+            if not (len(tag) == 2 and tag.isdigit()):
+                continue   # skip _daily, _combined, _night, etc.
+            hours.append({
+                "hh":      tag,
+                "url":     s3.generate_presigned_url(
+                              'get_object',
+                              Params={'Bucket': GARDENCAM_BUCKET, 'Key': k},
+                              ExpiresIn=14400),
+                "size_mb": round(obj["Size"] / 1024 / 1024, 1),
+            })
+        if hours:
+            hours.sort(key=lambda h: h["hh"])
+            days.append({
+                "date":  d.strftime("%Y-%m-%d"),
+                "hours": hours,
+            })
+            miss_streak = 0
+        else:
+            miss_streak += 1
+            if miss_streak > 60:
+                break
+    days.reverse()  # oldest first for chronological playback
+
+    from routes.camera import render_clouds_movie
+    return {
+        'statusCode': 200,
+        'body': render_clouds_movie(days),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'},
+    }
+
+
+def _route_skycam_play(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    query_params = event.get('queryStringParameters', {}) or {}
+    s3 = s3_client()
+
+    # Find the video to play: ?key=... or default to today's combined, falling back to daily
+    video_key = query_params.get('key', '')
+    if not video_key:
+        today = datetime.utcnow()
+        date_str = today.strftime('%Y%m%d')
+        combined_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_combined.mp4"
+        daily_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_daily.mp4"
+        try:
+            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=combined_key)
+            video_key = combined_key
+        except Exception:
+            video_key = daily_key
+
+    try:
+        s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
+        video_url = s3.generate_presigned_url(
+            'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
+            ExpiresIn=7200)
+        basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+
+        # Find the hourly segments for the clock overlay (convert UTC → London)
+        from zoneinfo import ZoneInfo
+        hours = []
+        video_basename = video_key.rsplit('/', 1)[-1]
+        is_multi = any(x in video_basename for x in ['_daily', '_combined', '_night'])
+
+        if is_multi:
+            # Daily/combined: list all hourly segments for the clock
+            day_prefix = video_key.rsplit('/', 1)[0] + '/'
+            try:
+                resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
+                for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
+                    k = obj['Key']
+                    if k.endswith('.mp4') and not any(x in k for x in ['_daily', '_combined', '_night']):
+                        b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
+                        try:
+                            h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
+                            local_h = h.astimezone(ZoneInfo("Europe/London"))
+                            hours.append(local_h.hour)
+                        except ValueError:
+                            pass
+            except Exception:
+                pass
+        else:
+            # Single hourly video: just that hour
+            b = video_basename.replace('.mp4', '').replace('sky_', '')
+            try:
+                h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
+                local_h = h.astimezone(ZoneInfo("Europe/London"))
+                hours.append(local_h.hour)
+            except ValueError:
+                pass
+
+        from routes.camera import render_skycam_player
+        html += render_skycam_player(video_url, basename, hours)
+    except Exception as e:
+        print(f"Error loading video for player: {e}")
+        html += '<p style="color:#888; text-align:center; margin-top:3rem;">No daily video available yet today.</p>'
+    return html
+
+
+def _route_srfcplus(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
+        }
+    srfc_cookie = get_srfcplus_cookie()
+    if not srfc_cookie:
+        html = render_srfcplus_setup_page('No session cookie saved yet.')
+    else:
+        proxied, err = fetch_srfcplus_homepage(srfc_cookie)
+        if err == 'expired':
+            html = render_srfcplus_setup_page('Session expired — please paste a fresh cookie.')
+        elif err:
+            html = render_srfcplus_setup_page(f'Could not reach portal: {err}')
+        else:
+            return {'statusCode': 200, 'body': proxied, 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+    return html
+
+
+def _route_srfcplus_update_cookie(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
+        }
+    if event.get('requestContext', {}).get('http', {}).get('method') == 'POST' or event.get('httpMethod') == 'POST':
+        form_body = event.get('body') or ''
+        import urllib.parse as _up
+        params = dict(_up.parse_qsl(form_body))
+        new_cookie = params.get('cookie', '').strip()
+        if new_cookie:
+            save_srfcplus_cookie(new_cookie)
+            return {'statusCode': 302, 'body': '', 'headers': {'Location': '/srfcplus'}}
+        html = render_srfcplus_setup_page('No cookie provided — please paste the cookie string.')
+    else:
+        html = render_srfcplus_setup_page()
+    return html
+
+
+def _route_srfcplus_bookings(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({'error': 'Unauthorized'}),
+            'headers': {'Content-Type': 'application/json', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
+        }
+    srfc_cookie = get_srfcplus_cookie()
+    if not srfc_cookie:
+        return {'statusCode': 200, 'body': json.dumps({'error': 'No session cookie — visit /srfcplus/update-cookie'}), 'headers': {'Content-Type': 'application/json'}}
+    return {
+        'statusCode': 200,
+        'body': json.dumps(fetch_srfcplus_bookings(srfc_cookie, sport='padel')),
+        'headers': {'Content-Type': 'application/json'}
+    }
+
+
+def _route_root(rq):
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    html = ''
+    html += render_contents_page()
+    return html
+
+
+# ---------------------------------------------------------------------------
+# The route table.
+#
+# This replaced a 2,700-line if/elif chain. Two structures, because the chain
+# encoded two different things:
+#
+#   _ROUTES_EXACT    whole-path equality -- a dict, so order is irrelevant
+#   _ROUTES_PATTERN  prefix and regex matches -- a LIST, because order IS the
+#                    semantics: /skycam/player is an exact route but
+#                    /skycam/play is a prefix, and the first match wins.
+#
+# Exact matches are tried first, so an exact route ALWAYS beats a pattern.
+# Three routes genuinely overlap -- /skycam/player and /skycam/player-poc sit
+# under the /skycam/play prefix, /starcam/player under /starcam/play -- and in
+# the original chain each exact branch appeared before its competing prefix,
+# so exact won there too. Behaviour is preserved; test_route_table.py pins
+# that list, and fails if a new overlap appears whose ordering nobody checked.
+#
+# Handlers take the request bundle and return either a complete response
+# dict (returned as-is) or an HTML string (wrapped by the epilogue below).
+# ---------------------------------------------------------------------------
+
+_ROUTES_EXACT = {
+    '/favicon.ico': _route_favicon_ico,
+    '/favicon.png': _route_favicon_png,
+    '/tick.png': _route_favicon_png,
+    '/favicon.svg': _route_favicon_svg,
+    '/robots.txt': _route_robots_txt,
+    '/event': _route_event,
+    '/gitinfo': _route_gitinfo,
+    '/cv': _route_cv,
+    '/contents': _route_contents,
+    '/site-test': _route_site_test,
+    '/privacy': _route_privacy,
+    '/gardencam': _route_gardencam,
+    '/skycam/build-info': _route_skycam_build_info,
+    '/skycam/timelapse': _route_skycam_timelapse,
+    '/skycam/timelapse-day': _route_skycam_timelapse_day,
+    '/skycam/player-poc': _route_skycam_player_poc,
+    '/skycam/player': _route_skycam_player,
+    '/skycam': _route_skycam,
+    '/lambda-stats/data': _route_lambda_stats_data,
+    '/lambda-stats': _route_lambda_stats,
+    '/memspeed': _route_memspeed,
+    '/rcr': _route_rcr,
+    '/us-vs-the-machines': _route_us_vs_the_machines,
+    '/gotg/manifest.json': _route_gotg_manifest_json,
+    '/gotg': _route_gotg,
+    '/stereo': _route_stereo,
+    '/stereo-nav': _route_stereo_nav,
+    '/manim': _route_manim,
+    '/ai-config': _route_ai_config,
+    '/pi-fleet': _route_pi_fleet,
+    '/t3': _route_t3,
+    '/springcam': _route_springcam,
+    '/astro': _route_astro,
+    '/astro/starcam': _route_astro_starcam,
+    '/starcam': _route_starcam,
+    '/starcam/nights': _route_starcam,
+    '/starcam/nights/all': _route_starcam,
+    '/starcam/timelapse': _route_starcam_timelapse,
+    '/starcam/timelapse-day': _route_starcam_timelapse_day,
+    '/starcam/player': _route_starcam_player,
+    '/skycam/starcam': _route_skycam_starcam,
+    '/skycam/clouds': _route_skycam_clouds,
+    '/srfcplus': _route_srfcplus,
+    '/srfcplus/update-cookie': _route_srfcplus_update_cookie,
+    '/srfcplus/bookings': _route_srfcplus_bookings,
+    '': _route_root,
+    '/': _route_root,
+}
+
+_ROUTES_PATTERN = [
+    (_PREFIX, '/calendaralarm', _route_calendaralarm),
+    (_PREFIX, '/glacier', _route_glacier),
+    (_PREFIX, '/gardencam/capture', _route_gardencam_capture),
+    (_PREFIX, '/gardencam/timing', _route_gardencam_timing),
+    (_PREFIX, '/gardencam/stats', _route_gardencam_stats),
+    (_PREFIX, '/gardencam/fullres', _route_gardencam_fullres),
+    (_PREFIX, '/gardencam/display', _route_gardencam_display),
+    (_PREFIX, '/gardencam/gallery', _route_gardencam_gallery),
+    (_PREFIX, '/gardencam/s3-stats', _route_gardencam_s3_stats),
+    (_PREFIX, '/memspeed/upload', _route_memspeed_upload),
+    (_PREFIX, '/memspeed/download', _route_memspeed_download),
+    (_PREFIX, '/memspeed/data', _route_memspeed_data),
+    (_PREFIX, '/springcam/gallery', _route_springcam_gallery),
+    (_PREFIX, '/springcam/videos', _route_springcam_videos),
+    (_PREFIX, '/springcam/play', _route_springcam_play),
+    (_PREFIX, '/springcam/fullres', _route_springcam_fullres),
+    (_PRED, lambda route: route.endswith('/astro/color-max-test') or route.endswith('/astro/colour-max-test'), _route_x48),
+    (_PRED, lambda route: re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', route), _route_x49),
+    (_PRED, lambda route: re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', route), _route_x50),
+    (_PRED, lambda route: re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route), _route_x51),
+    (_PRED, lambda route: re.search(r'/astro/disks/?$', route), _route_x52),
+    (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
+    (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/month/\d{4}-\d{2}|/all|/nights)?/?$', route), _route_x55),
+    (_PREFIX, '/starcam/night/', _route_starcam_night),
+    (_PREFIX, '/starcam/gallery', _route_starcam_gallery),
+    (_PREFIX, '/starcam/videos', _route_starcam_videos),
+    (_PREFIX, '/starcam/play', _route_starcam_play),
+    (_PREFIX, '/starcam/fullres', _route_starcam_fullres),
+    (_PREFIX, '/skycam/gallery', _route_skycam_gallery),
+    (_PREFIX, '/skycam/fullres', _route_skycam_fullres),
+    (_PREFIX, '/skycam/videos', _route_skycam_videos),
+    (_PREFIX, '/skycam/starcam/night', _route_skycam_starcam_night),
+    (_PREFIX, '/skycam/play', _route_skycam_play),
+]
+
+
+def _resolve_route(route):
+    """The route -> handler lookup. Returns None for an unclaimed path (404)."""
+    handler = _ROUTES_EXACT.get(route)
+    if handler is not None:
+        return handler
+    for kind, key, handler in _ROUTES_PATTERN:
+        if kind is _PREFIX:
+            if route.startswith(key):
+                return handler
+        elif key(route):
+            return handler
+    return None
+
+
 def lambda_handler(event, context):
     """Thin wrapper: time the dispatch, then emit the access log line.
 
@@ -2734,2782 +6008,19 @@ def _dispatch(event, context):
     ip = headers.get('X-Forwarded-For') or headers.get('x-forwarded-for', 'Unknown')
     print(f'X-Forwarded-For = {ip}')
 
-    # Favicon routes (/favicon.ico, /favicon.png, /favicon.svg, /tick.png)
-    if route == '/favicon.ico':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'image/x-icon',
-                'Cache-Control': 'public, max-age=86400',
-            },
-            'isBase64Encoded': True,
-            'body': FAVICON_ICO_B64 or FAVICON_PNG_B64,
-        }
-    if route in ('/favicon.png', '/tick.png'):
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'image/png',
-                'Cache-Control': 'public, max-age=86400',
-            },
-            'isBase64Encoded': True,
-            'body': FAVICON_PNG_B64,
-        }
-    if route == '/favicon.svg':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'image/svg+xml',
-                'Cache-Control': 'public, max-age=86400',
-            },
-            'body': FAVICON_SVG,
-        }
-
-    # robots.txt — reduce bot traffic and unnecessary invocations
-    if route == '/robots.txt':
-        return {
-            'statusCode': 200,
-            'headers': {'Content-Type': 'text/plain'},
-            'body': (
-                'User-agent: *\n'
-                'Allow: /\n'
-                'Allow: /cv\n'
-                'Allow: /contents\n'
-                'Allow: /privacy\n'
-                'Disallow: /event\n'
-                'Disallow: /gitinfo\n'
-                'Disallow: /lambda-stats\n'
-                'Disallow: /gardencam\n'
-                'Disallow: /memspeed\n'
-                'Disallow: /pi-fleet\n'
-                'Disallow: /t3\n'
-                'Disallow: /rcr\n'
-                'Disallow: /us-vs-the-machines\n'
-                'Disallow: /ai-config\n'
-            )
-        }
-
-    if route == '/event':   # debugging info
-        html += '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>'
-        html += 'log_group = ' + context.log_group_name + '<br>'
-        html += 'log_stream = ' + context.log_stream_name + '<br>' 
-        html += 'path = ' + path + '<br>'
-        html += 'stage = ' + stage + '<br>'
-        html += 'root = ' + root + '<br>'
-        html += 'pwd = ' + os.getcwd() + '<br>'
-        for ff in os.listdir(os.getcwd()):
-            html += ff + ', '
-        html += '<br>'
-        for key in event.keys():
-            html += "_______________________" + key + "_________________________<br>"
-            html += pformat(event[key]).replace(',', ',<br>') + "<br><br>"
-    elif route == '/gitinfo':
-        html = open("gitinfo.html", "r").read()
-    elif route == '/cv':
-        html += open('cv.html', 'r').read()
-    elif route == '/contents':
-        html += render_contents_page()
-    elif route == '/site-test':
-        html = render_site_test_page()
-    elif route == '/privacy':
-        html = render_privacy_page()
-    elif route.startswith('/calendaralarm'):
-        # calendaralarm — CRUD webapp + JSON API for standing alarm rules.
-        # Basic Auth on every subpath (page + API). The pip poller reads
-        # GET /calendaralarm/api/rules; the page is the human CRUD UI.
-        if not check_basic_auth(event, CALENDARALARM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="calendaralarm"'
-                }
-            }
-        from routes import calendaralarm as _ca
-        # Strip the optional /{stage} prefix, then the /calendaralarm root.
-        rel = path
-        if rel.startswith(f'/{stage}/calendaralarm'):
-            rel = rel[len(f'/{stage}'):]
-        subpath = rel[len('/calendaralarm'):]  # '' | '/api/rules' | '/api/rules/<id>'
-        method = event.get('requestContext', {}).get('http', {}).get('method') \
-            or event.get('httpMethod', 'GET')
-        if subpath.startswith('/api'):
-            body = event.get('body', '') or ''
-            if event.get('isBase64Encoded', False):
-                body = base64.b64decode(body).decode('utf-8')
-            return _ca.handle_api(method, subpath[len('/api'):], body)
-        # Page (GET); anything non-GET on the page path is not meaningful.
-        return _ca.render_page()
-
-    elif route.startswith('/glacier'):
-        # glacier-app archive contents — private by default, Basic Auth on
-        # every subpath. Page HTML is rendered by glacier-app site/render.py
-        # into the bucket; thumbs redirect to short-lived presigned URLs.
-        if not check_basic_auth(event, GLACIER_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Glacier Archive"'
-                }
-            }
-        subpath = path.split('/glacier', 1)[1]
-        s3_glacier = s3_client(GLACIER_REGION)
-        if subpath.startswith('/thumbs/'):
-            rel = subpath[len('/thumbs/'):]
-            # users/peter/thumbs/<archive>/<nn>.jpg — refuse traversal
-            if '..' in rel or not rel.endswith('.jpg'):
-                return {'statusCode': 404, 'body': 'not found',
-                        'headers': {'Content-Type': 'text/plain'}}
-            url = s3_glacier.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': GLACIER_BUCKET,
-                        'Key': f'{GLACIER_PREFIX}thumbs/{rel}'},
-                ExpiresIn=300)
-            return {'statusCode': 302,
-                    'headers': {'Location': url,
-                                'Cache-Control': 'private, max-age=290'}}
-        try:
-            page = s3_glacier.get_object(
-                Bucket=GLACIER_BUCKET,
-                Key=f'{GLACIER_PREFIX}site/index.html')['Body'].read()
-            return {'statusCode': 200, 'body': page.decode('utf-8'),
-                    'headers': {'Content-Type': 'text/html',
-                                'Cache-Control': 'private, max-age=300'}}
-        except Exception as e:
-            print(f"glacier page fetch failed: {e}")
-            return {'statusCode': 503,
-                    'body': '<html><body><h1>Glacier page not generated yet'
-                            '</h1><p>Run glacier-app site/render.py.</p>'
-                            '</body></html>',
-                    'headers': {'Content-Type': 'text/html'}}
-    elif route.startswith('/gardencam/capture'):
-        # Capture command endpoint
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'error': 'Unauthorized'}),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Write command to DynamoDB
-        try:
-            dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-            table = dynamodb.Table('gardencam-commands')
-
-            command_id = f"capture_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-            item = {
-                'command_id': command_id,
-                'command': 'take_picture',
-                'status': 'pending',
-                'created_at': datetime.utcnow().isoformat(),
-                'requested_by': event['headers'].get('X-Forwarded-For', 'unknown')
-            }
-
-            table.put_item(Item=item)
-
-            return {
-                'statusCode': 200,
-                'body': json.dumps({'message': 'Capture command sent! Image will appear shortly.', 'command_id': command_id}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-        except Exception as e:
-            print(f"Error writing capture command: {e}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'error': 'Failed to send capture command'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
-    elif route.startswith('/gardencam/timing'):
-        # Page load timing endpoint
-        if method == 'POST':
-            try:
-                from decimal import Decimal
-
-                body = event.get('body', '{}')
-                timing_data = json.loads(body)
-
-                # Log to DynamoDB
-                if BOTO3_AVAILABLE:
-                    dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-                    table = dynamodb.Table('gardencam-page-timing')
-
-                    item = {
-                        'timestamp': timing_data.get('timestamp', datetime.utcnow().isoformat()),
-                        'page_load_ms': Decimal(str(timing_data.get('pageLoadTime', 0))),
-                        'dom_ready_ms': Decimal(str(timing_data.get('domReadyTime', 0))),
-                        'server_response_ms': Decimal(str(timing_data.get('serverResponseTime', 0))),
-                        'user_agent': timing_data.get('userAgent', '')[:500],
-                        'ip': event.get('requestContext', {}).get('identity', {}).get('sourceIp', 'unknown')
-                    }
-
-                    table.put_item(Item=item)
-
-                return {
-                    'statusCode': 200,
-                    'body': json.dumps({'status': 'logged'}),
-                    'headers': {'Content-Type': 'application/json'}
-                }
-            except Exception as e:
-                print(f"Error logging timing: {e}")
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({'error': str(e)}),
-                    'headers': {'Content-Type': 'application/json'}
-                }
-
-    elif route.startswith('/gardencam/stats'):
-        # Stats visualization page
-
-        # Fetch more stats to ensure we have enough data for 8 days
-        stats = get_gardencam_stats(limit=2000)
-
-        # Get current time and define 8 time windows (last 24h + 7 previous days)
-        now = datetime.now(timezone.utc)
-
-        # Define 8 windows: today (last 24h), yesterday, day before, etc.
-        windows = []
-        for i in range(8):
-            window_end = now - timedelta(days=i)
-            window_start = window_end - timedelta(days=1)
-            windows.append({
-                'start': window_start,
-                'end': window_end,
-                'label': f'{window_start.strftime("%Y-%m-%d")} to {window_end.strftime("%Y-%m-%d")}' if i > 0 else 'Last 24 Hours',
-                'data': []
-            })
-
-        # Group stats into windows
-        for item in stats:
-            ts_str = item.get('timestamp', '')
-            if not ts_str:
-                continue
-
-            try:
-                # Parse ISO timestamp
-                ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                if ts.tzinfo is None:
-                    ts = ts.replace(tzinfo=timezone.utc)
-
-                # Find which window this belongs to
-                for window in windows:
-                    if window['start'] <= ts < window['end']:
-                        window['data'].append({
-                            'timestamp': ts,
-                            'timestamp_str': ts.strftime('%H:%M'),
-                            'avg_brightness': float(item.get('avg_brightness', 0)),
-                            'mode': item.get('mode', 'unknown')
-                        })
-                        break
-            except Exception as e:
-                print(f"Error parsing timestamp {ts_str}: {e}")
-                continue
-
-        # Sort data within each window by timestamp
-        for window in windows:
-            window['data'].sort(key=lambda x: x['timestamp'])
-
-        # Calculate summary stats
-        total_images = sum(len(w['data']) for w in windows)
-        all_modes = [d['mode'] for w in windows for d in w['data']]
-        day_count = sum(1 for m in all_modes if m == 'day')
-        night_count = sum(1 for m in all_modes if m == 'night')
-        stacking_count = sum(1 for m in all_modes if m == 'stacking')
-        all_brightness = [d['avg_brightness'] for w in windows for d in w['data']]
-        avg_brightness = sum(all_brightness) / len(all_brightness) if all_brightness else 0
-
-        from routes.gardencam import render_gardencam_stats
-        summary = {
-            'total_images': total_images, 'day_count': day_count,
-            'night_count': night_count, 'stacking_count': stacking_count,
-            'avg_brightness': avg_brightness
-        }
-        html += render_gardencam_stats(windows, summary)
-    elif route.startswith('/gardencam/fullres'):
-        # Full resolution image view
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get image key from query string
-        query_params = event.get('queryStringParameters', {}) or {}
-        image_key = query_params.get('key', '')
-
-        if image_key:
-            timestamp = parse_timestamp_from_key(image_key) or 'Unknown'
-            image_url = get_presigned_url(image_key)
-
-            # Fetch stats for this image
-            stats = get_image_stats_by_filename(image_key)
-            stats_display = format_stats_for_display(stats)
-
-            from routes.gardencam import render_gardencam_fullres
-            html += render_gardencam_fullres(timestamp, image_url, stats_display)
-        else:
-            html += '<h1>Error: No image specified</h1>'
-    elif route.startswith('/gardencam/display'):
-        # Display-width image view
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get image key from query string
-        query_params = event.get('queryStringParameters', {}) or {}
-        image_key = query_params.get('key', '')
-
-        if image_key:
-            timestamp = parse_timestamp_from_key(image_key) or 'Unknown'
-            image_url = get_presigned_url(image_key)
-
-            # Fetch stats for this image
-            stats = get_image_stats_by_filename(image_key)
-            stats_display = format_stats_for_display(stats)
-
-            from routes.gardencam import render_gardencam_display
-            html += render_gardencam_display(timestamp, image_url, image_key, stats_display)
-        else:
-            html += '<h1>Error: No image specified</h1>'
-    elif route.startswith('/gardencam/gallery'):
-        # Gallery page with thumbnails organized by weeks
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Get query parameters
-        query_params = event.get('queryStringParameters', {}) or {}
-        week_param = query_params.get('week', '')
-        day_param = query_params.get('day', '')
-
-        # Three-level navigation: Weeks → Days → Images
-        # OPTIMIZED: Only load S3 data when needed
-        if not week_param:
-            # Week index - generate deterministically, NO S3 queries
-            weeks = generate_week_list()
-
-            from routes.gardencam import render_gallery_week_index
-            html += render_gallery_week_index(weeks)
-
-        elif week_param and not day_param:
-            # Show days in the selected week - OPTIMIZED: only load images for this week
-            current_week_images = get_images_for_week(week_param)
-
-            if not current_week_images:
-                html += '<h1>Week not found</h1><p><a href="gallery">Back to Gallery Index</a></p>'
-            else:
-                # Group week's images by day
-                days = group_images_by_days(current_week_images)
-
-                from routes.gardencam import render_gallery_days
-                html += render_gallery_days(week_param, days)
-
-        else:
-            # Show images for a specific day - OPTIMIZED: only fetch images for this day
-            # Extract date from day_param: "2026-02-15 (Saturday)" → "2026-02-15"
-            try:
-                date_only = day_param.split(' ')[0]  # Get YYYY-MM-DD part
-                current_day_images = get_images_for_date(date_only)
-            except:
-                current_day_images = []
-
-            if not current_day_images:
-                html += f'<h1>No images found for {day_param}</h1><p><a href="gallery?week={week_param}">Back to {week_param}</a></p>'
-            else:
-                # Get days in this week for prev/next navigation
-                # Only load week data if needed for navigation
-                current_week_images = get_images_for_week(week_param)
-                days = group_images_by_days(current_week_images) if current_week_images else []
-                day_index = None
-                for idx, (day_name, _) in enumerate(days):
-                    if day_name == day_param:
-                        day_index = idx
-                        break
-
-                if day_index is None:
-                    day_index = 0  # Fallback
-
-                # Build navigation links
-                prev_link = ''
-                next_link = ''
-                if day_index > 0:
-                    prev_day = days[day_index - 1][0]
-                    prev_link = f'<a href="gallery?week={week_param}&day={prev_day}">← Previous Day</a>'
-                if day_index < len(days) - 1:
-                    next_day = days[day_index + 1][0]
-                    next_link = f'<a href="gallery?week={week_param}&day={next_day}">Next Day →</a>'
-
-                from routes.gardencam import render_gallery_images_header
-                html += render_gallery_images_header(day_param, week_param, prev_link, next_link)
-
-                html += '<div class="thumbnails">'
-
-                displayed_count = 0
-                displayed_images = []  # Track displayed images for delta calculation
-
-                for img in current_day_images:
-                    # Fetch stats for this image
-                    stats = get_image_stats_by_filename(img['key'])
-
-                    # Skip images that don't meet display criteria
-                    if not should_display_image(stats):
-                        continue
-
-                    thumb_url = get_presigned_url(img['key'])
-                    time_only = img['timestamp'].split()[1] if ' ' in img['timestamp'] else img['timestamp']
-                    stats_display = format_stats_for_display(stats)
-
-                    # Calculate time delta from previous displayed image
-                    time_delta = ""
-                    if displayed_images:
-                        previous_img = displayed_images[-1]
-                        time_delta = calculate_time_delta(img['timestamp'], previous_img['timestamp'])
-                        if time_delta:
-                            time_delta = f"{time_delta} "  # Add space after delta
-
-                    html += f'''
-                    <div class="thumb-container">
-                        <a href="display?key={img['key']}">
-                            <img src="{thumb_url}" alt="{img['timestamp']}">
-                        </a>
-                        <div class="thumb-time">{time_delta}{time_only}{stats_display}</div>
-                    </div>
-                    '''
-                    displayed_count += 1
-                    displayed_images.append(img)
-
-                html += '</div>'
-
-    elif route.startswith('/gardencam/s3-stats'):
-        # S3 storage statistics page - reads from cached JSON
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="Garden Camera"'
-                }
-            }
-
-        # Read cached summary from S3 (updated hourly by gardencam-storage-summary Lambda)
-        s3 = s3_client()
-        cache_key = "stats/s3-storage-summary.json"
-        cache_error = None
-
-        try:
-            response = s3.get_object(Bucket=GARDENCAM_BUCKET, Key=cache_key)
-            summary = json.loads(response['Body'].read().decode('utf-8'))
-        except Exception as e:
-            cache_error = str(e)
-            summary = None
-
-        if summary:
-            # Extract data from cached summary
-            total_files = summary.get('total_count', 0)
-            total_size_gb = summary.get('total_size_gb', 0)
-            costs = summary.get('costs', {})
-            storage_cost = costs.get('monthly_storage_cost_usd', 0)
-            put_cost = costs.get('monthly_put_cost_usd', 0)
-            get_cost = costs.get('monthly_get_cost_usd', 0)
-            total_monthly = costs.get('total_monthly_cost_usd', storage_cost)
-            yearly_total = costs.get('yearly_total_cost_usd', total_monthly * 12)
-            weekly_stats = summary.get('weekly_stats', {})
-            generated_at = summary.get('generated_at', 'Unknown')
-
-            # Sort weeks
-            sorted_weeks = sorted(weekly_stats.items(), reverse=True)
-
-            # Prepare chart data (last 12 weeks, oldest first)
-            chart_weeks = []
-            chart_counts = []
-            chart_sizes = []
-
-            for week, data in reversed(sorted_weeks[:12]):
-                chart_weeks.append(week)
-                chart_counts.append(data['count'])
-                chart_sizes.append(data.get('size_gb', 0))
-
-            from routes.gardencam import render_s3_stats
-            summary_data = {
-                'total_files': total_files, 'total_size_gb': total_size_gb,
-                'total_monthly': total_monthly, 'yearly_total': yearly_total,
-                'storage_cost': storage_cost, 'put_cost': put_cost,
-                'get_cost': get_cost, 'generated_at': generated_at
-            }
-            html += render_s3_stats(summary_data, sorted_weeks, chart_weeks, chart_counts, chart_sizes)
-        else:
-            from routes.gardencam import render_s3_stats_error
-            html += render_s3_stats_error(cache_error)
-
-    elif route == '/gardencam':
-        # /gardencam is the legacy URL — 301 redirect to the public /skycam.
-        # The page now shows only sky-pointing images, so it no longer needs
-        # to be private.
-        target = '/skycam' if path == '/gardencam' else f'/{stage}/skycam'
-        return {
-            'statusCode': 301,
-            'body': '',
-            'headers': {'Location': target},
-        }
-
-    elif route == '/skycam/build-info':
-        from routes.gardencam import _init_theme, render_build_info_page
-        _init_theme(THEME_CSS_JS)
-        return {'statusCode': 200, 'body': render_build_info_page(),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/skycam/timelapse':
-        from routes.gardencam import _init_theme, render_timelapse_index
-        _init_theme(THEME_CSS_JS)
-        qs = event.get('queryStringParameters') or {}
-        focus = qs.get('date')
-        return {'statusCode': 200, 'body': render_timelapse_index(focus_date=focus),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/skycam/timelapse-day':
-        from routes.gardencam import render_timelapse_day_fragment
-        qs = event.get('queryStringParameters') or {}
-        date = (qs.get('date') or '').strip()
-        frag = render_timelapse_day_fragment(date) if date else None
-        if frag is None:
-            return {'statusCode': 400,
-                    'body': '<p>invalid date</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        return {'statusCode': 200, 'body': frag,
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/skycam/player-poc':
-        from routes.gardencam import _init_theme, render_player_poc_landing
-        _init_theme(THEME_CSS_JS)
-        return {'statusCode': 200, 'body': render_player_poc_landing(),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/skycam/player':
-        from routes.gardencam import _init_theme, render_skycam_player
-        _init_theme(THEME_CSS_JS)
-        qs = event.get('queryStringParameters') or {}
-        mvqs = event.get('multiValueQueryStringParameters') or {}
-        key = qs.get('key', '')
-        src = qs.get('src')
-        srcs = mvqs.get('src') if mvqs and len(mvqs.get('src') or []) > 1 else None
-        def _f(name):
-            v = qs.get(name)
-            if v in (None, ''): return None
-            try: return float(v)
-            except (TypeError, ValueError): return None
-        # Parse ?clip=a-b,c-d,... into [(a,b),(c,d),...].
-        clip_param = qs.get('clip') or ''
-        clips_arg = []
-        for piece in clip_param.split(','):
-            piece = piece.strip()
-            if not piece or '-' not in piece:
-                continue
-            a, _, b = piece.partition('-')
-            try:
-                clips_arg.append((float(a), float(b)))
-            except ValueError:
-                continue
-        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
-                                    src=src, srcs=srcs,
-                                    clips=clips_arg or None)
-        if page is None:
-            return {'statusCode': 400,
-                    'body': '<h1>400</h1><p>Invalid key.</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        return {'statusCode': 200, 'body': page,
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/skycam':
-        # The page no longer shows the 3-latest-images carousel — the
-        # carousel was usually stale (yesterday's frames) and pushed the
-        # useful links below the fold. The POC banner (Timelapse videos
-        # + Clouds + Advanced player) is dropped too: its three links
-        # already live in the main `links` row in render_gardencam_main.
-        # The legacy `images`/`image_cards`/`poc_banner_html` args are
-        # still passed for API compat with the renderer's signature.
-        from routes.gardencam import _init_theme, render_gardencam_main
-        _init_theme(THEME_CSS_JS)
-        html += render_gardencam_main(images=[], image_cards='',
-                                       poc_banner_html='')
-
-    elif route == '/lambda-stats/data':
-        # Lambda statistics data endpoint - returns JSON
-        # This does all the slow data fetching and returns it as JSON
-        all_lambda_metrics = get_all_lambda_metrics(days=30)
-
-        # Calculate aggregated stats
-        total_cw_invocations = sum(m['invocations'] for m in all_lambda_metrics.values())
-        total_cw_errors = sum(m['errors'] for m in all_lambda_metrics.values())
-        total_cw_throttles = sum(m['throttles'] for m in all_lambda_metrics.values())
-
-        # Calculate weighted average duration
-        total_duration_weighted = sum(m['avg_duration'] * m['invocations'] for m in all_lambda_metrics.values())
-        avg_cw_duration = total_duration_weighted / total_cw_invocations if total_cw_invocations > 0 else 0
-        max_cw_duration = max((m['max_duration'] for m in all_lambda_metrics.values()), default=0)
-
-        error_rate = (total_cw_errors / total_cw_invocations * 100) if total_cw_invocations > 0 else 0
-
-        # Free tier usage
-        total_gb_seconds = sum(m['gb_seconds'] for m in all_lambda_metrics.values())
-        FREE_TIER_REQUESTS = 1_000_000
-        FREE_TIER_GB_SECONDS = 400_000
-        free_tier = {
-            'requests_used': int(total_cw_invocations),
-            'requests_limit': FREE_TIER_REQUESTS,
-            'requests_pct': round(total_cw_invocations / FREE_TIER_REQUESTS * 100, 3),
-            'gb_seconds_used': round(total_gb_seconds, 1),
-            'gb_seconds_limit': FREE_TIER_GB_SECONDS,
-            'gb_seconds_pct': round(total_gb_seconds / FREE_TIER_GB_SECONDS * 100, 3),
-        }
-
-        # Sort functions by invocation count
-        sorted_functions = sorted(all_lambda_metrics.items(), key=lambda x: x[1]['invocations'], reverse=True)
-
-        # Load DynamoDB logs for IP/User-Agent and path analysis
-        from collections import Counter, defaultdict
-        stats = get_lambda_execution_stats()
-
-        ip_data = defaultdict(lambda: {'count': 0, 'paths': Counter(), 'timestamps': [], 'user_agents': Counter()})
-        ua_data = Counter()
-
-        for item in stats:
-            ip = item.get('ip_address', 'Unknown')
-            ua = item.get('user_agent', 'Unknown')
-            path_item = item.get('path', 'unknown')
-            timestamp = item.get('timestamp', '')
-
-            if ip and ip != 'Unknown':
-                ip_data[ip]['count'] += 1
-                ip_data[ip]['paths'][path_item] += 1
-                ip_data[ip]['user_agents'][ua] += 1
-                if timestamp:
-                    try:
-                        ts = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-                        ip_data[ip]['timestamps'].append(ts)
-                    except:
-                        pass
-
-            if ua and ua != 'Unknown':
-                ua_data[ua] += 1
-
-        # Get geolocation for top IPs (limit to 10 to avoid rate limits)
-        import time as time_module
-        top_ips = sorted(ip_data.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
-        ip_geo_data = []
-        country_counts = Counter()
-
-        for ip, data in top_ips:
-            time_module.sleep(0.15)  # Rate limit
-            geo = get_ip_geolocation(ip)
-            top_path = data['paths'].most_common(1)[0] if data['paths'] else ('unknown', 0)
-            top_ua = data['user_agents'].most_common(1)[0] if data['user_agents'] else ('Unknown', 0)
-
-            ip_geo_data.append({
-                'ip': ip,
-                'count': data['count'],
-                'country': geo['country'],
-                'city': geo['city'],
-                'top_path': top_path[0],
-                'top_ua': top_ua[0]
-            })
-            country_counts[geo['country']] += data['count']
-
-        top_uas = ua_data.most_common(10)
-
-        # Path analysis (DynamoDB only, filter out empty paths from backfill)
-        path_counts = Counter(item.get('path') for item in stats if item.get('path'))
-        total_requests = sum(path_counts.values())
-        top_paths = path_counts.most_common(10)
-
-        # Generate histogram data for last 7 days with 28 buckets (6-hour intervals)
-        # Aligned to midnight, 6am, noon, 6pm
-        now = datetime.utcnow()
-
-        # Find midnight 7 days ago
-        seven_days_ago = now - timedelta(days=7)
-        midnight_7_days_ago = seven_days_ago.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        bucket_duration = timedelta(hours=6)  # 6-hour buckets: 0-6, 6-12, 12-18, 18-24
-
-        # Create 28 time buckets aligned to 0, 6, 12, 18 hours
-        buckets = []
-        for i in range(28):
-            bucket_start = midnight_7_days_ago + (i * bucket_duration)
-            bucket_end = bucket_start + bucket_duration
-            # Calculate days ago from the middle of the bucket
-            bucket_mid = bucket_start + (bucket_duration / 2)
-            days_ago = (now - bucket_mid).total_seconds() / 86400
-            buckets.append({
-                'start': bucket_start,
-                'end': bucket_end,
-                'label': f'{days_ago:.1f}',
-                'paths': Counter()
-            })
-
-        # Assign items to buckets
-        for item in stats:
-            timestamp_str = item.get('timestamp', '')
-            path = item.get('path', '')
-            if not timestamp_str or not path:
-                continue
-
-            try:
-                ts = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-                if ts < midnight_7_days_ago:
-                    continue  # Skip items older than 7 days (before midnight)
-
-                # Find the correct bucket
-                for bucket in buckets:
-                    if bucket['start'] <= ts < bucket['end']:
-                        bucket['paths'][path] += 1
-                        break
-            except:
-                continue
-
-        # Get top 10 paths overall for the legend
-        recent_path_counts = Counter()
-        for bucket in buckets:
-            recent_path_counts.update(bucket['paths'])
-        top_recent_paths = [path for path, _ in recent_path_counts.most_common(10)]
-
-        # Prepare histogram data
-        histogram_data = {
-            'labels': [bucket['label'] for bucket in buckets],
-            'datasets': []
-        }
-
-        # Create a dataset for each top path
-        colors = [
-            '#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b',
-            '#fa709a', '#fee140', '#30cfd0', '#a8edea', '#fed6e3'
-        ]
-
-        for i, path in enumerate(top_recent_paths):
-            dataset = {
-                'label': path if path else '(root)',
-                'data': [bucket['paths'].get(path, 0) for bucket in buckets],
-                'backgroundColor': colors[i % len(colors)]
-            }
-            histogram_data['datasets'].append(dataset)
-
-        # Return JSON data
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'summary': {
-                    'total_invocations': int(total_cw_invocations),
-                    'total_errors': int(total_cw_errors),
-                    'total_throttles': int(total_cw_throttles),
-                    'error_rate': round(error_rate, 2),
-                    'avg_duration': round(avg_cw_duration, 0),
-                    'max_duration': round(max_cw_duration, 0)
-                },
-                'free_tier': free_tier,
-                'functions': [
-                    {
-                        'name': func_name,
-                        'invocations': int(func_metrics['invocations']),
-                        'errors': int(func_metrics['errors']),
-                        'error_rate': round(func_metrics['error_rate'], 2),
-                        'avg_duration': round(func_metrics['avg_duration'], 0),
-                        'max_duration': round(func_metrics['max_duration'], 0),
-                        'memory_mb': func_metrics['memory_mb'],
-                        'gb_seconds': round(func_metrics['gb_seconds'], 1)
-                    }
-                    for func_name, func_metrics in sorted_functions
-                ],
-                'paths': [
-                    {
-                        'path': path,
-                        'count': count,
-                        'percentage': round((count / total_requests * 100) if total_requests > 0 else 0, 1)
-                    }
-                    for path, count in top_paths
-                ],
-                'ips': ip_geo_data,
-                'user_agents': [
-                    {'user_agent': ua, 'count': count}
-                    for ua, count in top_uas
-                ],
-                'histogram': histogram_data
-            }),
-            'headers': {'Content-Type': 'application/json'}
-        }
-
-    elif route == '/lambda-stats':
-        # Lambda statistics page - returns HTML skeleton that loads data asynchronously
-        from routes.lambda_stats import render_lambda_stats_page
-        html += render_lambda_stats_page(theme_css_js=THEME_CSS_JS)
-
-    elif route.startswith('/memspeed/upload'):
-        # Memspeed upload endpoint
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'error': 'Unauthorized'}),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'WWW-Authenticate': 'Basic realm="memspeed"'
-                }
-            }
-
-        try:
-            body = event.get('body', '{}')
-            if event.get('isBase64Encoded', False):
-                body = base64.b64decode(body).decode('utf-8')
-            data = json.loads(body)
-            success, result = save_memspeed_result(data)
-            if success:
-                return {
-                    'statusCode': 200,
-                    'body': json.dumps({'message': 'Upload successful', 'key': result}),
-                    'headers': {'Content-Type': 'application/json'}
-                }
-            else:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({'error': result}),
-                    'headers': {'Content-Type': 'application/json'}
-                }
-        except json.JSONDecodeError as e:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'error': f'Invalid JSON: {str(e)}'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
-    elif route.startswith('/memspeed/download'):
-        # Memspeed download endpoint - redirect to presigned URL
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'error': 'Unauthorized'}),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'WWW-Authenticate': 'Basic realm="memspeed"'
-                }
-            }
-
-        query_params = event.get('queryStringParameters', {}) or {}
-        filename = query_params.get('file', '')
-        if not filename:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'Missing file parameter'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
-        key = f"{MEMSPEED_DOWNLOADS_PREFIX}{filename}"
-        url = get_memspeed_download_url(key)
-        if url:
-            return {
-                'statusCode': 302,
-                'body': '',
-                'headers': {'Location': url}
-            }
-        else:
-            return {
-                'statusCode': 404,
-                'body': json.dumps({'error': 'File not found'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
-    elif route.startswith('/memspeed/data'):
-        # Memspeed JSON API
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'error': 'Unauthorized'}),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'WWW-Authenticate': 'Basic realm="memspeed"'
-                }
-            }
-
-        results = get_memspeed_results()
-        # Remove internal _key field
-        for r in results:
-            r.pop('_key', None)
-
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'results': results}),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
-        }
-
-    elif route == '/memspeed':
-        # Memspeed main page
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1><p>Access denied.</p></body></html>',
-                'headers': {
-                    'Content-Type': 'text/html',
-                    'WWW-Authenticate': 'Basic realm="memspeed"'
-                }
-            }
-
-        results = get_memspeed_results()
-        downloads = get_memspeed_downloads()
-        html += render_memspeed_page(results, downloads)
-
-    elif route == '/rcr':
-        # Redirect to RCR Lambda function URL
-        return {
-            'statusCode': 302,
-            'headers': {'Location': 'https://k7jrsyq5zi2jexqbrt27zi4nbi0munoe.lambda-url.eu-west-1.on.aws/'},
-            'body': ''
-        }
-
-    elif route == '/us-vs-the-machines':
-        # Redirect to Us vs the Machines Lambda function URL
-        return {
-            'statusCode': 302,
-            'headers': {'Location': 'https://s3fsc6zzxyablo26kgpwcuhh3m0dqphd.lambda-url.eu-west-1.on.aws/'},
-            'body': ''
-        }
-
-    elif route == '/gotg/manifest.json':
-        manifest = json.dumps({
-            "name": "Götterdämmerung on the Go",
-            "short_name": "GotG",
-            "start_url": "/gotg",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000",
-            "icons": [
-                {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-                {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-                {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
-                {"src": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
-            ]
-        })
-        return {
-            'statusCode': 200,
-            'body': manifest,
-            'headers': {'Content-Type': 'application/manifest+json'}
-        }
-
-    elif route == '/gotg':
-        return {
-            'statusCode': 200,
-            'body': render_gotg_page(),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif route == '/stereo':
-        qs = event.get('queryStringParameters', {}) or {}
-        return {
-            'statusCode': 200,
-            'body': render_stereo_page(
-                img_param=qs.get('img'),
-                video_param=qs.get('video'),
-                svideo_param=qs.get('svideo'),
-                place_param=qs.get('place'),
-                videos_param=qs.get('videos'),
-                beauty_param=qs.get('beauty'),
-            ),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif route == '/stereo-nav':
-        import json as _j
-        from routes.stereo import get_neighbours
-        qs = event.get('queryStringParameters', {}) or {}
-        img_param = qs.get('img', '')
-        return {
-            'statusCode': 200,
-            'body': _j.dumps(get_neighbours(img_param)),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            }
-        }
-
-    elif route == '/manim':
-        return {
-            'statusCode': 200,
-            'body': render_manim_page(),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif route == '/ai-config':
-        # AI Configuration Matrix
-        method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
-        message = None
-        if method == 'POST':
-            body = event.get('body', '')
-            if event.get('isBase64Encoded'):
-                body = base64.b64decode(body).decode()
-            params = dict(p.split('=', 1) for p in body.split('&') if '=' in p)
-            action = urllib.parse.unquote_plus(params.get('action', 'set'))
-            valid_providers = [p['key'] for p in AI_PROVIDERS]
-
-            if action == 'reorder':
-                # Comma-separated provider keys, in the new order
-                order = urllib.parse.unquote_plus(params.get('order', ''))
-                keys = [k for k in order.split(',') if k in valid_providers]
-                if keys:
-                    # Preserve the existing model for each provider; default to first model
-                    existing = {e['provider']: e for e in get_failover_chain()}
-                    new_chain = []
-                    for k in keys:
-                        if k in existing:
-                            new_chain.append(existing[k])
-                        else:
-                            prov = next(p for p in AI_PROVIDERS if p['key'] == k)
-                            new_chain.append({"provider": k, "model": prov["models"][0]})
-                    set_failover_chain(new_chain)
-                    message = "Failover chain updated"
-            else:
-                app_key = urllib.parse.unquote_plus(params.get('app', ''))
-                provider = urllib.parse.unquote_plus(params.get('provider', ''))
-                model = urllib.parse.unquote_plus(params.get('model', ''))
-                valid_apps = [a['key'] for a in AI_APPS]
-                if app_key in valid_apps and provider in valid_providers:
-                    set_ai_config(app_key, provider, model)
-                    app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
-                    prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)
-                    message = f"{app_name} switched to {prov_name}"
-
-        configs = get_ai_configs()
-        usage = get_ai_usage()
-        chain = get_failover_chain()
-        health = compute_provider_health(usage)
-        return {
-            'statusCode': 200,
-            'body': render_ai_config_page(configs, usage, message, chain, health),
-            'headers': {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
-            }
-        }
-
-    elif route == '/pi-fleet':
-        # Pi Fleet Status Dashboard
-        pis = get_pi_fleet_status()
-        html += render_pi_fleet_page(pis)
-
-    elif route == '/t3':
-        # Terse Transport Times - K2 bus arrivals
-        api_key = TFL_API_KEY
-
-        # Get stop parameter (default to parklands)
-        query_params = event.get('queryStringParameters', {}) or {}
-        stop = query_params.get('stop', 'parklands').lower()
-        if stop not in T3_STOPS:
-            stop = 'parklands'
-
-        arrivals, error = t3_fetch_arrivals(api_key, stop)
-
-        # Check if JSON is requested
-        headers = event.get('headers', {}) or {}
-        accept = headers.get('Accept', headers.get('accept', 'text/html'))
-
-        if 'application/json' in accept:
-            # Return JSON for API consumers (e.g., Android app)
-            duration_ms = (time.time() - start_time) * 1000
-            ip = headers.get('X-Forwarded-For', headers.get('x-forwarded-for', 'Unknown'))
-            user_agent = headers.get('User-Agent', headers.get('user-agent', 'Unknown'))
-            log_execution_metrics(context, duration_ms, path, ip, user_agent)
-
-            if error:
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({'error': error}),
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    }
-                }
-            return {
-                'statusCode': 200,
-                'body': t3_format_json(arrivals, stop),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            }
-
-        # Return HTML for browsers
-        if error:
-            return {
-                'statusCode': 502,
-                'body': f'<html><body style="font-family:sans-serif;padding:2rem"><h1>T3 Error</h1><p>{error}</p></body></html>',
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
-        html += t3_format_html(arrivals)
-
-    elif route == '/springcam':
-        images = get_latest_springcam_images(3)
-        if images:
-            from routes.camera import render_camera_latest
-            html += render_camera_latest('Spring Camera', images, theme_css_js=THEME_CSS_JS,
-                                         gallery_path='springcam/gallery', fullres_path='springcam/fullres',
-                                         videos_path='springcam/videos')
-        else:
-            return {
-                'statusCode': 502,
-                'body': '<html><body style="font-family:sans-serif;padding:2rem"><h1>Spring Camera</h1><p>No images yet.</p></body></html>',
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
-
-    elif route.startswith('/springcam/gallery'):
-        query_params = event.get('queryStringParameters', {}) or {}
-        day_param = query_params.get('day', '')
-        week_param = query_params.get('week', '')
-        month_param = query_params.get('month', '')
-        year_param = query_params.get('year', '')
-        page_param = int(query_params.get('page', '1'))
-        per_page = 20
-
-        if year_param:
-            # Year view: list months
-            months = _months_in_year(year_param, SPRINGCAM_EARLIEST_DATE)
-            # One listing for the whole year — this used to be one
-            # S3 round trip per day and timed the Lambda out (503).
-            counts = count_images_by_date('springcam', year_param)
-            months_with_counts = []
-            for m in reversed(months):
-                days = _days_in_month(m, SPRINGCAM_EARLIEST_DATE)
-                count = sum(counts.get(d, 0) for d in days)
-                if count > 0:
-                    months_with_counts.append((m, count))
-            from routes.camera import render_gallery_year
-            html += render_gallery_year('Spring Camera', year_param, months_with_counts,
-                                        gallery_path='gallery', latest_path='../springcam')
-
-        elif month_param:
-            # Month view: weeks with their days
-            weeks = _weeks_in_month(month_param, SPRINGCAM_EARLIEST_DATE)
-            counts = count_images_by_date('springcam', month_param)
-            weeks_with_days = []
-            for w in reversed(weeks):
-                w_days = _days_in_week(w, SPRINGCAM_EARLIEST_DATE)
-                # Filter to only days in this month
-                w_days = [d for d in w_days if d[:7] == month_param]
-                day_counts = []
-                for d in reversed(w_days):
-                    count = counts.get(d, 0)
-                    if count > 0:
-                        day_counts.append((d, count))
-                if day_counts:
-                    weeks_with_days.append((w, day_counts))
-            from routes.camera import render_gallery_month
-            html += render_gallery_month('Spring Camera', month_param, weeks_with_days,
-                                          gallery_path='gallery', latest_path='../springcam',
-                                          year_str=month_param[:4])
-
-        elif week_param:
-            # Week view: list days in this week
-            w_days = _days_in_week(week_param, SPRINGCAM_EARLIEST_DATE)
-            # A week can straddle a month boundary — one listing each.
-            counts = {}
-            for _period in sorted({d[:7] for d in w_days}):
-                counts.update(count_images_by_date('springcam', _period))
-            days_with_counts = []
-            for d in reversed(w_days):
-                count = counts.get(d, 0)
-                if count > 0:
-                    days_with_counts.append((d, count))
-            # Determine month for zoom-out (use the Thursday of the week for ISO month)
-            from datetime import date as _date
-            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
-            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
-            month_str = thursday.strftime('%Y-%m')
-            from routes.camera import render_gallery_week
-            html += render_gallery_week('Spring Camera', week_param, days_with_counts,
-                                         gallery_path='gallery', latest_path='../springcam',
-                                         month_str=month_str)
-
-        else:
-            # Day view (default: today)
-            if not day_param:
-                day_param = _today_london()
-            all_day_images = get_springcam_images_for_date(day_param)
-            total = len(all_day_images)
-            total_pages = max(1, math.ceil(total / per_page))
-            page_param = max(1, min(page_param, total_pages))
-            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
-            week_iso = _iso_week_for_date(day_param)
-            from routes.camera import render_gallery_day
-            html += render_gallery_day(
-                'Spring Camera', day_param, page_images,
-                page=page_param, total_pages=total_pages, total_images=total,
-                thumb_key_fn=springcam_thumb_key,
-                gallery_path='gallery', latest_path='../springcam', fullres_path='../springcam/fullres',
-                week_iso=week_iso,
-            )
-
-    elif route.startswith('/springcam/videos'):
-
-        s3 = s3_client()
-        videos = []
-        try:
-            paginator = s3.get_paginator('list_objects_v2')
-            for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='springcam/videos/'):
-                for obj in page.get('Contents', []):
-                    key = obj['Key']
-                    if not key.endswith('.mp4'):
-                        continue
-                    basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
-                    videos.append({
-                        'key': key,
-                        'url': f"play?key={key}",
-                        'size_mb': obj['Size'] / 1048576,
-                        'label': basename,
-                        'is_daily': False,
-                    })
-        except Exception as e:
-            print(f"Error listing springcam videos: {e}")
-
-        from routes.camera import render_videos_day
-        html += render_videos_day('Spring Camera', _today_london(), videos,
-                                   latest_path='../springcam', gallery_path='gallery',
-                                   videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
-
-    elif route.startswith('/springcam/play'):
-
-        query_params = event.get('queryStringParameters', {}) or {}
-        video_key = query_params.get('key', '')
-        s3 = s3_client()
-
-        try:
-            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
-            video_url = s3.generate_presigned_url(
-                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
-                ExpiresIn=7200)
-            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
-            from routes.camera import render_skycam_player
-            html += render_skycam_player(video_url, basename, hours=[])
-        except Exception as e:
-            print(f"Error loading springcam video: {e}")
-            html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
-
-    elif route.startswith('/springcam/fullres'):
-        params = event.get('queryStringParameters') or {}
-        image_key = params.get('key', '')
-        if image_key:
-            image_url = get_presigned_url(image_key)
-            ts = parse_timestamp_from_key(image_key) or image_key
-            from routes.camera import render_camera_fullres
-            html += render_camera_fullres('Spring Camera', image_url, ts,
-                                          latest_path='../springcam', gallery_path='gallery')
-        else:
-            html += '<p>No image specified.</p>'
-
-    elif route == '/astro':
-        from routes.astro import render_astro_hub
-        return {
-            'statusCode': 200,
-            'body': render_astro_hub(theme_css_js=THEME_CSS_JS),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif route.endswith('/astro/color-max-test') or route.endswith('/astro/colour-max-test'):
-        from routes.astro import render_colour_max_test
-        img_names = [
-            'astrocam_2026-08-22_1_raw_lum.jpg',
-            'astrocam_2026-08-22_2_ratio_mean.jpg',
-            'astrocam_2026-08-22_3_ratio_median.jpg',
-            'astrocam_2026-08-22_4_diff_median.jpg',
-            'astrocam_2026-08-22_lum_keyed.jpg',
-            'astrocam_2026-08-22_per_channel.jpg',
-            'astrocam_2026-08-22_mono.jpg',
-            'canon_2026-08-10_lum_keyed.jpg',
-            'canon_2026-08-10_per_channel.jpg',
-            'canon_2026-08-10_mono.jpg',
-            'eclipticam-v3w_2026-08-22_1_raw_lum.jpg',
-            'eclipticam-v3w_2026-08-22_2_ratio_mean.jpg',
-            'eclipticam-v3w_2026-08-22_3_ratio_median.jpg',
-            'eclipticam-v3w_2026-08-22_4_diff_median.jpg',
-            'eclipticam-v3w_2026-08-22_lum_keyed.jpg',
-            'eclipticam-v3w_2026-08-22_per_channel.jpg',
-            'eclipticam-v3w_2026-08-22_mono.jpg',
-        ]
-        urls = {name: get_presigned_url(f'test/colour-max/{name}', expires_in=86400, bucket=ASTRO_BUCKET)
-                for name in img_names}
-        return {
-            'statusCode': 200,
-            'body': render_colour_max_test(theme_css_js=THEME_CSS_JS, urls=urls),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', route):
-        # PUBLIC — the curated astrophotography showcase: deep-sky stacks,
-        # widefield Milky Way, polar derotation, star trails, and meteor fireballs.
-        # Hand-curated via Markdown in Git (astro/showcase/*.md), published to
-        # S3 (showcase/index.json + showcase/items/ + showcase/thumbs/).
-        import json as _json
-        m = re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', path)
-        slug = m.group(1)
-        from routes.astro_showcase import (
-            render_astro_showcase_gallery,
-            render_astro_showcase_detail,
-            showcase_category_counts,
-        )
-        items = []
-        try:
-            s3 = s3_client()
-            obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='showcase/index.json')
-            items = _json.loads(obj['Body'].read()).get('items', []) or []
-        except Exception as e:
-            print(f"showcase: no manifest ({e})")
-
-        # Check if slug matches a specific photo ID
-        item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
-        if slug and slug in item_by_id:
-            idx, item = item_by_id[slug]
-            item_copy = dict(item)
-            item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
-                                                        bucket=ASTRO_BUCKET)
-                                      if item_copy.get('image_key') else None)
-            item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
-                                                        bucket=ASTRO_BUCKET)
-                                      if item_copy.get('thumb_key') else None)
-            prev_item = items[idx - 1] if idx > 0 else None
-            next_item = items[idx + 1] if idx + 1 < len(items) else None
-            return {
-                'statusCode': 200,
-                'body': render_astro_showcase_detail(
-                    theme_css_js=THEME_CSS_JS,
-                    item=item_copy,
-                    prev_item=prev_item,
-                    next_item=next_item,
-                ),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
-
-        # Category filter or full gallery
-        counts = showcase_category_counts(items)
-        known_cats = {c[0] for c in counts}
-        if slug and slug not in known_cats:
-            return {'statusCode': 302,
-                    'headers': {'Location': '/astro/photos'}, 'body': ''}
-
-        selected_cat = slug if slug in known_cats else None
-        shown = [e for e in items
-                 if not selected_cat or (e.get('category') or 'other') == selected_cat]
-        for e in shown:
-            e['image_url'] = (get_presigned_url(e['image_key'],
-                                                bucket=ASTRO_BUCKET)
-                              if e.get('image_key') else None)
-            e['thumb_url'] = (get_presigned_url(e['thumb_key'],
-                                                bucket=ASTRO_BUCKET)
-                              if e.get('thumb_key') else None)
-        return {
-            'statusCode': 200,
-            'body': render_astro_showcase_gallery(
-                theme_css_js=THEME_CSS_JS,
-                items=shown,
-                counts=counts,
-                selected=selected_cat,
-            ),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', route):
-        # PUBLIC — the curated general collection: meteors, lightning,
-        # aircraft, satellites, screen grabs, daytime Canon focus frames.
-        # Hand-published by astro's bin/add-transient, which writes ONE
-        # manifest at transients/index.json plus items/ + thumbs/ objects.
-        import json as _json
-        m = re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path)
-        selected = m.group(1)
-        from routes.astro import (render_astro_transients,
-                                  render_astro_transient_detail,
-                                  transient_category_counts)
-        items = []
-        try:
-            s3 = s3_client()
-            obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='transients/index.json')
-            items = _json.loads(obj['Body'].read()).get('items', []) or []
-        except Exception as e:
-            print(f"transients: no manifest ({e})")
-
-        # 1. Check if selected slug matches an individual picture ID
-        item_by_id = {e.get('id'): (idx, e) for idx, e in enumerate(items) if e.get('id')}
-        if selected and selected in item_by_id:
-            idx, item = item_by_id[selected]
-            item_copy = dict(item)
-            item_copy['image_url'] = (get_presigned_url(item_copy['image_key'],
-                                                        bucket=ASTRO_BUCKET)
-                                      if item_copy.get('image_key') else None)
-            item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
-                                                        bucket=ASTRO_BUCKET)
-                                      if item_copy.get('thumb_key') else None)
-            prev_item = items[idx - 1] if idx > 0 else None
-            next_item = items[idx + 1] if idx + 1 < len(items) else None
-            return {
-                'statusCode': 200,
-                'body': render_astro_transient_detail(
-                    theme_css_js=THEME_CSS_JS,
-                    item=item_copy,
-                    prev_item=prev_item,
-                    next_item=next_item,
-                ),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}
-            }
-
-        # 2. Category filter or full collection
-        counts = transient_category_counts(items)
-        known = {c[0] for c in counts}
-        if selected and selected not in known:
-            return {'statusCode': 302,
-                    'headers': {'Location': '/astro/transients'}, 'body': ''}
-        shown = [e for e in items
-                 if not selected or (e.get('category') or 'other') == selected]
-        for e in shown:
-            e['image_url'] = (get_presigned_url(e['image_key'],
-                                                bucket=ASTRO_BUCKET)
-                              if e.get('image_key') else None)
-            e['thumb_url'] = (get_presigned_url(e['thumb_key'],
-                                                bucket=ASTRO_BUCKET)
-                              if e.get('thumb_key') else None)
-        return {
-            'statusCode': 200,
-            'body': render_astro_transients(theme_css_js=THEME_CSS_JS,
-                                            items=shown, counts=counts,
-                                            selected=selected),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route):
-        # PUBLIC storage status — capacity bars, data inventory & location,
-        # archive-tier state. Reads astro-host-capacity + astro-storage-
-        # inventory (backfilled from whereisallthedata.csv). The calendar
-        # splits by month: /astro/storage shows the latest month, and
-        # /astro/storage/YYYY-MM shows that month. See
-        # astro/design/storage-status-and-inventory.md.
-        m = re.search(r'/astro/storage/(\d{4}-\d{2})', path)
-        month = m.group(1) if m else None
-        qp = event.get('queryStringParameters', {}) or {}
-        show_all = str(qp.get('all', '')).lower() in ('1', 'true', 'yes')
-        from routes.astro import render_astro_storage
-        capacity, inventory = get_astro_storage_data()
-        return {
-            'statusCode': 200,
-            'body': render_astro_storage(theme_css_js=THEME_CSS_JS,
-                                         capacity=capacity, inventory=inventory,
-                                         month=month, show_all=show_all),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif re.search(r'/astro/disks/?$', route):
-        # PUBLIC by-filesystem view — what astro data lives on each disk,
-        # one line per camera with a compressed date-range. Complements
-        # /astro/storage (by-night). Same DynamoDB source.
-        from routes.astro import render_astro_disks
-        capacity, inventory = get_astro_storage_data()
-        return {
-            'statusCode': 200,
-            'body': render_astro_disks(theme_css_js=THEME_CSS_JS,
-                                       capacity=capacity, inventory=inventory),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}
-        }
-
-    elif route == '/astro/starcam':
-        return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
-
-    elif re.search(
-            r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
-            route):
-        # PUBLIC — advanced multi-source player for one night's deliverables
-        # + experiments. Reuses skycam's render_skycam_player (per project
-        # memory astro-website-player: shared player pattern). Lists every
-        # mp4 under <camera>/nights/<night>/ and every mp4 under the
-        # experiments/ subdir; presigns each; first is what loads, ↑/↓
-        # cycles. Frame-step, clip in/out, speed, loop, share-URL.
-        m = re.search(
-            r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
-            path)
-        camera, night = m.group(1), m.group(2)
-        # The night PAGE is addressed by the logical camera ('eclipticam') and
-        # links here with that same name, but S3 was split by the
-        # unify-cameras change into PHYSICAL prefixes (eclipticam-v3w /
-        # eclipticam-v1). Listing 'eclipticam/nights/<n>/' therefore hit the
-        # dead PRE-SPLIT prefix (last data 2026-06-16, filenames like
-        # v3w_sweep-diff.mp4) and reported "no mp4s for this night yet" on
-        # nights that had eight. Resolve logical -> physical the same way the
-        # camera page does, and search every section so a night published by
-        # only one sub-camera still plays.
-        player_prefixes = {
-            'astrocam': ['astrocam'],
-            'canon': ['canon'],
-            'eclipticam': ['eclipticam-v3w', 'eclipticam-v1'],
-        }.get(camera, [camera])
-        try:
-            s3 = s3_client()
-            mp4_keys = []
-            for pfx in player_prefixes:
-                listing = s3.list_objects_v2(
-                    Bucket=ASTRO_BUCKET, Prefix=f'{pfx}/nights/{night}/')
-                for item in listing.get('Contents', []) or []:
-                    k = item['Key']
-                    if not k.endswith('.mp4'):
-                        continue
-                    mp4_keys.append(k)
-            # Prefer the -web encode of each sweep and drop the full-res twin:
-            # publish-night-cam builds sweep-<n>-web.mp4 (1280-wide, denoised,
-            # +faststart, ~4MB) precisely so the site serves that, keeping the
-            # full-res as the download/archive copy. Listing both put every
-            # clip in the player twice, full-res first — a 162MB file whose
-            # moov atom is at the END, so it cannot start until fully loaded.
-            web_stems = {k[:-len('-web.mp4')] for k in mp4_keys
-                         if k.endswith('-web.mp4')}
-            mp4_keys = [k for k in mp4_keys
-                        if k.endswith('-web.mp4') or k[:-4] not in web_stems]
-            # Order: night-root deliverables first (they're the "story of
-            # the night"), then experiments alphabetically.
-            mp4_keys.sort(
-                key=lambda k: (1 if '/experiments/' in k else 0, k))
-            urls = [get_presigned_url(k, bucket=ASTRO_BUCKET)
-                    for k in mp4_keys]
-            if not urls:
-                return {'statusCode': 404,
-                        'body': '<p>no mp4s for this night yet</p>',
-                        'headers': {'Content-Type': 'text/html'}}
-            # The underlying render_skycam_player relies on CSS variables
-            # (--bg, --text, --accent, --divider) injected via _init_theme.
-            # Without this the HUD text disappears (text colour unset →
-            # black on dark overlay) and the timeline bar vanishes
-            # (background unset → transparent on white body).
-            from routes.gardencam import _init_theme
-            from routes.astro import render_astro_player
-            _init_theme(THEME_CSS_JS)
-            page = render_astro_player(camera=camera, night=night,
-                                       sources=urls)
-            return {'statusCode': 200, 'body': page,
-                    'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-        except Exception as e:
-            return {'statusCode': 500,
-                    'body': f'<p>error: {e}</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-
-    elif re.search(r'/astro/(astrocam|eclipticam|canon)'
-                   r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}'
-                   r'|/month/\d{4}-\d{2}|/all|/nights)?/?$',
-                   route):
-        # PUBLIC — live nightly deliverables (unify-cameras pipeline).
-        # /astro/<cam>                    -> calendar, last 7 days
-        # /astro/<cam>/nights            -> index of weeks & months (links only)
-        # /astro/<cam>/week/YYYY-MM-DD   -> that 7-day block
-        # /astro/<cam>/month/YYYY-MM     -> that month
-        # /astro/<cam>/all               -> full history
-        # /astro/<cam>/night/YYYY-MM-DD  -> that night
-        import json as _json
-        m = re.search(
-            r'/astro/(astrocam|eclipticam|canon)'
-            r'(?:/night/(\d{4}-\d{2}-\d{2})'
-            r'|/week/(\d{4}-\d{2}-\d{2})'
-            r'|/month/(\d{4}-\d{2})'
-            r'|(/all)'
-            r'|(/nights))?/?$',
-            path)
-        camera, night = m.group(1), m.group(2)
-        want_week, want_month = m.group(3), m.group(4)
-        want_all = m.group(5) is not None
-        want_index = m.group(6) is not None
-        is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
-        titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
-                  'canon': 'EOS Camera'}
-        # unify-cameras split: each section is now its own top-level S3
-        # camera prefix (eclipticam-v3w / eclipticam-v1) with UN-prefixed
-        # filenames (max.jpg, not v3w_max.jpg). astrocam is a single camera.
-        # Each entry: (s3_camera_prefix, section_label).
-        cam_sections = {
-            'astrocam': [('astrocam', None)],
-            'canon': [('canon', None)],
-            'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
-                           ('eclipticam-v1', 'OV5647 (v1)')],
-        }[camera]
-        # The camera whose nights drive the calendar + thumbnails (the
-        # night camera for eclipticam).
-        primary_cam = cam_sections[0][0]
-        try:
-            s3 = s3_client()
-            paginator = s3.get_paginator('list_objects_v2')
-
-            def list_all_nights():
-                # Union of nights across all section cameras (v1 may publish
-                # nights v3w didn't, and vice versa). This is the O(N) listing
-                # the calendar used to do on every request; deferred so the
-                # manifest fast path skips it entirely.
-                night_set = set()
-                for s3_cam, _label in cam_sections:
-                    for page_resp in paginator.paginate(
-                            Bucket=ASTRO_BUCKET, Prefix=f'{s3_cam}/nights/',
-                            Delimiter='/'):
-                        for cp in page_resp.get('CommonPrefixes') or []:
-                            night_set.add(cp['Prefix'].split('/')[-2])
-                return sorted(night_set, reverse=True)
-
-            nights = None  # populated lazily below (manifest path needs none)
-
-            if is_calendar:
-                # Fast path: a precomputed manifest at <camera>/index.json
-                # (written nightly by astro's build-calendar-index) lets us
-                # render the whole calendar from ONE S3 object — no per-night
-                # list/get/presign, which used to make this page slower every
-                # night. The manifest is keyed by the PUBLIC camera name and
-                # already merges the v3w+v1 union for eclipticam. Falls back
-                # to the per-night build below if it isn't published yet.
-                manifest = None
-                try:
-                    obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                        Key=f'{camera}/index.json')
-                    manifest = _json.loads(obj['Body'].read())
-                except Exception:
-                    manifest = None
-
-                from routes.astro import astro_calendar_window
-
-                if want_index:
-                    # Links only — no thumbnails, so no presigning at all.
-                    # One S3 read and the page size is independent of how
-                    # many nights the camera has published.
-                    all_nights = (
-                        sorted((e['night'] for e in manifest.get('nights', [])
-                                if e.get('night')), reverse=True)
-                        if manifest is not None else list_all_nights())
-                    _, _, weeks, months = astro_calendar_window(all_nights)
-                    from routes.astro import render_astro_nights_index
-                    return {
-                        'statusCode': 200,
-                        'body': render_astro_nights_index(
-                            theme_css_js=THEME_CSS_JS, title=titles[camera],
-                            camera=camera, weeks=weeks, months=months,
-                            total_nights=len(all_nights)),
-                        'headers': {
-                            'Content-Type': 'text/html; charset=utf-8'}}
-
-                if manifest is not None:
-                    by_night = {e['night']: e
-                                for e in manifest.get('nights', [])
-                                if e.get('night')}
-                    nights = sorted(by_night, reverse=True)
-                    # Window FIRST, presign second: only the nights actually
-                    # rendered cost a presign, so the page no longer gets
-                    # slower with every night published.
-                    selected, window_label, weeks, months = \
-                        astro_calendar_window(nights, week=want_week,
-                                              month=want_month,
-                                              show_all=want_all)
-                    nights_meta = []
-                    for n in selected:
-                        entry = by_night[n]
-                        tk = entry.get('thumb_key')
-                        if tk and camera == 'eclipticam' and tk.endswith('/thumb.jpg'):
-                            tk = tk[:-9] + 'max.jpg'
-                        thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
-                                     if tk else None)
-                        nights_meta.append({
-                            'night': n,
-                            'thumb_url': thumb_url,
-                            'summary': {
-                                'n_frames': entry.get('n_frames'),
-                                'n_stacked': entry.get('n_stacked'),
-                                'stops': entry.get('stops'),
-                                'verdict': entry.get('verdict'),
-                            }})
-
-                if manifest is None:
-                    nights = list_all_nights()
-                    if not nights:
-                        from routes.astro import render_astro_stub
-                        return {
-                            'statusCode': 200,
-                            'body': render_astro_stub(
-                                theme_css_js=THEME_CSS_JS,
-                                title=titles[camera]),
-                            'headers': {
-                                'Content-Type': 'text/html; charset=utf-8'}}
-                    # Slow fallback (pre-manifest): build calendar cards from
-                    # the primary (night) camera per night — thumbnail
-                    # (max.jpg, falling back to thumb.jpg) + summary.json for
-                    # the "X of Y frames stacked" line. Filenames are
-                    # un-prefixed post-split.
-                    selected, window_label, weeks, months = \
-                        astro_calendar_window(nights, week=want_week,
-                                              month=want_month,
-                                              show_all=want_all)
-                    nights_meta = []
-                    for n in selected:
-                        thumb_url = None
-                        summary = None
-                        listing_n = s3.list_objects_v2(
-                            Bucket=ASTRO_BUCKET,
-                            Prefix=f'{primary_cam}/nights/{n}/')
-                        names_n = {it['Key'].split('/')[-1]: it['Key']
-                                   for it in listing_n.get('Contents', []) or []}
-                        # Prefer the all-night max stack (more representative of
-                        # the night, no clear/cloudy judgement needed).
-                        # Fall back to thumb.jpg for legacy nights.
-                        for thumb_key in ('max.jpg', 'thumb.jpg'):
-                            if thumb_key in names_n:
-                                thumb_url = get_presigned_url(
-                                    names_n[thumb_key], bucket=ASTRO_BUCKET)
-                                break
-                        if 'summary.json' in names_n:
-                            try:
-                                obj = s3.get_object(
-                                    Bucket=ASTRO_BUCKET,
-                                    Key=names_n['summary.json'])
-                                summary = _json.loads(obj['Body'].read())
-                                if summary:
-                                    anchor = summary.get('anchor') or {}
-                                    if 'stops' in anchor and anchor['stops'] is not None:
-                                        summary['stops'] = anchor['stops']
-                                    elif 'per_s' in anchor:
-                                        import math as _math
-                                        per_s = anchor['per_s']
-                                        pedestal = 2048.0 if camera == 'canon' else 50.0
-                                        exp_gain = 480.0 if camera == 'canon' else 59.9
-                                        hours = summary.get('hours') or []
-                                        min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
-                                        if min_hr is not None:
-                                            norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
-                                            if per_s < 10:
-                                                mean_adu = per_s * exp_gain
-                                            elif per_s > 1000:
-                                                mean_adu = per_s / 64.0
-                                            else:
-                                                if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
-                                                    mean_adu = per_s * exp_gain
-                                                else:
-                                                    mean_adu = per_s
-                                            summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
-                            except Exception:
-                                pass
-                        nights_meta.append({'night': n, 'thumb_url': thumb_url,
-                                            'summary': summary})
-                # Multi-night combined brightness curve sits at the
-                # primary camera's prefix root (un-prefixed filename),
-                # refreshed daily by combined-brightness.
-                combined_key = f'{primary_cam}/brightness-combined.png'
-                combined_url = None
-                try:
-                    s3.head_object(Bucket=ASTRO_BUCKET, Key=combined_key)
-                    combined_url = get_presigned_url(
-                        combined_key, bucket=ASTRO_BUCKET)
-                except Exception:
-                    pass
-                # Accumulated moon/sun nets: the reference-night max-stack with
-                # Moon-net / sun-net display RETIRED 2026-07-06. The hand-marked
-                # moon/sun nets were scaffolding to bootstrap v3w astrometry,
-                # superseded by Altair-based star-ID (astro
-                # design/retire-moon-marking-v1.md). The pipeline no longer
-                # produces moon-net.png / sun-net.png. The astro template still
-                # guards on these URLs, so None hides both blocks cleanly.
-                moon_net_url = None
-                sun_net_url = None
-                from routes.astro import render_astro_camera_calendar
-                return {
-                    'statusCode': 200,
-                    'body': render_astro_camera_calendar(
-                        theme_css_js=THEME_CSS_JS, title=titles[camera],
-                        camera=camera, nights_with_meta=nights_meta,
-                        combined_brightness_url=combined_url,
-                        moon_net_url=moon_net_url,
-                        sun_net_url=sun_net_url,
-                        window_label=window_label, weeks=weeks,
-                        months=months),
-                    'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-            # Nights nav strip (nights[:14]). Prefer the precomputed manifest
-            # so a per-night page also skips the O(N) listing; fall back to
-            # listing if no manifest is published yet.
-            try:
-                idx_obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                        Key=f'{camera}/index.json')
-                manifest = _json.loads(idx_obj['Body'].read())
-                nights = [e.get('night') for e in manifest.get('nights', [])]
-            except Exception:
-                nights = list_all_nights()
-
-            # One section per camera prefix; each has its own listing with
-            # un-prefixed filenames (post unify-cameras split).
-            sections = []
-            for s3_cam, label in cam_sections:
-                listing = s3.list_objects_v2(
-                    Bucket=ASTRO_BUCKET,
-                    Prefix=f'{s3_cam}/nights/{night}/')
-                names = {item['Key'].split('/')[-1]: item['Key']
-                         for item in listing.get('Contents', []) or []}
-                summary = None
-                if 'summary.json' in names:
-                    obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                        Key=names['summary.json'])
-                    summary = _json.loads(obj['Body'].read())
-                    if summary:
-                        anchor = summary.get('anchor') or {}
-                        if 'stops' in anchor and anchor['stops'] is not None:
-                            summary['stops'] = anchor['stops']
-                        elif 'per_s' in anchor:
-                            import math as _math
-                            per_s = anchor['per_s']
-                            pedestal = 2048.0 if camera == 'canon' else 50.0
-                            exp_gain = 480.0 if camera == 'canon' else 59.9
-                            hours = summary.get('hours') or []
-                            min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
-                            if min_hr is not None:
-                                norm_min = min_hr / 64.0 if min_hr > 1000 else min_hr
-                                if per_s < 10:
-                                    mean_adu = per_s * exp_gain
-                                elif per_s > 1000:
-                                    mean_adu = per_s / 64.0
-                                else:
-                                    if abs(per_s * exp_gain - norm_min) < abs(per_s - norm_min):
-                                        mean_adu = per_s * exp_gain
-                                    else:
-                                        mean_adu = per_s
-                                summary['stops'] = round(_math.log2(max(mean_adu - pedestal, 0.5)), 2)
-                urls = {}
-                for base in ('sweep-colour.mp4', 'sweep-mono.mp4',
-                             'sweep-diff.mp4', 'sweep-detrans.mp4',
-                             'sweep-detrans-deep.mp4',
-                             # -web variants are what the page actually plays
-                             # (1280-wide, +faststart, ~5MB vs 130-180MB).
-                             # They must be presigned here or the route's
-                             # lookup silently falls back to full-res.
-                             'sweep-colour-web.mp4', 'sweep-mono-web.mp4',
-                             'sweep-diff-web.mp4', 'sweep-detrans-web.mp4',
-                             'sweep-detrans-deep-web.mp4',
-                             'poster-colour.jpg', 'poster-mono.jpg',
-                             'poster-diff.jpg', 'poster-detrans.jpg',
-                             'poster-detrans-deep.jpg',
-                             'derot.jpg', 'max.jpg', 'brightness.png',
-                             'thumb.jpg'):
-                    if base in names:
-                        urls[base] = get_presigned_url(
-                            names[base], bucket=ASTRO_BUCKET)
-                if summary or urls:
-                    sections.append({'label': label,
-                                     'summary': summary, 'urls': urls})
-        except Exception as e:
-            return {'statusCode': 500,
-                    'body': f'<p>error: {e}</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        from routes.astro import render_astro_camera_page
-        return {
-            'statusCode': 200,
-            'body': render_astro_camera_page(
-                theme_css_js=THEME_CSS_JS, title=titles[camera],
-                camera=camera, night=night, sections=sections,
-                nights=nights, is_dashboard=False),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif (route in ('/starcam', '/starcam/nights', '/starcam/nights/all')):
-        # PUBLIC — calendar index of published nights.
-        # /starcam, /starcam/nights = dashboard (hero + last 3 weeks + 'More')
-        # /starcam/nights/all       = full history calendar
-        is_dashboard = not path.endswith('/all')
-        import json as _json
-        try:
-            s3 = s3_client()
-            paginator = s3.get_paginator('list_objects_v2')
-            nights = []
-            for page_resp in paginator.paginate(
-                    Bucket=STARCAM_BUCKET, Prefix='nights/',
-                    Delimiter='/'):
-                for cp in page_resp.get('CommonPrefixes') or []:
-                    night_str = cp['Prefix'].split('/')[-2]
-                    try:
-                        obj = s3.get_object(
-                            Bucket=STARCAM_BUCKET,
-                            Key=f'nights/{night_str}/summary.json')
-                        s = _json.loads(obj['Body'].read())
-                        agg = s.get('aggregate', {}) or {}
-                        nights.append({
-                            'night': night_str,
-                            'verdict': s.get('verdict', 'no-data'),
-                            'hours_ok': agg.get('hours_ok', 0),
-                            'hours_total': agg.get('hours_total', 0),
-                            'pole_spread_px': agg.get('pole_spread_px'),
-                        })
-                    except Exception:
-                        continue
-            nights.sort(key=lambda n: n['night'], reverse=True)
-            hero_url = None
-            hero_night = None
-            if is_dashboard:
-                # Hero plot lives at the bucket root (not under a date).
-                hero_url = get_presigned_url(
-                    'nights/brightness.png', bucket=STARCAM_BUCKET)
-                hero_night = nights[0]['night'] if nights else None
-        except Exception as e:
-            return {'statusCode': 500,
-                    'body': f'<p>error: {e}</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        from routes.camera import render_starcam_nights_index
-        kwargs = {}
-        if is_dashboard:
-            kwargs = {'weeks_limit': 3, 'hero_url': hero_url,
-                      'hero_night': hero_night}
-        return {'statusCode': 200,
-                'body': render_starcam_nights_index(nights, **kwargs),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif (route.startswith('/starcam/night/')):
-        # PUBLIC — no auth. Per-night results page.
-        # Path: /starcam/night/YYYY-MM-DD
-        import json as _json
-        import re as _re
-        night_str = path.rstrip('/').rsplit('/', 1)[-1]
-        if not _re.fullmatch(r'\d{4}-\d{2}-\d{2}', night_str):
-            return {'statusCode': 400,
-                    'body': '<p>invalid night</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        key_prefix = f'nights/{night_str}/'
-        try:
-            s3 = s3_client()
-            obj = s3.get_object(Bucket=STARCAM_BUCKET,
-                                Key=f'{key_prefix}summary.json')
-            summary = _json.loads(obj['Body'].read())
-            # List the night's objects to pick up sum_*.jpg etc.
-            listing = s3.list_objects_v2(Bucket=STARCAM_BUCKET,
-                                         Prefix=key_prefix)
-            urls = {}
-            for item in listing.get('Contents', []) or []:
-                name = item['Key'].split('/')[-1]
-                urls[name] = get_presigned_url(
-                    item['Key'], bucket=STARCAM_BUCKET)
-        except s3.exceptions.NoSuchKey:
-            return {'statusCode': 404,
-                    'body': f'<p>no data for {night_str}</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        except Exception as e:
-            return {'statusCode': 500,
-                    'body': f'<p>error: {e}</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        from routes.camera import render_starcam_night_results
-        return {'statusCode': 200,
-                'body': render_starcam_night_results(night_str, summary, urls),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route.startswith('/starcam/gallery'):
-        query_params = event.get('queryStringParameters', {}) or {}
-        day_param = query_params.get('day', '')
-        week_param = query_params.get('week', '')
-        month_param = query_params.get('month', '')
-        year_param = query_params.get('year', '')
-        page_param = int(query_params.get('page', '1'))
-        per_page = 20
-
-        if year_param:
-            months = _months_in_year(year_param, STARCAM_EARLIEST_DATE)
-            # One listing for the whole year — this used to be one
-            # S3 round trip per day and timed the Lambda out (503).
-            counts = count_images_by_date('starcam', year_param)
-            months_with_counts = []
-            for m in reversed(months):
-                days = _days_in_month(m, STARCAM_EARLIEST_DATE)
-                count = sum(counts.get(d, 0) for d in days)
-                if count > 0:
-                    months_with_counts.append((m, count))
-            from routes.camera import render_gallery_year
-            html += render_gallery_year('Star Camera', year_param, months_with_counts,
-                                        gallery_path='gallery', latest_path='../starcam')
-
-        elif month_param:
-            weeks = _weeks_in_month(month_param, STARCAM_EARLIEST_DATE)
-            counts = count_images_by_date('starcam', month_param)
-            weeks_with_days = []
-            for w in reversed(weeks):
-                w_days = _days_in_week(w, STARCAM_EARLIEST_DATE)
-                w_days = [d for d in w_days if d[:7] == month_param]
-                day_counts = []
-                for d in reversed(w_days):
-                    count = counts.get(d, 0)
-                    if count > 0:
-                        day_counts.append((d, count))
-                if day_counts:
-                    weeks_with_days.append((w, day_counts))
-            from routes.camera import render_gallery_month
-            html += render_gallery_month('Star Camera', month_param, weeks_with_days,
-                                          gallery_path='gallery', latest_path='../starcam',
-                                          year_str=month_param[:4])
-
-        elif week_param:
-            w_days = _days_in_week(week_param, STARCAM_EARLIEST_DATE)
-            # A week can straddle a month boundary — one listing each.
-            counts = {}
-            for _period in sorted({d[:7] for d in w_days}):
-                counts.update(count_images_by_date('starcam', _period))
-            days_with_counts = []
-            for d in reversed(w_days):
-                count = counts.get(d, 0)
-                if count > 0:
-                    days_with_counts.append((d, count))
-            from datetime import date as _date
-            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
-            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
-            month_str = thursday.strftime('%Y-%m')
-            from routes.camera import render_gallery_week
-            html += render_gallery_week('Star Camera', week_param, days_with_counts,
-                                         gallery_path='gallery', latest_path='../starcam',
-                                         month_str=month_str)
-
-        else:
-            if not day_param:
-                day_param = _today_london()
-            all_day_images = get_starcam_images_for_date(day_param)
-            total = len(all_day_images)
-            total_pages = max(1, math.ceil(total / per_page))
-            page_param = max(1, min(page_param, total_pages))
-            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
-            week_iso = _iso_week_for_date(day_param)
-            from routes.camera import render_gallery_day
-            html += render_gallery_day(
-                'Star Camera', day_param, page_images,
-                page=page_param, total_pages=total_pages, total_images=total,
-                thumb_key_fn=starcam_thumb_key,
-                gallery_path='gallery', latest_path='../starcam', fullres_path='../starcam/fullres',
-                week_iso=week_iso,
-            )
-
-    elif route == '/starcam/timelapse':
-        from routes.gardencam import _init_theme, render_timelapse_index
-        _init_theme(THEME_CSS_JS)
-        qs = event.get('queryStringParameters') or {}
-        focus = qs.get('date')
-        return {'statusCode': 200,
-                'body': render_timelapse_index(focus_date=focus, camera='starcam'),
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/starcam/timelapse-day':
-        from routes.gardencam import render_timelapse_day_fragment
-        qs = event.get('queryStringParameters') or {}
-        date = (qs.get('date') or '').strip()
-        frag = render_timelapse_day_fragment(date, camera='starcam') if date else None
-        if frag is None:
-            return {'statusCode': 400, 'body': '<p>invalid date</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        return {'statusCode': 200, 'body': frag,
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/starcam/player':
-        from routes.gardencam import _init_theme, render_skycam_player
-        _init_theme(THEME_CSS_JS)
-        qs = event.get('queryStringParameters') or {}
-        mvqs = event.get('multiValueQueryStringParameters') or {}
-        key = qs.get('key', '')
-        src = qs.get('src')
-        srcs = mvqs.get('src') if mvqs and len(mvqs.get('src') or []) > 1 else None
-        def _f(name):
-            v = qs.get(name)
-            if v in (None, ''): return None
-            try: return float(v)
-            except (TypeError, ValueError): return None
-        clip_param = qs.get('clip') or ''
-        clips_arg = []
-        for piece in clip_param.split(','):
-            piece = piece.strip()
-            if not piece or '-' not in piece:
-                continue
-            a, _, b = piece.partition('-')
-            try:
-                clips_arg.append((float(a), float(b)))
-            except ValueError:
-                continue
-        page = render_skycam_player(key, in_sec=_f('in'), out_sec=_f('out'),
-                                    src=src, srcs=srcs,
-                                    clips=clips_arg or None)
-        if page is None:
-            return {'statusCode': 400, 'body': '<h1>400</h1><p>Invalid key.</p>',
-                    'headers': {'Content-Type': 'text/html'}}
-        return {'statusCode': 200, 'body': page,
-                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route.startswith('/starcam/videos'):
-
-        s3 = s3_client()
-        videos = []
-        try:
-            paginator = s3.get_paginator('list_objects_v2')
-            for page in paginator.paginate(Bucket=STARCAM_BUCKET, Prefix='videos/'):
-                for obj in page.get('Contents', []):
-                    key = obj['Key']
-                    if not key.endswith('.mp4'):
-                        continue
-                    basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
-                    videos.append({
-                        'key': key,
-                        'url': f"play?key={key}",
-                        'size_mb': obj['Size'] / 1048576,
-                        'label': basename,
-                        'is_daily': False,
-                    })
-        except Exception as e:
-            print(f"Error listing starcam videos: {e}")
-
-        from routes.camera import render_videos_day
-        html += render_videos_day('Star Camera', _today_london(), videos,
-                                   latest_path='../starcam', gallery_path='gallery',
-                                   videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
-
-    elif route.startswith('/starcam/play'):
-
-        query_params = event.get('queryStringParameters', {}) or {}
-        video_key = query_params.get('key', '')
-        s3 = s3_client()
-
-        try:
-            s3.head_object(Bucket=STARCAM_BUCKET, Key=video_key)
-            video_url = s3.generate_presigned_url(
-                'get_object', Params={'Bucket': STARCAM_BUCKET, 'Key': video_key},
-                ExpiresIn=7200)
-            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
-            from routes.camera import render_skycam_player
-            html += render_skycam_player(video_url, basename, hours=[])
-        except Exception as e:
-            print(f"Error loading starcam video: {e}")
-            html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
-
-    elif route.startswith('/starcam/fullres'):
-        params = event.get('queryStringParameters') or {}
-        image_key = params.get('key', '')
-        if image_key:
-            image_url = get_presigned_url(image_key, bucket=STARCAM_BUCKET)
-            ts = parse_timestamp_from_key(image_key) or image_key
-            from routes.camera import render_camera_fullres
-            html += render_camera_fullres('Star Camera', image_url, ts,
-                                          latest_path='../starcam', gallery_path='gallery')
-        else:
-            html += '<p>No image specified.</p>'
-
-    elif route.startswith('/skycam/gallery'):
-        query_params = event.get('queryStringParameters', {}) or {}
-        day_param = query_params.get('day', '')
-        week_param = query_params.get('week', '')
-        month_param = query_params.get('month', '')
-        year_param = query_params.get('year', '')
-        page_param = int(query_params.get('page', '1'))
-        per_page = 20
-
-        if year_param:
-            months = _months_in_year(year_param, SKYCAM_EARLIEST_DATE)
-            # One listing for the whole year — this used to be one
-            # S3 round trip per day and timed the Lambda out (503).
-            counts = count_images_by_date('skycam', year_param)
-            months_with_counts = []
-            for m in reversed(months):
-                days = _days_in_month(m, SKYCAM_EARLIEST_DATE)
-                count = sum(counts.get(d, 0) for d in days)
-                if count > 0:
-                    months_with_counts.append((m, count))
-            from routes.camera import render_gallery_year
-            html += render_gallery_year('Sky Camera', year_param, months_with_counts,
-                                        gallery_path='gallery', latest_path='../skycam',
-                                        videos_path='videos')
-
-        elif month_param:
-            weeks = _weeks_in_month(month_param, SKYCAM_EARLIEST_DATE)
-            counts = count_images_by_date('skycam', month_param)
-            weeks_with_days = []
-            for w in reversed(weeks):
-                w_days = _days_in_week(w, SKYCAM_EARLIEST_DATE)
-                w_days = [d for d in w_days if d[:7] == month_param]
-                day_counts = []
-                for d in reversed(w_days):
-                    count = counts.get(d, 0)
-                    if count > 0:
-                        day_counts.append((d, count))
-                if day_counts:
-                    weeks_with_days.append((w, day_counts))
-            from routes.camera import render_gallery_month
-            html += render_gallery_month('Sky Camera', month_param, weeks_with_days,
-                                          gallery_path='gallery', latest_path='../skycam',
-                                          year_str=month_param[:4], videos_path='videos')
-
-        elif week_param:
-            w_days = _days_in_week(week_param, SKYCAM_EARLIEST_DATE)
-            # A week can straddle a month boundary — one listing each.
-            counts = {}
-            for _period in sorted({d[:7] for d in w_days}):
-                counts.update(count_images_by_date('skycam', _period))
-            days_with_counts = []
-            for d in reversed(w_days):
-                count = counts.get(d, 0)
-                if count > 0:
-                    days_with_counts.append((d, count))
-            from datetime import date as _date
-            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
-            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
-            month_str = thursday.strftime('%Y-%m')
-            from routes.camera import render_gallery_week
-            html += render_gallery_week('Sky Camera', week_param, days_with_counts,
-                                         gallery_path='gallery', latest_path='../skycam',
-                                         month_str=month_str, videos_path='videos')
-
-        else:
-            if not day_param:
-                day_param = _today_london()
-            all_day_images = get_skycam_images_for_date(day_param)
-            total = len(all_day_images)
-            total_pages = max(1, math.ceil(total / per_page))
-            page_param = max(1, min(page_param, total_pages))
-            page_images = all_day_images[(page_param - 1) * per_page : page_param * per_page]
-            week_iso = _iso_week_for_date(day_param)
-            skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
-            from routes.camera import render_gallery_day
-            html += render_gallery_day(
-                'Sky Camera', day_param, page_images,
-                page=page_param, total_pages=total_pages, total_images=total,
-                thumb_key_fn=skycam_thumb_key,
-                gallery_path='gallery', latest_path='../skycam', fullres_path='../skycam/fullres',
-                week_iso=week_iso, videos_path='videos',
-                exposure_data=skycam_stats,
-            )
-
-    elif route.startswith('/skycam/fullres'):
-        params = event.get('queryStringParameters') or {}
-        image_key = params.get('key', '')
-        if image_key:
-            image_url = get_presigned_url(image_key)
-            ts = parse_timestamp_from_key(image_key) or image_key
-            from routes.camera import render_camera_fullres
-            html += render_camera_fullres('Sky Camera', image_url, ts,
-                                          latest_path='../skycam', gallery_path='gallery')
-        else:
-            html += '<p>No image specified.</p>'
-
-    elif route.startswith('/skycam/videos'):
-        query_params = event.get('queryStringParameters', {}) or {}
-
-        s3 = s3_client()
-
-        def _presign_vid(key):
-            return s3.generate_presigned_url(
-                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
-
-        def _list_videos_for_prefix(prefix):
-            """List mp4 videos under an S3 prefix, return sorted newest-first."""
-            vids = []
-            try:
-                paginator = s3.get_paginator('list_objects_v2')
-                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-                    for obj in page.get('Contents', []):
-                        key = obj['Key']
-                        if not key.endswith('.mp4'):
-                            continue
-                        basename = key.rsplit('/', 1)[-1].replace('.mp4', '')
-                        ts_part = basename.replace('sky_', '')
-                        is_daily = ts_part.endswith('_daily')
-                        is_combined = ts_part.endswith('_combined')
-                        is_night = ts_part.endswith('_night')
-                        is_special = is_daily or is_combined or is_night
-                        if is_daily:
-                            date_part = ts_part.replace('_daily', '')
-                            try:
-                                dt = datetime.strptime(date_part, '%Y%m%d')
-                            except ValueError:
-                                dt = obj['LastModified'].replace(tzinfo=None)
-                            label = 'Full Day'
-                        elif is_combined:
-                            date_part = ts_part.replace('_combined', '')
-                            try:
-                                dt = datetime.strptime(date_part, '%Y%m%d')
-                            except ValueError:
-                                dt = obj['LastModified'].replace(tzinfo=None)
-                            label = 'Full Day (sky + garden)'
-                        elif is_night:
-                            date_part = ts_part.replace('_night', '')
-                            try:
-                                dt = datetime.strptime(date_part, '%Y%m%d')
-                            except ValueError:
-                                dt = obj['LastModified'].replace(tzinfo=None)
-                            label = 'Night Sky'
-                        else:
-                            try:
-                                dt = datetime.strptime(ts_part, '%Y%m%d_%H')
-                                label = dt.strftime('%H:00')
-                            except ValueError:
-                                label = ts_part
-                                dt = obj['LastModified'].replace(tzinfo=None)
-                        vids.append({
-                            'key': key,
-                            'url': f"play?key={key}",
-                            'size_mb': obj['Size'] / 1048576,
-                            'label': label, 'dt': dt,
-                            'is_daily': is_special,
-                        })
-            except Exception as e:
-                print(f"Error listing skycam videos ({prefix}): {e}")
-            vids.sort(key=lambda v: (not v.get('is_daily'), v['dt']), reverse=True)
-            return vids
-
-        def _count_videos_for_day(day_str):
-            """Count videos for a specific day via S3 prefix."""
-            try:
-                day_dt = datetime.strptime(day_str, '%Y-%m-%d')
-            except ValueError:
-                return 0
-            prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
-            count = 0
-            try:
-                paginator = s3.get_paginator('list_objects_v2')
-                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-                    count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
-            except Exception:
-                pass
-            return count
-
-        def _count_videos_for_month(month_str):
-            """Count videos for a month."""
-            try:
-                month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
-            except ValueError:
-                return 0
-            prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
-            count = 0
-            try:
-                paginator = s3.get_paginator('list_objects_v2')
-                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-                    count += sum(1 for obj in page.get('Contents', []) if obj['Key'].endswith('.mp4'))
-            except Exception:
-                pass
-            return count
-
-        def _days_with_videos_in_month(month_str):
-            """Return list of (day_str, count) for days with videos, newest first."""
-            try:
-                month_dt = datetime.strptime(month_str + '-01', '%Y-%m-%d')
-            except ValueError:
-                return []
-            prefix = f"skycam/videos/{month_dt.strftime('%Y/%m')}/"
-            days_seen = {}
-            try:
-                paginator = s3.get_paginator('list_objects_v2')
-                for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-                    for obj in page.get('Contents', []):
-                        key = obj['Key']
-                        if not key.endswith('.mp4'):
-                            continue
-                        parts = key.split('/')
-                        if len(parts) >= 5:
-                            day_str = f"{parts[2]}-{parts[3]}-{parts[4]}"
-                            days_seen[day_str] = days_seen.get(day_str, 0) + 1
-            except Exception as e:
-                print(f"Error listing skycam videos for month {month_str}: {e}")
-            return sorted(days_seen.items(), reverse=True)
-
-        day_param = query_params.get('day', '')
-        week_param = query_params.get('week', '')
-        month_param = query_params.get('month', '')
-        year_param = query_params.get('year', '')
-        # Video earliest date matches skycam images
-        VIDEO_EARLIEST = SKYCAM_EARLIEST_DATE
-
-        if year_param:
-            months = _months_in_year(year_param, VIDEO_EARLIEST)
-            months_with_counts = []
-            for m in reversed(months):
-                count = _count_videos_for_month(m)
-                if count > 0:
-                    months_with_counts.append((m, count))
-            from routes.camera import render_videos_year
-            html += render_videos_year('Sky Camera', year_param, months_with_counts,
-                                       latest_path='../skycam', gallery_path='gallery', videos_path='videos')
-
-        elif month_param:
-            days_list = _days_with_videos_in_month(month_param)
-            from routes.camera import render_videos_month
-            html += render_videos_month('Sky Camera', month_param, days_list,
-                                         latest_path='../skycam', gallery_path='gallery',
-                                         videos_path='videos', year_str=month_param[:4])
-
-        elif week_param:
-            w_days = _days_in_week(week_param, VIDEO_EARLIEST)
-            days_with_counts = []
-            for d in reversed(w_days):
-                count = _count_videos_for_day(d)
-                if count > 0:
-                    days_with_counts.append((d, count))
-            from datetime import date as _date
-            iso_year, iso_week = int(week_param[:4]), int(week_param.split('W')[1])
-            thursday = _date.fromisocalendar(iso_year, iso_week, 4)
-            month_str = thursday.strftime('%Y-%m')
-            from routes.camera import render_videos_week
-            html += render_videos_week('Sky Camera', week_param, days_with_counts,
-                                        latest_path='../skycam', gallery_path='gallery',
-                                        videos_path='videos', month_str=month_str)
-
-        else:
-            # Day view (default: today, falling back to most recent day with videos)
-            if not day_param:
-                day_param = _today_london()
-                try:
-                    day_dt = datetime.strptime(day_param, '%Y-%m-%d')
-                except ValueError:
-                    day_dt = datetime.utcnow()
-                    day_param = day_dt.strftime('%Y-%m-%d')
-                prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
-                videos = _list_videos_for_prefix(prefix)
-                # If today is empty, find the most recent day with videos using
-                # delimiter-based S3 listing (3 requests: year→month→day) rather
-                # than scanning backwards one day at a time (up to 30 requests).
-                if not videos:
-                    def _most_recent_prefix(prefix):
-                        """Return the lexicographically last common prefix under prefix/."""
-                        resp = s3.list_objects_v2(
-                            Bucket=GARDENCAM_BUCKET, Prefix=prefix, Delimiter='/')
-                        prefixes = [p['Prefix'] for p in resp.get('CommonPrefixes', [])]
-                        return prefixes[-1] if prefixes else None
-                    year_pfx  = _most_recent_prefix('skycam/videos/')
-                    month_pfx = _most_recent_prefix(year_pfx)  if year_pfx  else None
-                    day_pfx   = _most_recent_prefix(month_pfx) if month_pfx else None
-                    if day_pfx:
-                        videos = _list_videos_for_prefix(day_pfx)
-                        # Parse YYYY/MM/DD from the prefix
-                        parts = day_pfx.rstrip('/').split('/')
-                        if len(parts) >= 3:
-                            day_param = f"{parts[-3]}-{parts[-2]}-{parts[-1]}"
-            else:
-                try:
-                    day_dt = datetime.strptime(day_param, '%Y-%m-%d')
-                except ValueError:
-                    day_dt = datetime.utcnow()
-                    day_param = day_dt.strftime('%Y-%m-%d')
-                prefix = f"skycam/videos/{day_dt.strftime('%Y/%m/%d')}/"
-                videos = _list_videos_for_prefix(prefix)
-            week_iso = _iso_week_for_date(day_param)
-            try:
-                skycam_stats = get_skycam_stats_for_date(day_param, thin_minutes=10)
-            except Exception as e:
-                print(f"skycam stats unavailable: {e}")
-                skycam_stats = []
-            from routes.camera import render_videos_day
-            html += render_videos_day('Sky Camera', day_param, videos,
-                                       latest_path='../skycam', gallery_path='gallery',
-                                       videos_path='videos', week_iso=week_iso,
-                                       exposure_data=skycam_stats)
-
-    elif route == '/skycam/starcam':
-        # Starcam index: list all nights with stacked images
-        s3 = s3_client()
-        from collections import defaultdict
-        nights = defaultdict(int)  # evening_date -> count
-
-        paginator = s3.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix='skycam/stacked/'):
-            for obj in page.get('Contents', []):
-                key = obj['Key']
-                # Extract timestamp from filename: sky_YYYYMMDD_HHMMSS_stacked.jpg
-                fname = key.rsplit('/', 1)[-1]
-                if not fname.endswith('_stacked.jpg'):
-                    continue
-                ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
-                try:
-                    ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
-                    # Heuristic: UTC hour < 12 = belongs to previous evening
-                    if ts.hour < 12:
-                        evening = (ts - timedelta(days=1)).strftime('%Y-%m-%d')
-                    else:
-                        evening = ts.strftime('%Y-%m-%d')
-                    nights[evening] += 1
-                except ValueError:
-                    pass
-
-        sorted_nights = sorted(nights.items(), reverse=True)
-        from routes.camera import render_starcam_index
-        html += render_starcam_index(sorted_nights)
-
-    elif route.startswith('/skycam/starcam/night'):
-        # Starcam night: show stacked images for a specific night
-        query_params = event.get('queryStringParameters', {}) or {}
-        evening_date = query_params.get('date', '')
-        if not evening_date:
-            html += '<p style="color:#888; text-align:center;">No date specified.</p>'
-        else:
-            s3 = s3_client()
-            from zoneinfo import ZoneInfo
-            ev_dt = datetime.strptime(evening_date, '%Y-%m-%d')
-            morning_dt = ev_dt + timedelta(days=1)
-
-            # Search evening date (hours >= 12 UTC) and morning date (hours < 12 UTC)
-            stacked = []
-            for search_date, hour_filter in [(ev_dt, lambda h: h >= 12), (morning_dt, lambda h: h < 12)]:
-                prefix = f"skycam/{search_date.strftime('%Y/%m/%d')}/"
-                try:
-                    paginator = s3.get_paginator('list_objects_v2')
-                    for page in paginator.paginate(Bucket=GARDENCAM_BUCKET, Prefix=prefix):
-                        for obj in page.get('Contents', []):
-                            key = obj['Key']
-                            if '_stacked.jpg' not in key:
-                                continue
-                            fname = key.rsplit('/', 1)[-1]
-                            ts_part = fname.replace('sky_', '').replace('_stacked.jpg', '')
-                            try:
-                                ts = datetime.strptime(ts_part, '%Y%m%d_%H%M%S')
-                                if hour_filter(ts.hour):
-                                    local_ts = ts.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/London"))
-                                    url = s3.generate_presigned_url(
-                                        'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-                                        ExpiresIn=7200)
-                                    # Read S3 metadata for stats
-                                    meta = {}
-                                    try:
-                                        head = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)
-                                        meta = head.get('Metadata', {})
-                                    except Exception:
-                                        pass
-                                    local_h = local_ts.hour + local_ts.minute / 60
-                                    delta = local_h if local_h < 12 else local_h - 24
-                                    stacked.append({
-                                        'url': url,
-                                        'key': key,
-                                        'timestamp': local_ts.strftime('%H:%M BST'),
-                                        'sort_key': ts.isoformat(),
-                                        'stack_count': meta.get('stack-count', ''),
-                                        'darkest_100_avg': meta.get('darkest-100-avg', ''),
-                                        'delta': round(delta, 2),
-                                    })
-                            except ValueError:
-                                pass
-                except Exception:
-                    pass
-
-            stacked.sort(key=lambda x: x.get('sort_key', x['timestamp']))
-
-            # Query DynamoDB for hourly brightness through the night
-            # Filenames are predictable: sky_YYYYMMDD_HH0000.jpg
-            brightness_data = []
-            try:
-                from zoneinfo import ZoneInfo
-                dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-                stats_table = dynamodb.Table('gardencam-stats')
-                # Evening hours (18-23 UTC on evening date) + morning hours (00-11 UTC on morning date)
-                hours = [(ev_dt, h) for h in range(18, 24)] + [(morning_dt, h) for h in range(0, 12)]
-                for dt, h in hours:
-                    filename = f"sky_{dt.strftime('%Y%m%d')}_{h:02d}0000.jpg"
-                    try:
-                        resp = stats_table.get_item(Key={'filename': filename})
-                        item = resp.get('Item')
-                        if item:
-                            avg_b = float(item.get('avg_brightness', 0))
-                            utc_ts = datetime(dt.year, dt.month, dt.day, h, tzinfo=timezone.utc)
-                            local_ts = utc_ts.astimezone(ZoneInfo("Europe/London"))
-                            local_h = local_ts.hour + local_ts.minute / 60
-                            delta = local_h if local_h < 12 else local_h - 24
-                            brightness_data.append({
-                                'time': local_ts.strftime('%H:%M'),
-                                'value': round(avg_b, 1),
-                                'sort_key': utc_ts.isoformat(),
-                                'delta': round(delta, 2),
-                            })
-                    except Exception:
-                        pass
-                brightness_data.sort(key=lambda x: x['sort_key'])
-            except Exception as e:
-                print(f"Starcam brightness query failed: {e}")
-
-            from routes.camera import render_starcam_night
-            html += render_starcam_night(evening_date, stacked, brightness_data)
-
-    elif route == '/skycam/clouds':
-        # "Clouds - The Movie" — playlist of hourly cloudcam videos with
-        # day×hour selection, speed control, cast queue with auto-extend.
-        s3 = s3_client()
-        days = []
-        today = datetime.utcnow()
-        miss_streak = 0
-        for back in range(0, 365):
-            d = today - timedelta(days=back)
-            ymd_path = d.strftime("%Y/%m/%d")
-            ymd_flat = d.strftime("%Y%m%d")
-            prefix = f"skycam/videos/{ymd_path}/"
-            try:
-                resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=prefix)
-            except Exception:
-                resp = {}
-            hours = []
-            for obj in resp.get("Contents", []):
-                k = obj["Key"]
-                name = k.rsplit("/", 1)[-1]
-                # sky_YYYYMMDD_HH.mp4 — the per-hour clips
-                if not (name.startswith(f"sky_{ymd_flat}_") and name.endswith(".mp4")):
-                    continue
-                tag = name[len(f"sky_{ymd_flat}_"):-len(".mp4")]
-                if not (len(tag) == 2 and tag.isdigit()):
-                    continue   # skip _daily, _combined, _night, etc.
-                hours.append({
-                    "hh":      tag,
-                    "url":     s3.generate_presigned_url(
-                                  'get_object',
-                                  Params={'Bucket': GARDENCAM_BUCKET, 'Key': k},
-                                  ExpiresIn=14400),
-                    "size_mb": round(obj["Size"] / 1024 / 1024, 1),
-                })
-            if hours:
-                hours.sort(key=lambda h: h["hh"])
-                days.append({
-                    "date":  d.strftime("%Y-%m-%d"),
-                    "hours": hours,
-                })
-                miss_streak = 0
-            else:
-                miss_streak += 1
-                if miss_streak > 60:
-                    break
-        days.reverse()  # oldest first for chronological playback
-
-        from routes.camera import render_clouds_movie
-        return {
-            'statusCode': 200,
-            'body': render_clouds_movie(days),
-            'headers': {'Content-Type': 'text/html; charset=utf-8'},
-        }
-
-    elif route.startswith('/skycam/play'):
-        query_params = event.get('queryStringParameters', {}) or {}
-        s3 = s3_client()
-
-        # Find the video to play: ?key=... or default to today's combined, falling back to daily
-        video_key = query_params.get('key', '')
-        if not video_key:
-            today = datetime.utcnow()
-            date_str = today.strftime('%Y%m%d')
-            combined_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_combined.mp4"
-            daily_key = f"skycam/videos/{today.strftime('%Y/%m/%d')}/sky_{date_str}_daily.mp4"
-            try:
-                s3.head_object(Bucket=GARDENCAM_BUCKET, Key=combined_key)
-                video_key = combined_key
-            except Exception:
-                video_key = daily_key
-
-        try:
-            s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
-            video_url = s3.generate_presigned_url(
-                'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
-                ExpiresIn=7200)
-            basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
-
-            # Find the hourly segments for the clock overlay (convert UTC → London)
-            from zoneinfo import ZoneInfo
-            hours = []
-            video_basename = video_key.rsplit('/', 1)[-1]
-            is_multi = any(x in video_basename for x in ['_daily', '_combined', '_night'])
-
-            if is_multi:
-                # Daily/combined: list all hourly segments for the clock
-                day_prefix = video_key.rsplit('/', 1)[0] + '/'
-                try:
-                    resp = s3.list_objects_v2(Bucket=GARDENCAM_BUCKET, Prefix=day_prefix)
-                    for obj in sorted(resp.get('Contents', []), key=lambda o: o['Key']):
-                        k = obj['Key']
-                        if k.endswith('.mp4') and not any(x in k for x in ['_daily', '_combined', '_night']):
-                            b = k.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
-                            try:
-                                h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
-                                local_h = h.astimezone(ZoneInfo("Europe/London"))
-                                hours.append(local_h.hour)
-                            except ValueError:
-                                pass
-                except Exception:
-                    pass
-            else:
-                # Single hourly video: just that hour
-                b = video_basename.replace('.mp4', '').replace('sky_', '')
-                try:
-                    h = datetime.strptime(b, '%Y%m%d_%H').replace(tzinfo=timezone.utc)
-                    local_h = h.astimezone(ZoneInfo("Europe/London"))
-                    hours.append(local_h.hour)
-                except ValueError:
-                    pass
-
-            from routes.camera import render_skycam_player
-            html += render_skycam_player(video_url, basename, hours)
-        except Exception as e:
-            print(f"Error loading video for player: {e}")
-            html += '<p style="color:#888; text-align:center; margin-top:3rem;">No daily video available yet today.</p>'
-
-    elif route == '/srfcplus':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
-            }
-        srfc_cookie = get_srfcplus_cookie()
-        if not srfc_cookie:
-            html = render_srfcplus_setup_page('No session cookie saved yet.')
-        else:
-            proxied, err = fetch_srfcplus_homepage(srfc_cookie)
-            if err == 'expired':
-                html = render_srfcplus_setup_page('Session expired — please paste a fresh cookie.')
-            elif err:
-                html = render_srfcplus_setup_page(f'Could not reach portal: {err}')
-            else:
-                return {'statusCode': 200, 'body': proxied, 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
-
-    elif route == '/srfcplus/update-cookie':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
-                'headers': {'Content-Type': 'text/html', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
-            }
-        if event.get('requestContext', {}).get('http', {}).get('method') == 'POST' or event.get('httpMethod') == 'POST':
-            form_body = event.get('body') or ''
-            import urllib.parse as _up
-            params = dict(_up.parse_qsl(form_body))
-            new_cookie = params.get('cookie', '').strip()
-            if new_cookie:
-                save_srfcplus_cookie(new_cookie)
-                return {'statusCode': 302, 'body': '', 'headers': {'Location': '/srfcplus'}}
-            html = render_srfcplus_setup_page('No cookie provided — please paste the cookie string.')
-        else:
-            html = render_srfcplus_setup_page()
-
-    elif route == '/srfcplus/bookings':
-        if not check_basic_auth(event, GARDENCAM_PASSWORD):
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'error': 'Unauthorized'}),
-                'headers': {'Content-Type': 'application/json', 'WWW-Authenticate': 'Basic realm="SRFC Plus"'}
-            }
-        srfc_cookie = get_srfcplus_cookie()
-        if not srfc_cookie:
-            return {'statusCode': 200, 'body': json.dumps({'error': 'No session cookie — visit /srfcplus/update-cookie'}), 'headers': {'Content-Type': 'application/json'}}
-        return {
-            'statusCode': 200,
-            'body': json.dumps(fetch_srfcplus_bookings(srfc_cookie, sport='padel')),
-            'headers': {'Content-Type': 'application/json'}
-        }
-
-    elif route in ('', '/'):
-        html += render_contents_page()
-
-    else:
+    rq = _Request(event=event, context=context, path=path, route=route,
+                  stage=stage, host=host, root=root, ip=ip, headers=headers,
+                  fav=fav, start_time=start_time)
+
+    handler = _resolve_route(route)
+    if handler is None:
         status_code = 404
         html = render_404_page(path)
+    else:
+        result = handler(rq)
+        if isinstance(result, dict):     # handler built a complete response
+            return result
+        html += result                   # handler returned HTML for the epilogue
 
     # If html already has complete structure (DOCTYPE), inject favicon into existing <head>
     if html.strip().startswith('<!DOCTYPE') or html.strip().startswith('<html'):
