@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Watch the ACM renewal of the site's API Gateway certificate and Slack when it
+# lands. Self-retiring: on success it disables its own timer, so it does not
+# become a permanent job that nobody remembers enabling.
+#
+# Context: AWS Health AWS_ACM_RENEWAL_STATE_CHANGE, 11 Sep 2026 — ACM could not
+# auto-renew because its DNS validation CNAME was missing from Cloudflare. The
+# record was restored in cloudflare/dns.tf (commit e365200); this watches for
+# ACM to notice. See also the strand mywebsite-tweaks.
+#
+# Run by acm-renewal-watch.timer (systemd --user, lingering, so it survives
+# logout and reboot). Exit status is always 0 except on a real error.
+
+set -uo pipefail
+
+ARN="arn:aws:acm:eu-west-1:700630586062:certificate/51662f63-ffcf-40f6-a995-4e91b2977605"
+REGION="eu-west-1"
+DOMAIN="*.petergrecian.co.uk"
+AWS=/usr/local/bin/aws
+ALERT=/home/peter/super/bin/alert
+# The expiry we are trying to move. A NotAfter later than this proves the
+# renewal completed, independently of whatever RenewalSummary says — ACM drops
+# that block once renewal finishes, so status alone cannot be trusted.
+BASELINE_EPOCH=$(date -u -d "2026-10-11T00:00:00Z" +%s)
+
+json=$("$AWS" acm describe-certificate --region "$REGION" --certificate-arn "$ARN" --output json 2>&1)
+if [[ $? -ne 0 ]]; then
+    echo "describe-certificate failed: $json" >&2
+    # Don't page on a transient API/credential blip; the timer retries shortly.
+    exit 0
+fi
+
+read -r status not_after < <(printf '%s' "$json" | python3 -c '
+import json,sys
+c = json.load(sys.stdin)["Certificate"]
+print(c.get("RenewalSummary", {}).get("RenewalStatus", "NONE"), c["NotAfter"])
+')
+
+not_after_epoch=$(date -u -d "$not_after" +%s)
+now=$(date -u +%s)
+days_left=$(( (not_after_epoch - now) / 86400 ))
+
+retire() {
+    systemctl --user disable --now acm-renewal-watch.timer >/dev/null 2>&1
+}
+
+# The pending-escalation branches below are reached on every tick, so they need
+# a damper or they page every 30 minutes for a fortnight. One reminder a day is
+# the point; the success alert is not damped, since it fires once and retires.
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/acm-renewal-watch.lastnag"
+nag_due() {
+    [[ -f "$STAMP" ]] || return 0
+    (( now - $(stat -c %Y "$STAMP") >= 86400 ))
+}
+nagged() {
+    mkdir -p "$(dirname "$STAMP")" && touch "$STAMP"
+}
+
+if [[ "$status" == "SUCCESS" ]] || (( not_after_epoch > BASELINE_EPOCH )); then
+    "$ALERT" --xinfo --source mywebsite \
+        --detail "Certificate $DOMAIN renewed. New expiry: $not_after ($days_left days). Renewal status: $status. The validation CNAME restored in cloudflare/dns.tf did its job; this watcher has now retired itself." \
+        "ACM renewal SUCCESS for $DOMAIN"
+    retire
+    echo "renewed; expiry now $not_after; watcher retired"
+    exit 0
+fi
+
+if [[ "$status" == "FAILED" ]]; then
+    "$ALERT" --critical --source mywebsite \
+        --detail "ACM reports RenewalStatus=FAILED for $DOMAIN. Expiry $not_after ($days_left days). If this lapses, Cloudflare's origin fetch to API Gateway breaks and the site serves 526. Check the validation CNAME _4c15b1e7551c0756cff18f2d8cb4f886.petergrecian.co.uk." \
+        "ACM renewal FAILED for $DOMAIN"
+    retire
+    echo "renewal FAILED; watcher retired so it stops re-paging" >&2
+    exit 0
+fi
+
+# Still pending. Stay quiet — but escalate as the expiry gets close, because
+# silence for three weeks followed by an outage is the failure mode this whole
+# exercise exists to prevent.
+if (( days_left <= 7 )) && nag_due; then
+    nagged
+    "$ALERT" --critical --source mywebsite \
+        --detail "ACM still reports $status for $DOMAIN with only $days_left days to expiry ($not_after). Manual intervention needed." \
+        "ACM renewal still pending, $days_left days left"
+elif (( days_left <= 14 )) && nag_due; then
+    nagged
+    "$ALERT" --warn --source mywebsite \
+        --detail "ACM still reports $status for $DOMAIN. Expiry $not_after ($days_left days). Validation CNAME is in place; ACM has not picked it up." \
+        "ACM renewal still pending, $days_left days left"
+fi
+
+echo "pending ($status); $days_left days to expiry"
