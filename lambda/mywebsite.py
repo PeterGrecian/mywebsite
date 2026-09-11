@@ -2706,6 +2706,23 @@ def _dispatch(event, context):
         stage = event['requestContext']['stage']
         host = event['headers']['Host']
     root=f'https://{host}/{stage}'
+
+    # `route` is `path` with the API Gateway stage prefix removed, and is the
+    # ONLY thing the dispatch table matches on. Every branch used to spell its
+    # URL twice — `path == f'/{stage}/cv' or path == '/cv'` — because the site
+    # is reachable both through the stage URL and through the Cloudflare
+    # hostname. Normalising once here removes that duplication and the whole
+    # class of bug where only one of the two forms got a new route.
+    #
+    # Branch BODIES still use `path`, deliberately: several of them slice the
+    # URL for an image name or a date, and changing what they see would be a
+    # behaviour change rather than a refactor.
+    route = path
+    if stage:
+        if route == f'/{stage}' or route == f'/{stage}/':
+            route = '/'
+        elif route.startswith(f'/{stage}/'):
+            route = route[len(stage) + 1:]
     print(f'path = {path}, stage = {stage}, root = {root}')
     try:
         ref = event['headers']['referer']
@@ -2718,7 +2735,7 @@ def _dispatch(event, context):
     print(f'X-Forwarded-For = {ip}')
 
     # Favicon routes (/favicon.ico, /favicon.png, /favicon.svg, /tick.png)
-    if path in (f'/{stage}/favicon.ico', '/favicon.ico'):
+    if route == '/favicon.ico':
         return {
             'statusCode': 200,
             'headers': {
@@ -2728,7 +2745,7 @@ def _dispatch(event, context):
             'isBase64Encoded': True,
             'body': FAVICON_ICO_B64 or FAVICON_PNG_B64,
         }
-    if path in (f'/{stage}/favicon.png', '/favicon.png', f'/{stage}/tick.png', '/tick.png'):
+    if route in ('/favicon.png', '/tick.png'):
         return {
             'statusCode': 200,
             'headers': {
@@ -2738,7 +2755,7 @@ def _dispatch(event, context):
             'isBase64Encoded': True,
             'body': FAVICON_PNG_B64,
         }
-    if path in (f'/{stage}/favicon.svg', '/favicon.svg'):
+    if route == '/favicon.svg':
         return {
             'statusCode': 200,
             'headers': {
@@ -2749,7 +2766,7 @@ def _dispatch(event, context):
         }
 
     # robots.txt — reduce bot traffic and unnecessary invocations
-    if path == f'/{stage}/robots.txt' or path == '/robots.txt':
+    if route == '/robots.txt':
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'text/plain'},
@@ -2772,7 +2789,7 @@ def _dispatch(event, context):
             )
         }
 
-    if path == f'/{stage}/event' or path == '/event':   # debugging info
+    if route == '/event':   # debugging info
         html += '<div style="text-align: center; margin: 1rem;"><a href="contents" style="color: #4a9eff; text-decoration: none;">Home</a></div>'
         html += 'log_group = ' + context.log_group_name + '<br>'
         html += 'log_stream = ' + context.log_stream_name + '<br>' 
@@ -2786,17 +2803,17 @@ def _dispatch(event, context):
         for key in event.keys():
             html += "_______________________" + key + "_________________________<br>"
             html += pformat(event[key]).replace(',', ',<br>') + "<br><br>"
-    elif path == f'/{stage}/gitinfo' or path == '/gitinfo':
+    elif route == '/gitinfo':
         html = open("gitinfo.html", "r").read()
-    elif path == f'/{stage}/cv' or path == '/cv':
+    elif route == '/cv':
         html += open('cv.html', 'r').read()
-    elif path == f'/{stage}/contents' or path == '/contents':
+    elif route == '/contents':
         html += render_contents_page()
-    elif path == f'/{stage}/site-test' or path == '/site-test':
+    elif route == '/site-test':
         html = render_site_test_page()
-    elif path == f'/{stage}/privacy' or path == '/privacy':
+    elif route == '/privacy':
         html = render_privacy_page()
-    elif path.startswith(f'/{stage}/calendaralarm') or path.startswith('/calendaralarm'):
+    elif route.startswith('/calendaralarm'):
         # calendaralarm — CRUD webapp + JSON API for standing alarm rules.
         # Basic Auth on every subpath (page + API). The pip poller reads
         # GET /calendaralarm/api/rules; the page is the human CRUD UI.
@@ -2825,7 +2842,7 @@ def _dispatch(event, context):
         # Page (GET); anything non-GET on the page path is not meaningful.
         return _ca.render_page()
 
-    elif path.startswith(f'/{stage}/glacier') or path.startswith('/glacier'):
+    elif route.startswith('/glacier'):
         # glacier-app archive contents — private by default, Basic Auth on
         # every subpath. Page HTML is rendered by glacier-app site/render.py
         # into the bucket; thumbs redirect to short-lived presigned URLs.
@@ -2868,7 +2885,7 @@ def _dispatch(event, context):
                             '</h1><p>Run glacier-app site/render.py.</p>'
                             '</body></html>',
                     'headers': {'Content-Type': 'text/html'}}
-    elif path.startswith(f'/{stage}/gardencam/capture') or path.startswith('/gardencam/capture'):
+    elif route.startswith('/gardencam/capture'):
         # Capture command endpoint
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -2909,7 +2926,7 @@ def _dispatch(event, context):
                 'headers': {'Content-Type': 'application/json'}
             }
 
-    elif path.startswith(f'/{stage}/gardencam/timing') or path.startswith('/gardencam/timing'):
+    elif route.startswith('/gardencam/timing'):
         # Page load timing endpoint
         if method == 'POST':
             try:
@@ -2947,7 +2964,7 @@ def _dispatch(event, context):
                     'headers': {'Content-Type': 'application/json'}
                 }
 
-    elif path.startswith(f'/{stage}/gardencam/stats') or path.startswith('/gardencam/stats'):
+    elif route.startswith('/gardencam/stats'):
         # Stats visualization page
 
         # Fetch more stats to ensure we have enough data for 8 days
@@ -3014,7 +3031,7 @@ def _dispatch(event, context):
             'avg_brightness': avg_brightness
         }
         html += render_gardencam_stats(windows, summary)
-    elif path.startswith(f'/{stage}/gardencam/fullres') or path.startswith('/gardencam/fullres'):
+    elif route.startswith('/gardencam/fullres'):
         # Full resolution image view
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3042,7 +3059,7 @@ def _dispatch(event, context):
             html += render_gardencam_fullres(timestamp, image_url, stats_display)
         else:
             html += '<h1>Error: No image specified</h1>'
-    elif path.startswith(f'/{stage}/gardencam/display') or path.startswith('/gardencam/display'):
+    elif route.startswith('/gardencam/display'):
         # Display-width image view
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3070,7 +3087,7 @@ def _dispatch(event, context):
             html += render_gardencam_display(timestamp, image_url, image_key, stats_display)
         else:
             html += '<h1>Error: No image specified</h1>'
-    elif path.startswith(f'/{stage}/gardencam/gallery') or path.startswith('/gardencam/gallery'):
+    elif route.startswith('/gardencam/gallery'):
         # Gallery page with thumbnails organized by weeks
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3185,7 +3202,7 @@ def _dispatch(event, context):
 
                 html += '</div>'
 
-    elif path.startswith(f'/{stage}/gardencam/s3-stats') or path.startswith('/gardencam/s3-stats'):
+    elif route.startswith('/gardencam/s3-stats'):
         # S3 storage statistics page - reads from cached JSON
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3247,7 +3264,7 @@ def _dispatch(event, context):
             from routes.gardencam import render_s3_stats_error
             html += render_s3_stats_error(cache_error)
 
-    elif path == f'/{stage}/gardencam' or path == '/gardencam':
+    elif route == '/gardencam':
         # /gardencam is the legacy URL — 301 redirect to the public /skycam.
         # The page now shows only sky-pointing images, so it no longer needs
         # to be private.
@@ -3258,13 +3275,13 @@ def _dispatch(event, context):
             'headers': {'Location': target},
         }
 
-    elif path == f'/{stage}/skycam/build-info' or path == '/skycam/build-info':
+    elif route == '/skycam/build-info':
         from routes.gardencam import _init_theme, render_build_info_page
         _init_theme(THEME_CSS_JS)
         return {'statusCode': 200, 'body': render_build_info_page(),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/skycam/timelapse' or path == '/skycam/timelapse':
+    elif route == '/skycam/timelapse':
         from routes.gardencam import _init_theme, render_timelapse_index
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -3272,7 +3289,7 @@ def _dispatch(event, context):
         return {'statusCode': 200, 'body': render_timelapse_index(focus_date=focus),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/skycam/timelapse-day' or path == '/skycam/timelapse-day':
+    elif route == '/skycam/timelapse-day':
         from routes.gardencam import render_timelapse_day_fragment
         qs = event.get('queryStringParameters') or {}
         date = (qs.get('date') or '').strip()
@@ -3284,13 +3301,13 @@ def _dispatch(event, context):
         return {'statusCode': 200, 'body': frag,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/skycam/player-poc' or path == '/skycam/player-poc':
+    elif route == '/skycam/player-poc':
         from routes.gardencam import _init_theme, render_player_poc_landing
         _init_theme(THEME_CSS_JS)
         return {'statusCode': 200, 'body': render_player_poc_landing(),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/skycam/player' or path == '/skycam/player':
+    elif route == '/skycam/player':
         from routes.gardencam import _init_theme, render_skycam_player
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -3325,7 +3342,7 @@ def _dispatch(event, context):
         return {'statusCode': 200, 'body': page,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/skycam' or path == '/skycam':
+    elif route == '/skycam':
         # The page no longer shows the 3-latest-images carousel — the
         # carousel was usually stale (yesterday's frames) and pushed the
         # useful links below the fold. The POC banner (Timelapse videos
@@ -3338,7 +3355,7 @@ def _dispatch(event, context):
         html += render_gardencam_main(images=[], image_cards='',
                                        poc_banner_html='')
 
-    elif path == f'/{stage}/lambda-stats/data' or path == '/lambda-stats/data':
+    elif route == '/lambda-stats/data':
         # Lambda statistics data endpoint - returns JSON
         # This does all the slow data fetching and returns it as JSON
         all_lambda_metrics = get_all_lambda_metrics(days=30)
@@ -3542,12 +3559,12 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'application/json'}
         }
 
-    elif path == f'/{stage}/lambda-stats' or path == '/lambda-stats':
+    elif route == '/lambda-stats':
         # Lambda statistics page - returns HTML skeleton that loads data asynchronously
         from routes.lambda_stats import render_lambda_stats_page
         html += render_lambda_stats_page(theme_css_js=THEME_CSS_JS)
 
-    elif path.startswith(f'/{stage}/memspeed/upload') or path.startswith('/memspeed/upload'):
+    elif route.startswith('/memspeed/upload'):
         # Memspeed upload endpoint
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3584,7 +3601,7 @@ def _dispatch(event, context):
                 'headers': {'Content-Type': 'application/json'}
             }
 
-    elif path.startswith(f'/{stage}/memspeed/download') or path.startswith('/memspeed/download'):
+    elif route.startswith('/memspeed/download'):
         # Memspeed download endpoint - redirect to presigned URL
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3620,7 +3637,7 @@ def _dispatch(event, context):
                 'headers': {'Content-Type': 'application/json'}
             }
 
-    elif path.startswith(f'/{stage}/memspeed/data') or path.startswith('/memspeed/data'):
+    elif route.startswith('/memspeed/data'):
         # Memspeed JSON API
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3646,7 +3663,7 @@ def _dispatch(event, context):
             }
         }
 
-    elif path == f'/{stage}/memspeed' or path == '/memspeed':
+    elif route == '/memspeed':
         # Memspeed main page
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
@@ -3662,7 +3679,7 @@ def _dispatch(event, context):
         downloads = get_memspeed_downloads()
         html += render_memspeed_page(results, downloads)
 
-    elif path == f'/{stage}/rcr' or path == '/rcr':
+    elif route == '/rcr':
         # Redirect to RCR Lambda function URL
         return {
             'statusCode': 302,
@@ -3670,7 +3687,7 @@ def _dispatch(event, context):
             'body': ''
         }
 
-    elif path == f'/{stage}/us-vs-the-machines' or path == '/us-vs-the-machines':
+    elif route == '/us-vs-the-machines':
         # Redirect to Us vs the Machines Lambda function URL
         return {
             'statusCode': 302,
@@ -3678,7 +3695,7 @@ def _dispatch(event, context):
             'body': ''
         }
 
-    elif path == f'/{stage}/gotg/manifest.json' or path == '/gotg/manifest.json':
+    elif route == '/gotg/manifest.json':
         manifest = json.dumps({
             "name": "Götterdämmerung on the Go",
             "short_name": "GotG",
@@ -3699,14 +3716,14 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'application/manifest+json'}
         }
 
-    elif path == f'/{stage}/gotg' or path == '/gotg':
+    elif route == '/gotg':
         return {
             'statusCode': 200,
             'body': render_gotg_page(),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path == f'/{stage}/stereo' or path == '/stereo':
+    elif route == '/stereo':
         qs = event.get('queryStringParameters', {}) or {}
         return {
             'statusCode': 200,
@@ -3721,7 +3738,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path == f'/{stage}/stereo-nav' or path == '/stereo-nav':
+    elif route == '/stereo-nav':
         import json as _j
         from routes.stereo import get_neighbours
         qs = event.get('queryStringParameters', {}) or {}
@@ -3735,14 +3752,14 @@ def _dispatch(event, context):
             }
         }
 
-    elif path == f'/{stage}/manim' or path == '/manim':
+    elif route == '/manim':
         return {
             'statusCode': 200,
             'body': render_manim_page(),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path == f'/{stage}/ai-config' or path == '/ai-config':
+    elif route == '/ai-config':
         # AI Configuration Matrix
         method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
         message = None
@@ -3794,12 +3811,12 @@ def _dispatch(event, context):
             }
         }
 
-    elif path == f'/{stage}/pi-fleet' or path == '/pi-fleet':
+    elif route == '/pi-fleet':
         # Pi Fleet Status Dashboard
         pis = get_pi_fleet_status()
         html += render_pi_fleet_page(pis)
 
-    elif path == f'/{stage}/t3' or path == '/t3':
+    elif route == '/t3':
         # Terse Transport Times - K2 bus arrivals
         api_key = TFL_API_KEY
 
@@ -3849,7 +3866,7 @@ def _dispatch(event, context):
             }
         html += t3_format_html(arrivals)
 
-    elif path == f'/{stage}/springcam' or path == '/springcam':
+    elif route == '/springcam':
         images = get_latest_springcam_images(3)
         if images:
             from routes.camera import render_camera_latest
@@ -3863,7 +3880,7 @@ def _dispatch(event, context):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}
             }
 
-    elif path.startswith(f'/{stage}/springcam/gallery') or path.startswith('/springcam/gallery'):
+    elif route.startswith('/springcam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
         week_param = query_params.get('week', '')
@@ -3950,7 +3967,7 @@ def _dispatch(event, context):
                 week_iso=week_iso,
             )
 
-    elif path.startswith(f'/{stage}/springcam/videos') or path.startswith('/springcam/videos'):
+    elif route.startswith('/springcam/videos'):
 
         s3 = s3_client()
         videos = []
@@ -3977,7 +3994,7 @@ def _dispatch(event, context):
                                    latest_path='../springcam', gallery_path='gallery',
                                    videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
 
-    elif path.startswith(f'/{stage}/springcam/play') or path.startswith('/springcam/play'):
+    elif route.startswith('/springcam/play'):
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
@@ -3995,7 +4012,7 @@ def _dispatch(event, context):
             print(f"Error loading springcam video: {e}")
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
 
-    elif path.startswith(f'/{stage}/springcam/fullres') or path.startswith('/springcam/fullres'):
+    elif route.startswith('/springcam/fullres'):
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
@@ -4007,7 +4024,7 @@ def _dispatch(event, context):
         else:
             html += '<p>No image specified.</p>'
 
-    elif path == f'/{stage}/astro' or path == '/astro':
+    elif route == '/astro':
         from routes.astro import render_astro_hub
         return {
             'statusCode': 200,
@@ -4015,7 +4032,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path.endswith('/astro/colour-max-test') or path.endswith('/astro/color-max-test'):
+    elif route.endswith('/astro/color-max-test') or route.endswith('/astro/colour-max-test'):
         from routes.astro import render_colour_max_test
         img_names = [
             'astrocam_2026-08-22_1_raw_lum.jpg',
@@ -4044,7 +4061,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', path):
+    elif re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', route):
         # PUBLIC — the curated astrophotography showcase: deep-sky stacks,
         # widefield Milky Way, polar derotation, star trails, and meteor fireballs.
         # Hand-curated via Markdown in Git (astro/showcase/*.md), published to
@@ -4117,7 +4134,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', path):
+    elif re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', route):
         # PUBLIC — the curated general collection: meteors, lightning,
         # aircraft, satellites, screen grabs, daytime Canon focus frames.
         # Hand-published by astro's bin/add-transient, which writes ONE
@@ -4183,7 +4200,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', path):
+    elif re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route):
         # PUBLIC storage status — capacity bars, data inventory & location,
         # archive-tier state. Reads astro-host-capacity + astro-storage-
         # inventory (backfilled from whereisallthedata.csv). The calendar
@@ -4204,7 +4221,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif re.search(r'/astro/disks/?$', path):
+    elif re.search(r'/astro/disks/?$', route):
         # PUBLIC by-filesystem view — what astro data lives on each disk,
         # one line per camera with a compressed date-range. Complements
         # /astro/storage (by-night). Same DynamoDB source.
@@ -4217,12 +4234,12 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'}
         }
 
-    elif path == f'/{stage}/astro/starcam' or path == '/astro/starcam':
+    elif route == '/astro/starcam':
         return {'statusCode': 302, 'headers': {'Location': '/starcam'}, 'body': ''}
 
     elif re.search(
             r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
-            path):
+            route):
         # PUBLIC — advanced multi-source player for one night's deliverables
         # + experiments. Reuses skycam's render_skycam_player (per project
         # memory astro-website-player: shared player pattern). Lists every
@@ -4298,7 +4315,7 @@ def _dispatch(event, context):
     elif re.search(r'/astro/(astrocam|eclipticam|canon)'
                    r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}'
                    r'|/month/\d{4}-\d{2}|/all|/nights)?/?$',
-                   path):
+                   route):
         # PUBLIC — live nightly deliverables (unify-cameras pipeline).
         # /astro/<cam>                    -> calendar, last 7 days
         # /astro/<cam>/nights            -> index of weeks & months (links only)
@@ -4608,9 +4625,7 @@ def _dispatch(event, context):
                 nights=nights, is_dashboard=False),
             'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif (path in (f'/{stage}/starcam', '/starcam',
-                   f'/{stage}/starcam/nights', '/starcam/nights',
-                   f'/{stage}/starcam/nights/all', '/starcam/nights/all')):
+    elif (route in ('/starcam', '/starcam/nights', '/starcam/nights/all')):
         # PUBLIC — calendar index of published nights.
         # /starcam, /starcam/nights = dashboard (hero + last 3 weeks + 'More')
         # /starcam/nights/all       = full history calendar
@@ -4661,8 +4676,7 @@ def _dispatch(event, context):
                 'body': render_starcam_nights_index(nights, **kwargs),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif (path.startswith(f'/{stage}/starcam/night/') or
-          path.startswith('/starcam/night/')):
+    elif (route.startswith('/starcam/night/')):
         # PUBLIC — no auth. Per-night results page.
         # Path: /starcam/night/YYYY-MM-DD
         import json as _json
@@ -4699,7 +4713,7 @@ def _dispatch(event, context):
                 'body': render_starcam_night_results(night_str, summary, urls),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path.startswith(f'/{stage}/starcam/gallery') or path.startswith('/starcam/gallery'):
+    elif route.startswith('/starcam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
         week_param = query_params.get('week', '')
@@ -4780,7 +4794,7 @@ def _dispatch(event, context):
                 week_iso=week_iso,
             )
 
-    elif path == f'/{stage}/starcam/timelapse' or path == '/starcam/timelapse':
+    elif route == '/starcam/timelapse':
         from routes.gardencam import _init_theme, render_timelapse_index
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -4789,7 +4803,7 @@ def _dispatch(event, context):
                 'body': render_timelapse_index(focus_date=focus, camera='starcam'),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/starcam/timelapse-day' or path == '/starcam/timelapse-day':
+    elif route == '/starcam/timelapse-day':
         from routes.gardencam import render_timelapse_day_fragment
         qs = event.get('queryStringParameters') or {}
         date = (qs.get('date') or '').strip()
@@ -4800,7 +4814,7 @@ def _dispatch(event, context):
         return {'statusCode': 200, 'body': frag,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/starcam/player' or path == '/starcam/player':
+    elif route == '/starcam/player':
         from routes.gardencam import _init_theme, render_skycam_player
         _init_theme(THEME_CSS_JS)
         qs = event.get('queryStringParameters') or {}
@@ -4833,7 +4847,7 @@ def _dispatch(event, context):
         return {'statusCode': 200, 'body': page,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path.startswith(f'/{stage}/starcam/videos') or path.startswith('/starcam/videos'):
+    elif route.startswith('/starcam/videos'):
 
         s3 = s3_client()
         videos = []
@@ -4860,7 +4874,7 @@ def _dispatch(event, context):
                                    latest_path='../starcam', gallery_path='gallery',
                                    videos_path='videos', week_iso=_iso_week_for_date(_today_london()))
 
-    elif path.startswith(f'/{stage}/starcam/play') or path.startswith('/starcam/play'):
+    elif route.startswith('/starcam/play'):
 
         query_params = event.get('queryStringParameters', {}) or {}
         video_key = query_params.get('key', '')
@@ -4878,7 +4892,7 @@ def _dispatch(event, context):
             print(f"Error loading starcam video: {e}")
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">Video not found.</p>'
 
-    elif path.startswith(f'/{stage}/starcam/fullres') or path.startswith('/starcam/fullres'):
+    elif route.startswith('/starcam/fullres'):
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
@@ -4890,7 +4904,7 @@ def _dispatch(event, context):
         else:
             html += '<p>No image specified.</p>'
 
-    elif path.startswith(f'/{stage}/skycam/gallery') or path.startswith('/skycam/gallery'):
+    elif route.startswith('/skycam/gallery'):
         query_params = event.get('queryStringParameters', {}) or {}
         day_param = query_params.get('day', '')
         week_param = query_params.get('week', '')
@@ -4974,7 +4988,7 @@ def _dispatch(event, context):
                 exposure_data=skycam_stats,
             )
 
-    elif path.startswith(f'/{stage}/skycam/fullres') or path.startswith('/skycam/fullres'):
+    elif route.startswith('/skycam/fullres'):
         params = event.get('queryStringParameters') or {}
         image_key = params.get('key', '')
         if image_key:
@@ -4986,7 +5000,7 @@ def _dispatch(event, context):
         else:
             html += '<p>No image specified.</p>'
 
-    elif path.startswith(f'/{stage}/skycam/videos') or path.startswith('/skycam/videos'):
+    elif route.startswith('/skycam/videos'):
         query_params = event.get('queryStringParameters', {}) or {}
 
         s3 = s3_client()
@@ -5197,7 +5211,7 @@ def _dispatch(event, context):
                                        videos_path='videos', week_iso=week_iso,
                                        exposure_data=skycam_stats)
 
-    elif path == f'/{stage}/skycam/starcam' or path == '/skycam/starcam':
+    elif route == '/skycam/starcam':
         # Starcam index: list all nights with stacked images
         s3 = s3_client()
         from collections import defaultdict
@@ -5227,7 +5241,7 @@ def _dispatch(event, context):
         from routes.camera import render_starcam_index
         html += render_starcam_index(sorted_nights)
 
-    elif path.startswith(f'/{stage}/skycam/starcam/night') or path.startswith('/skycam/starcam/night'):
+    elif route.startswith('/skycam/starcam/night'):
         # Starcam night: show stacked images for a specific night
         query_params = event.get('queryStringParameters', {}) or {}
         evening_date = query_params.get('date', '')
@@ -5319,7 +5333,7 @@ def _dispatch(event, context):
             from routes.camera import render_starcam_night
             html += render_starcam_night(evening_date, stacked, brightness_data)
 
-    elif path == f'/{stage}/skycam/clouds' or path == '/skycam/clouds':
+    elif route == '/skycam/clouds':
         # "Clouds - The Movie" — playlist of hourly cloudcam videos with
         # day×hour selection, speed control, cast queue with auto-extend.
         s3 = s3_client()
@@ -5373,7 +5387,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'text/html; charset=utf-8'},
         }
 
-    elif path.startswith(f'/{stage}/skycam/play') or path.startswith('/skycam/play'):
+    elif route.startswith('/skycam/play'):
         query_params = event.get('queryStringParameters', {}) or {}
         s3 = s3_client()
 
@@ -5436,7 +5450,7 @@ def _dispatch(event, context):
             print(f"Error loading video for player: {e}")
             html += '<p style="color:#888; text-align:center; margin-top:3rem;">No daily video available yet today.</p>'
 
-    elif path == f'/{stage}/srfcplus' or path == '/srfcplus':
+    elif route == '/srfcplus':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
                 'statusCode': 401,
@@ -5455,7 +5469,7 @@ def _dispatch(event, context):
             else:
                 return {'statusCode': 200, 'body': proxied, 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
-    elif path == f'/{stage}/srfcplus/update-cookie' or path == '/srfcplus/update-cookie':
+    elif route == '/srfcplus/update-cookie':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
                 'statusCode': 401,
@@ -5474,7 +5488,7 @@ def _dispatch(event, context):
         else:
             html = render_srfcplus_setup_page()
 
-    elif path == f'/{stage}/srfcplus/bookings' or path == '/srfcplus/bookings':
+    elif route == '/srfcplus/bookings':
         if not check_basic_auth(event, GARDENCAM_PASSWORD):
             return {
                 'statusCode': 401,
@@ -5490,7 +5504,7 @@ def _dispatch(event, context):
             'headers': {'Content-Type': 'application/json'}
         }
 
-    elif path in ('', '/', f'/{stage}', f'/{stage}/'):
+    elif route in ('', '/'):
         html += render_contents_page()
 
     else:
