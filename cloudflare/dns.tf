@@ -115,3 +115,17 @@ resource "cloudflare_record" "dkim" {
   ttl     = 300
   proxied = false
 }
+
+# ACM DNS validation for *.petergrecian.co.uk (terraform/vars.tf:acm_certificate_arn).
+# Permanent: ACM re-checks this same name at every renewal, so it must not be
+# removed once the cert is issued. Its absence stalled the Oct 2026 renewal
+# (AWS Health AWS_ACM_RENEWAL_STATE_CHANGE, 11 Sep 2026) — the record was lost
+# when the zone came under Cloudflare/Terraform management.
+resource "cloudflare_record" "acm_validation" {
+  zone_id = cloudflare_zone.pg.id
+  name    = "_4c15b1e7551c0756cff18f2d8cb4f886"
+  type    = "CNAME"
+  content = "_ce13797c1076e978733e8078162b79d8.djqtsrsxkq.acm-validations.aws."
+  ttl     = 300
+  proxied = false # must be real DNS — ACM resolves it directly
+}
