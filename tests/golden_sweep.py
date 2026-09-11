@@ -80,15 +80,32 @@ def _normalise(body):
     return body
 
 
-def _event(path, stage="default"):
+def _event(path, stage="default", fmt="v2"):
+    """Build an API Gateway event.
+
+    Two shapes, because the dispatcher handles two and they are NOT
+    interchangeable. The API is an HTTP API but with
+    payload_format_version = "1.0" (terraform/api-gateway.tf:43), so
+    PRODUCTION sends the v1 shape: `path`, and a capitalised `Host` header.
+    The v2 shape (`rawPath`) is what the dispatcher's other arm reads.
+    Sweeping only one of them leaves the live path untested.
+    """
+    headers = {
+        "X-Forwarded-For": "127.0.0.1",
+        "user-agent": "pytest",
+    }
+    if fmt == "v1":
+        headers["Host"] = "www.petergrecian.co.uk"
+        return {
+            "path": path,
+            "requestContext": {"stage": stage, "httpMethod": "GET"},
+            "headers": headers,
+        }
+    headers["host"] = "www.petergrecian.co.uk"
     return {
         "rawPath": path,
         "requestContext": {"stage": stage, "http": {"method": "GET"}},
-        "headers": {
-            "host": "www.petergrecian.co.uk",
-            "X-Forwarded-For": "127.0.0.1",
-            "user-agent": "pytest",
-        },
+        "headers": headers,
     }
 
 
@@ -103,7 +120,7 @@ def _context():
     return Ctx()
 
 
-def sweep_all(paths):
+def sweep_all(paths, fmt="v2"):
     """Dispatch every path and return a normalised snapshot dict."""
     mod = _build_module()
     old_cwd = os.getcwd()
@@ -115,7 +132,7 @@ def sweep_all(paths):
         for path in paths:
             sys.stdout = devnull          # routes print freely; keep test output readable
             try:
-                resp = mod.lambda_handler(_event(path), _context())
+                resp = mod.lambda_handler(_event(path, fmt=fmt), _context())
                 body = resp.get("body") or ""
                 headers = resp.get("headers") or {}
                 results[path] = {

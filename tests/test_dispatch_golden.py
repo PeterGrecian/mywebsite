@@ -22,6 +22,8 @@ import pytest
 
 from golden_sweep import sweep_all, GOLDEN_PATH
 
+GOLDEN_V1_PATH = GOLDEN_PATH.replace("golden_routes.json", "golden_routes_v1.json")
+
 
 @pytest.fixture(scope="module")
 def golden():
@@ -41,7 +43,7 @@ def test_golden_file_covers_every_route(golden):
     because the dispatcher strips the stage prefix and a regression there
     would otherwise only show on one of the two.
     """
-    assert len(golden) >= 229, f"golden file only covers {len(golden)} paths"
+    assert len(golden) >= 949, f"golden file only covers {len(golden)} paths"
 
 
 @pytest.mark.parametrize("field", ["status", "ct", "cache", "b64", "hdrs", "sha", "len"])
@@ -75,3 +77,47 @@ def test_snapshot_is_deterministic(golden):
     b = sweep_all(sorted(golden.keys()))
     unstable = [p for p in a if a[p] != b[p]]
     assert not unstable, f"non-deterministic paths: {unstable[:10]}"
+
+
+# --- the production payload shape -------------------------------------------
+# The API is an HTTP API but pinned to payload_format_version "1.0"
+# (terraform/api-gateway.tf:43), so live requests arrive in the v1 shape:
+# `path` rather than `rawPath`, and a capitalised `Host`. The sweep above
+# uses the v2 shape, which exercises the OTHER arm of the dispatcher's
+# format check — so without these the live path would be unpinned.
+
+
+@pytest.fixture(scope="module")
+def golden_v1():
+    with open(GOLDEN_V1_PATH) as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope="module")
+def current_v1(golden_v1):
+    return sweep_all(sorted(golden_v1.keys()), fmt="v1")
+
+
+@pytest.mark.parametrize("field", ["status", "ct", "cache", "b64", "hdrs", "sha", "len"])
+def test_v1_payload_matches_golden(golden_v1, current_v1, field):
+    drift = {
+        p: (golden_v1[p].get(field), current_v1[p].get(field))
+        for p in golden_v1
+        if golden_v1[p].get(field) != current_v1[p].get(field)
+    }
+    assert not drift, (
+        f"{len(drift)} route(s) changed `{field}` under the production payload shape:\n"
+        + "\n".join(f"  {p}: golden={g!r} now={n!r}" for p, (g, n) in sorted(drift.items())[:20])
+    )
+
+
+def test_both_payload_shapes_agree_except_event_debug(golden, golden_v1):
+    """v1 and v2 must route identically.
+
+    /event is the one legitimate exception: it renders the raw event, so its
+    body necessarily differs between the two shapes.
+    """
+    differing = {p for p in golden if golden[p] != golden_v1.get(p)}
+    assert differing <= {"/event", "/default/event"}, (
+        f"payload shape changes routing for: {sorted(differing - {'/event', '/default/event'})[:20]}"
+    )

@@ -288,14 +288,38 @@ def check_basic_auth(event, required_password):
         return False
 
 
+_DYNAMODB_RESOURCES = {}
+
+
+def dynamodb_resource(region=None):
+    """Cached DynamoDB resource, one per region — sibling of s3_client().
+
+    Same lesson a third time: boto3.resource() builds a fresh Session and
+    re-parses the service model, and log_connection built one on EVERY
+    invocation. That is the one call on the site's hottest path, so it was
+    the most expensive instance of the mistake s3_client() already fixed.
+    """
+    region = region or GARDENCAM_REGION
+    resource = _DYNAMODB_RESOURCES.get(region)
+    if resource is None:
+        resource = boto3.resource('dynamodb', region_name=region)
+        _DYNAMODB_RESOURCES[region] = resource
+    return resource
+
+
 def log_connection(event, context):
-    """Log connection details to DynamoDB."""
+    """Log connection details to DynamoDB.
+
+    Called AFTER routing, and not at all for static assets or unclaimed
+    paths — see _UNLOGGED_ROUTES. CloudWatch still gets an access line for
+    every request via _access_log(), so nothing becomes invisible; this
+    only decides which requests are worth a billed DynamoDB write.
+    """
     if not BOTO3_AVAILABLE:
         return
 
     try:
-        dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-        table = dynamodb.Table(DYNAMODB_TABLE)
+        table = dynamodb_resource().Table(DYNAMODB_TABLE)
 
         headers = event.get('headers', {})
         timestamp = datetime.utcnow().isoformat()
@@ -5926,6 +5950,24 @@ _ROUTES_PATTERN = [
 ]
 
 
+# Requests that do not earn a DynamoDB write. log_connection used to run
+# before any routing, so every favicon fetch, robots.txt, and bot probe for
+# /wp-login.php bought one -- on 100% of invocations. That meter scales with
+# a flood exactly as the invocation meter does, which is the liability: an
+# attacker drives Lambda, DynamoDB and CloudWatch at once.
+#
+# An unclaimed path (404) is skipped too, by handler being None. Nothing goes
+# dark: _access_log() still emits a CloudWatch line per request, with path,
+# status, IP and user-agent, so scanners remain visible where they are cheap
+# to record rather than where each sighting costs a write.
+_UNLOGGED_ROUTES = frozenset({
+    _route_favicon_ico,
+    _route_favicon_png,     # also serves /tick.png
+    _route_favicon_svg,
+    _route_robots_txt,
+})
+
+
 def _resolve_route(route):
     """The route -> handler lookup. Returns None for an unclaimed path (404)."""
     handler = _ROUTES_EXACT.get(route)
@@ -5960,9 +6002,6 @@ def lambda_handler(event, context):
 def _dispatch(event, context):
     import time
     start_time = time.time()
-
-    # Log connection details to DynamoDB
-    log_connection(event, context)
 
     html = ""
     fav = FAVICON_TAGS
@@ -6017,6 +6056,8 @@ def _dispatch(event, context):
         status_code = 404
         html = render_404_page(path)
     else:
+        if handler not in _UNLOGGED_ROUTES:
+            log_connection(event, context)
         result = handler(rq)
         if isinstance(result, dict):     # handler built a complete response
             return result
