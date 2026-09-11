@@ -80,60 +80,61 @@ class TestSimpleRoutes:
         assert "text/html" in result["headers"]["Content-Type"]
 
 
-class TestAuthProtectedRoutes:
-    """Routes that require Basic Auth should 401 without credentials."""
+class TestGardencamAccessBoundary:
+    """Which gardencam routes need a password, and why.
 
-    @pytest.fixture
-    def auth_header(self, mywebsite):
-        """Valid auth header using the test password from conftest."""
-        creds = base64.b64encode(b"user:test-password").decode()
-        return {"Authorization": f"Basic {creds}"}
+    The boundary is about PICTURES, not about the camera being secret: the
+    gallery, fullres and display routes serve garden photographs that may
+    have a person in them, so they need auth. /gardencam/stats is capture
+    counts and timings -- numbers only, no imagery -- and is deliberately
+    public. An earlier version of this file asserted 401 for stats and had
+    been failing ever since; the code was right and the test was wrong.
+    """
 
-    def test_gardencam_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+    IMAGE_ROUTES = [
+        "/gardencam/gallery",
+        "/gardencam/fullres/some-image.jpg",
+        "/gardencam/display/some-image.jpg",
+    ]
+
+    CONTROL_ROUTES = [
+        "/gardencam/capture",    # writes a command to the camera
+        "/gardencam/s3-stats",   # exposes bucket layout and object counts
+    ]
+
+    @pytest.mark.parametrize("path", IMAGE_ROUTES)
+    def test_image_routes_require_auth(self, mywebsite, make_event, make_context, path):
+        """A photo of the garden may include whoever is standing in it."""
+        result = mywebsite.lambda_handler(make_event(path), make_context())
+        assert result["statusCode"] == 401, f"{path} served without credentials"
         assert "WWW-Authenticate" in result["headers"]
 
-    def test_gardencam_capture_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/capture")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+    @pytest.mark.parametrize("path", CONTROL_ROUTES)
+    def test_control_routes_require_auth(self, mywebsite, make_event, make_context, path):
+        result = mywebsite.lambda_handler(make_event(path), make_context())
+        assert result["statusCode"] == 401, f"{path} served without credentials"
 
-    def test_gardencam_stats_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/stats")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+    def test_stats_is_deliberately_public(self, mywebsite, make_event, make_context):
+        """Capture counts and timings carry no imagery — public on purpose."""
+        result = mywebsite.lambda_handler(make_event("/gardencam/stats"), make_context())
+        assert result["statusCode"] == 200
+        assert "text/html" in result["headers"]["Content-Type"]
 
-    def test_gardencam_gallery_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/gallery")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+    def test_gardencam_root_redirects_to_skycam(self, mywebsite, make_event, make_context):
+        result = mywebsite.lambda_handler(make_event("/gardencam"), make_context())
+        assert result["statusCode"] == 301
+        assert result["headers"]["Location"] == "/skycam"
 
-    def test_gardencam_s3_stats_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/s3-stats")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+    @pytest.mark.parametrize("path", ["/gardencam/videos", "/gardencam/timelapse"])
+    def test_gardencam_has_no_video_routes(self, mywebsite, make_event, make_context, path):
+        """springcam/starcam/skycam have these; gardencam never did.
 
-    def test_gardencam_videos_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/videos")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
-
-    def test_gardencam_timelapse_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/timelapse")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
-
-    def test_gardencam_fullres_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/fullres/some-image.jpg")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
-
-    def test_gardencam_display_no_auth(self, mywebsite, make_event, make_context):
-        event = make_event("/gardencam/display/some-image.jpg")
-        result = mywebsite.lambda_handler(event, make_context())
-        assert result["statusCode"] == 401
+        They must 404 rather than 401 — a 401 would imply the route exists
+        and is merely locked, which is the thing that made the old tests
+        look like they were testing auth when they were testing nothing.
+        """
+        result = mywebsite.lambda_handler(make_event(path), make_context())
+        assert result["statusCode"] == 404
 
 
 class TestResponseStructure:
