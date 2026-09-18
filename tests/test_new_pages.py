@@ -41,7 +41,8 @@ class TestBiog:
         # so a phrase can straddle a newline and indentation.
         flat = " ".join(body.split())
         for phrase in ("St Catherine's College", "Philips Research Labs",
-                       "pavement artist", "Method Studios", "DeepMind",
+                       "pavement artist", "Bamber Gascoigne",
+                       "Method Studios", "DeepMind",
                        "TUI", "Infrastructure as Code",
                        "so that you don't have to"):
             assert phrase in flat, phrase
