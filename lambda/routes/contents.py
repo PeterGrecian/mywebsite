@@ -41,7 +41,18 @@ def render_contents_page(*, theme_css_js, private=False):
     if not private:
         items = [i for i in items if not i.get('auth_required')]
 
-    # Build links HTML
+    # Build the cards.
+    #
+    # A card is a <div>, not an <a>, because some entries carry a second,
+    # independent link (Sky Camera points at the YouTube channel as well as
+    # at the page) and nested anchors are invalid HTML. The whole card is
+    # still clickable: .card-title::after stretches over the card, and
+    # .card-extra sits above it on z-index so the second link still wins its
+    # own clicks.
+    #
+    # image_url is optional and absent everywhere today — the layout is
+    # written so a card works with or without one, ready for the images
+    # Peter is gathering.
     links_html = ""
     for item in items:
         path = item.get('path', '/')
@@ -49,11 +60,22 @@ def render_contents_page(*, theme_css_js, private=False):
         href = external if external else ('/' + path.lstrip('/'))
         title = item.get('title', '')
         description = item.get('description', '')
-        private_badge = '<sup style="font-size:0.55em; vertical-align:super; color:var(--text-secondary); font-weight:400; letter-spacing:0.05em;">PRIVATE</sup>' if item.get('auth_required') else ''
-        links_html += f'''      <a href="{href}" class="link-ellipse">
-        {title}{private_badge}
-        <span class="description">{description}</span>
-      </a>\n'''
+        image_url = item.get('image_url')
+        extra_url = item.get('extra_url')
+        extra_label = item.get('extra_label', '')
+        private_badge = ('<sup class="badge">PRIVATE</sup>'
+                         if item.get('auth_required') else '')
+        img = (f'        <img class="card-img" src="{image_url}" alt="">\n'
+               if image_url else '')
+        extra = (f'        <a class="card-extra" href="{extra_url}" '
+                 f'target="_blank" rel="noopener">{extra_label}</a>\n'
+                 if extra_url else '')
+        links_html += f'''      <div class="card">
+{img}        <div class="card-body">
+          <a class="card-title" href="{href}">{title}{private_badge}</a>
+          <span class="description">{description}</span>
+{extra}        </div>
+      </div>\n'''
 
     # noindex on the private page: it is behind Basic Auth, so a crawler
     # cannot read it, but there is no reason for the URL itself to be indexed.
@@ -67,28 +89,40 @@ def render_contents_page(*, theme_css_js, private=False):
     <style>
       body {{ font-family: var(--font); text-align: center; background: var(--bg); min-height: 100vh; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }}
       h1 {{ color: var(--text); font-size: 2.5rem; margin-bottom: 2rem; }}
-      .links-container {{ display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 500px; }}
-      .link-ellipse {{ display: block; padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none; font-size: 1.1rem; font-weight: 500; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); transition: opacity 0.2s; }}
-      .link-ellipse:hover {{ opacity: 0.8; }}
-      .link-ellipse .description {{ display: block; font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-secondary); font-weight: normal; }}
+      .links-container {{ display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 560px; }}
+      /* Cards, not pills. A pill has to stay short, which forced every
+         description into a cramped second line; a card gives the text room
+         and leaves space for an image. */
+      .card {{ position: relative; background: var(--card-bg); border: 1px solid var(--divider); border-radius: 12px; overflow: hidden; text-align: left; transition: opacity 0.2s; }}
+      .card:hover {{ opacity: 0.85; }}
+      .card-img {{ display: block; width: 100%; height: 140px; object-fit: cover; background: var(--divider); }}
+      .card-body {{ padding: 0.9rem 1.1rem; }}
+      .card-title {{ display: block; color: var(--accent); text-decoration: none; font-size: 1.1rem; font-weight: 500; }}
+      /* Stretches the title's hit area over the whole card, so the card is
+         clickable without nesting anchors. */
+      .card-title::after {{ content: ""; position: absolute; inset: 0; }}
+      .card .description {{ display: block; font-size: 0.85rem; margin-top: 0.25rem; color: var(--text-secondary); line-height: 1.45; }}
+      /* Above the stretched title, so a second link keeps its own clicks. */
+      .card-extra {{ position: relative; z-index: 1; display: inline-block; margin-top: 0.6rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; border: 1px solid var(--divider); border-radius: 20px; padding: 0.3rem 0.8rem; }}
+      .card-extra:hover {{ background: var(--divider); }}
+      .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
       .hero-img {{ width: 100%; max-width: 500px; border-radius: 12px; margin-bottom: 1.5rem; object-fit: cover; max-height: 200px; }}
-      .identity-nav {{ display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }}
-      .identity-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 1rem; font-weight: 500; transition: opacity 0.2s; }}
-      .identity-nav a:hover {{ opacity: 0.8; }}
+      .footer-nav {{ display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
+      .footer-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 0.95rem; transition: opacity 0.2s; }}
+      .footer-nav a:hover {{ opacity: 0.8; }}
       .colophon {{ margin-top: 2.5rem; color: var(--text-secondary); font-size: 0.8rem; max-width: 500px; line-height: 1.5; }}
-      @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }} }}
+      @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .card-body {{ padding: 0.8rem 0.9rem; }} .card-title {{ font-size: 1rem; }} .card-img {{ height: 110px; }} }}
     </style>
     {theme_css_js}
   </head>
   <body>
     <img class="hero-img" src="https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/PXL_20260113_100124014.jpg" alt="Waterloo station">
     <h1>Peter Grecian</h1>
-    <div class="identity-nav">
-      <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.youtube.com/channel/UCXbk1ItK5B8RAqhUPNTX7zw" target="_blank" rel="noopener">Beautiful Clouds (YouTube)</a>
-    </div>
     <div class="links-container">
 {links_html}    </div>
+    <div class="footer-nav">
+      <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">GitHub</a>
+    </div>
     <p class="colophon">Powered by API Gateway, Python Lambda, DynamoDB and
       Cloudflare.</p>
   </body>

@@ -20,8 +20,10 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _links(html):
+    """Card titles. Note this tracks the markup: the page moved from pill
+    links (.link-ellipse) to cards (.card-title) on 2026-09-18."""
     return [t.strip() for t in
-            re.findall(r'class="link-ellipse">\s*([^<\n]+)', html)]
+            re.findall(r'class="card-title" href="[^"]*">([^<]+)', html)]
 
 
 @pytest.fixture(scope="module")

@@ -7,6 +7,8 @@ render, not at import), a missing viewport meta, and the route not actually
 being claimed.
 """
 
+import re
+
 import pytest
 
 
@@ -59,6 +61,72 @@ class TestColophon:
             make_event("/contents"), make_context())["body"]
         for term in ("API Gateway", "Lambda", "DynamoDB", "Cloudflare"):
             assert term in body
+
+
+class TestContentsCards:
+    """The contents page moved from pill links to cards on 2026-09-18.
+
+    The pills had to stay short, which cramped every description onto a
+    squeezed second line and left nowhere for an image.
+    """
+
+    @pytest.fixture(scope="class")
+    def body(self, mywebsite, contents_items):
+        """Rendered off the checked-in JSON, not through lambda_handler:
+        boto3 is mocked in tests, so the live DynamoDB scan returns nothing
+        and the page comes back with no cards at all."""
+        import sys
+        from unittest.mock import MagicMock
+        from routes.contents import render_contents_page
+
+        fake = MagicMock()
+        fake.resource.return_value.Table.return_value.scan.return_value = {
+            "Items": contents_items}
+        real, sys.modules["boto3"] = sys.modules.get("boto3"), fake
+        try:
+            return render_contents_page(theme_css_js="", private=False)
+        finally:
+            if real is not None:
+                sys.modules["boto3"] = real
+
+    def test_pills_are_gone(self, body):
+        assert "link-ellipse" not in body
+        assert 'class="card-title"' in body
+
+    def test_ai_memory_is_first(self, body):
+        titles = re.findall(r'class="card-title" href="[^"]*">([^<]+)', body)
+        assert titles[0].startswith("AI Which Remembers")
+
+    def test_github_is_at_the_bottom(self, body):
+        """Moved out of the header into a footer, so the cards lead."""
+        assert "identity-nav" not in body
+        gh = body.index("github.com/PeterGrecian")
+        assert gh > body.rindex('class="card-title"')
+
+    def test_skycam_card_carries_the_youtube_link(self, body):
+        """Beautiful Clouds moved off the page header onto the card it
+        belongs to."""
+        assert "card-extra" in body
+        assert "UCXbk1ItK5B8RAqhUPNTX7zw" in body
+
+    def test_second_link_is_not_a_nested_anchor(self, body):
+        """The card is a div precisely so the extra link is a sibling of the
+        title, not nested inside it — nested anchors are invalid HTML and
+        browsers recover from them unpredictably."""
+        card = body[body.index('<div class="card">'):]
+        card = card[:card.index("</div>")]
+        assert card.count("<a ") <= 2
+        title_end = body.index("</a>", body.index('class="card-title"'))
+        extra = body.find('class="card-extra"')
+        assert extra == -1 or extra > title_end
+
+    def test_astronomy_card_has_its_image(self, body):
+        assert 'class="card-img"' in body
+        assert "assets/cards/astronomy.jpg" in body
+
+    def test_cards_work_without_an_image(self, body):
+        """Only Astronomy has one so far; the rest must still render."""
+        assert body.count('class="card-title"') > body.count('class="card-img"')
 
 
 @pytest.fixture(scope="module")
