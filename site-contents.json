@@ -39,7 +39,7 @@
   {
     "path": "stereo",
     "title": "Stereo Viewer",
-    "description": "WebXR stereo image and video viewer for Quest 2",
+    "description": "3D photos and video, viewed in a headset, shot with a single normal camera",
     "color": "pastel-lavender",
     "sort_order": 6,
     "visible": true,
