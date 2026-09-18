@@ -168,6 +168,6 @@
     "description": "who I am, at more length than a CV allows",
     "color": "pastel-peach",
     "sort_order": 20,
-    "visible": false
+    "visible": true
   }
 ]

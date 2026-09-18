@@ -22,11 +22,33 @@ class TestBiog:
         r = mywebsite.lambda_handler(make_event("/biog"), make_context())
         assert 'name="viewport"' in r["body"]
 
-    def test_is_hidden_until_written(self, contents_items):
-        """It ships with a placeholder, so it must not be on either contents
-        page yet. Flip `visible` when the prose lands."""
+    def test_is_published(self, contents_items):
+        """Hidden while it held only a placeholder; published once Peter's
+        prose landed on 2026-09-18. The flag IS the publish step."""
         entry = next(i for i in contents_items if i["path"] == "biog")
-        assert entry["visible"] is False
+        assert entry["visible"] is True
+
+    def test_placeholder_is_gone(self, mywebsite, make_event, make_context):
+        body = mywebsite.lambda_handler(
+            make_event("/biog"), make_context())["body"]
+        assert "This page is being written" not in body
+        assert "pending" not in body
+
+    def test_prose_is_there(self, mywebsite, make_event, make_context):
+        body = mywebsite.lambda_handler(
+            make_event("/biog"), make_context())["body"]
+        for phrase in ("St Catherine's College", "Philips Research Labs",
+                       "pavement artist", "Bamber Gascoigne",
+                       "Method Studios", "DeepMind", "TUI"):
+            assert phrase in body, phrase
+
+    def test_imdb_link_matches_the_cv(self, mywebsite, make_event,
+                                      make_context):
+        """Same id the CV uses — two pages claiming different IMDb pages for
+        one person is the kind of thing nobody notices for years."""
+        body = mywebsite.lambda_handler(
+            make_event("/biog"), make_context())["body"]
+        assert "imdb.com/name/nm0337418" in body
 
 
 class TestAiMemory:

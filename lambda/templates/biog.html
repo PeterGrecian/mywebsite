@@ -15,8 +15,6 @@
       p {{ color: var(--text); line-height: 1.7; margin-bottom: 0.9rem; font-size: 1.02rem; }}
       p:last-child {{ margin-bottom: 0; }}
       a {{ color: var(--accent); }}
-      .pending {{ border-style: dashed; }}
-      .pending p {{ color: var(--text-secondary); }}
     </style>
     {theme_css_js}
   </head>
@@ -29,15 +27,30 @@
         <a href="/">CV</a>
       </div>
 
-      <!-- CONTENT GOES HERE. Replace the .pending section below with
-           ordinary <section><p>...</p></section> blocks. Nothing on this
-           page is generated: it is prose Peter writes. -->
+      <!-- Peter's prose, verbatim. Nothing on this page is generated.
+           The IMDb id is the same one the CV uses (lambda/cv.html). -->
 
-      <section class="pending">
-        <p>This page is being written.</p>
-        <p>In the meantime the <a href="/">CV</a> covers the professional
-           history, and <a href="/contents">Contents</a> lists the rest of
-           the site.</p>
+      <section>
+        <p>I read Physics at St Catherine's College, Oxford, then spent
+           several years at Philips Research Labs working on gallium arsenide
+           devices, which produced a handful of scientific papers. Somewhere
+           along the way I was a pavement artist in Paris, painting large
+           copies of old masters in acrylic. The highlight was 50p from
+           Bamber Gascoigne.</p>
+
+        <p>An MSc in Computer Graphics at Middlesex took me into visual
+           effects, where I worked as a generalist at MPC and Method Studios
+           on commercials and feature films
+           (<a href="https://www.imdb.com/name/nm0337418" target="_blank"
+               rel="noopener">IMDb</a>). That led to freelance work in
+           storage and infrastructure, including a spell building HPC systems
+           at DeepMind in its early days, where the table tennis was
+           surprisingly competitive.</p>
+
+        <p>Since then I've built commercial web platforms for clients
+           including TUI and the BMJ, and recently spent a year doing nothing
+           but learning to use AI properly. I now work in cloud and DevOps
+           engineering.</p>
       </section>
     </div>
   </body>
