@@ -127,8 +127,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 17502,
-  "sha": "45771d0b19f25160",
+  "len": 19902,
+  "sha": "3cc6d7513accceef",
   "status": 200
  },
  "/ai-memory-suffix": {
@@ -1648,8 +1648,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 17502,
-  "sha": "45771d0b19f25160",
+  "len": 19902,
+  "sha": "3cc6d7513accceef",
   "status": 200
  },
  "/default/ai-memory-suffix": {
@@ -3851,8 +3851,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4269,
-  "sha": "a6ca0b7a0c277524",
+  "len": 4260,
+  "sha": "d42b587ff7a3f9f8",
   "status": 200
  },
  "/default/gitinfo-suffix": {
@@ -4921,8 +4921,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8110,
-  "sha": "b6505a1db03df989",
+  "len": 8109,
+  "sha": "c6c7d44700ddfa5e",
   "status": 200
  },
  "/default/skycam-suffix": {
@@ -4957,7 +4957,7 @@
    "Content-Type"
   ],
   "len": 1383,
-  "sha": "214d87764783e94c",
+  "sha": "4ea5e20559252550",
   "status": 200
  },
  "/default/skycam/build-info-suffix": {
@@ -5307,8 +5307,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1386,
-  "sha": "72fc86e60be96f58",
+  "len": 1385,
+  "sha": "eb50f5698a4aadc3",
   "status": 200
  },
  "/default/skycam/player-poc-suffix": {
@@ -8033,8 +8033,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4269,
-  "sha": "a6ca0b7a0c277524",
+  "len": 4260,
+  "sha": "d42b587ff7a3f9f8",
   "status": 200
  },
  "/gitinfo-suffix": {
@@ -9103,8 +9103,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8110,
-  "sha": "b6505a1db03df989",
+  "len": 8109,
+  "sha": "c6c7d44700ddfa5e",
   "status": 200
  },
  "/skycam-suffix": {
@@ -9139,7 +9139,7 @@
    "Content-Type"
   ],
   "len": 1383,
-  "sha": "214d87764783e94c",
+  "sha": "4ea5e20559252550",
   "status": 200
  },
  "/skycam/build-info-suffix": {
@@ -9500,8 +9500,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1386,
-  "sha": "72fc86e60be96f58",
+  "len": 1385,
+  "sha": "eb50f5698a4aadc3",
   "status": 200
  },
  "/skycam/player-poc-suffix": {

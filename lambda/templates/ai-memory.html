@@ -26,6 +26,8 @@
       td {{ padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--divider); vertical-align: top; line-height: 1.55; }}
       tr:last-child td {{ border-bottom: none; }}
       td.k {{ color: var(--accent); font-family: monospace; white-space: nowrap; width: 1%; }}
+      td.g {{ color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1.1rem; border-bottom: none; }}
+      tr:first-child td.g {{ padding-top: 0; }}
       .lead {{ font-size: 1.08rem; }}
       .aside {{ color: var(--text-secondary); font-size: 0.9rem; }}
       @media (max-width: 600px) {{
@@ -200,13 +202,36 @@
 
       <section>
         <h2>The tools around it</h2>
-        <p>The files are the method; a few small tools keep the habit cheap
-          enough to actually follow.</p>
+        <p>The files are the method. A set of small tools keeps the habit
+          cheap enough to actually follow, and most of them do one thing.</p>
         <table>
-          <tr><td class="k">idea</td><td>Spool a thought into a strand's inbox from anywhere, without stopping what you are doing. It commits and pushes itself, so an idea is never lost to a closed terminal.</td></tr>
-          <tr><td class="k">dcp</td><td>Document, commit, push. One command at a checkpoint: update the state file, commit it, push it. Ending a session is a single act rather than a chore to skip.</td></tr>
-          <tr><td class="k">sessions</td><td>Every session transcript is indexed into an OpenSearch database, so work is searchable long after the conversation that produced it is gone.</td></tr>
-          <tr><td class="k">backup</td><td>State and archive are backed up to cloud storage, so the memory outlives any one machine.</td></tr>
+          <tr><td class="g" colspan="2">Running a strand</td></tr>
+          <tr><td class="k">aicli</td><td>Opens a strand: moves into its directory, loads the mission and state, opens its working directories, colours the terminal.</td></tr>
+          <tr><td class="k">strands</td><td>Lists them, marking which are live, and creates new ones from a template.</td></tr>
+          <tr><td class="k">strand-ps</td><td>Which strands are running, and where.</td></tr>
+          <tr><td class="k">panedeck, pane</td><td>The board: every live strand as a labelled pane, and the verbs to drive one from another.</td></tr>
+          <tr><td class="k">forkterm</td><td>Forks a session into a peer in its own window, either warm or briefed cold into another strand.</td></tr>
+
+          <tr><td class="g" colspan="2">Working in one</td></tr>
+          <tr><td class="k">idea</td><td>Spools a thought into a strand's inbox from anywhere, without stopping what you are doing. It commits and pushes itself, so nothing is lost to a closed terminal.</td></tr>
+          <tr><td class="k">dcp</td><td>Document, commit, push. One command at a checkpoint: update the state file, commit, push.</td></tr>
+          <tr><td class="k">resume</td><td>Writes the standing summary at the top of a state file, so a fresh session knows where it came in.</td></tr>
+
+          <tr><td class="g" colspan="2">Talking between them</td></tr>
+          <tr><td class="k">strand-mailbox</td><td>The spool. A message waits here until the recipient next opens, which is the half that survives a closed session.</td></tr>
+          <tr><td class="k">ding</td><td>The doorbell. Wakes a strand that is already running, for when the moment matters more than the durability.</td></tr>
+
+          <tr><td class="g" colspan="2">Remembering</td></tr>
+          <tr><td class="k">sessions</td><td>Every transcript indexed into an OpenSearch database, searchable long after the conversation that produced it is gone.</td></tr>
+          <tr><td class="k">backup</td><td>State lives in git repositories with remotes; the transcript archive is held on a server of its own. The memory outlives any one machine.</td></tr>
+
+          <tr><td class="g" colspan="2">Guarding</td></tr>
+          <tr><td class="k">strand-accounts</td><td>Provisions the per-strand user accounts and zone groups described above.</td></tr>
+          <tr><td class="k">leak scans</td><td>Check transcripts and repositories for anything that should not travel, before it does.</td></tr>
+
+          <tr><td class="g" colspan="2">Across all of them</td></tr>
+          <tr><td class="k">backlog</td><td>One ordered list for the whole estate. Anyone adds to the bottom; one strand does the ranking, being the only one that sees across them all.</td></tr>
+          <tr><td class="k">proposals</td><td>The drawer of arguments about what to build next, kept where unclassified ones stay visible.</td></tr>
         </table>
         <p class="aside">A sketch rather than a manual; each of these deserves
           its own page.</p>
