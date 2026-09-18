@@ -106,7 +106,6 @@ def render_contents_page(*, theme_css_js, private=False):
       .card-extra {{ position: relative; z-index: 1; display: inline-block; margin-top: 0.6rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; border: 1px solid var(--divider); border-radius: 20px; padding: 0.3rem 0.8rem; }}
       .card-extra:hover {{ background: var(--divider); }}
       .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
-      .hero-img {{ width: 100%; max-width: 500px; border-radius: 12px; margin-bottom: 1.5rem; object-fit: cover; max-height: 200px; }}
       .footer-nav {{ display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
       .footer-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 0.95rem; transition: opacity 0.2s; }}
       .footer-nav a:hover {{ opacity: 0.8; }}
@@ -116,7 +115,6 @@ def render_contents_page(*, theme_css_js, private=False):
     {theme_css_js}
   </head>
   <body>
-    <img class="hero-img" src="https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/gotg/PXL_20260113_100124014.jpg" alt="Waterloo station">
     <h1>Peter Grecian</h1>
     <div class="links-container">
 {links_html}    </div>
