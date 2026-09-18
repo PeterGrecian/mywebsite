@@ -37,10 +37,14 @@ class TestBiog:
     def test_prose_is_there(self, mywebsite, make_event, make_context):
         body = mywebsite.lambda_handler(
             make_event("/biog"), make_context())["body"]
+        # Collapse whitespace: the template wraps prose across source lines,
+        # so a phrase can straddle a newline and indentation.
+        flat = " ".join(body.split())
         for phrase in ("St Catherine's College", "Philips Research Labs",
-                       "pavement artist", "Bamber Gascoigne",
-                       "Method Studios", "DeepMind", "TUI"):
-            assert phrase in body, phrase
+                       "pavement artist", "Method Studios", "DeepMind",
+                       "TUI", "Infrastructure as Code",
+                       "so that you don't have to"):
+            assert phrase in flat, phrase
 
     def test_imdb_link_matches_the_cv(self, mywebsite, make_event,
                                       make_context):
