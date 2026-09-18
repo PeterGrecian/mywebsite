@@ -65,7 +65,7 @@
           not a chat log: a workstream with a curated memory attached.</p>
         <p>Each one is a directory of plain files:</p>
         <table>
-          <tr><td class="k">CLAUDE.md</td><td>The mission. What this strand is, which repos it spans, how a session should open.</td></tr>
+          <tr><td class="k">CLAUDE.md</td><td>(or the vendor equivalent) The mission. What this strand is, which repos it spans, how a session should open.</td></tr>
           <tr><td class="k">STATE.md</td><td>The durable memory. What exists, what is pending, what was decided and why. Deliberately <em>not</em> a log: it gets edited down.</td></tr>
           <tr><td class="k">IDEAS.md</td><td>An inbox. Anything can append to it from any machine; it is triaged at the start of the next session.</td></tr>
           <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
@@ -108,6 +108,20 @@
         </ul>
         <p>The discipline is in step four. A state file that is never pruned
           decays into a second inbox, and then into noise.</p>
+      </section>
+
+      <section>
+        <h2>The tools around it</h2>
+        <p>The files are the method; a few small tools keep the habit cheap
+          enough to actually follow.</p>
+        <table>
+          <tr><td class="k">idea</td><td>Spool a thought into a strand's inbox from anywhere, without stopping what you are doing. It commits and pushes itself, so an idea is never lost to a closed terminal.</td></tr>
+          <tr><td class="k">dcp</td><td>Document, commit, push. One command at a checkpoint: update the state file, commit it, push it. Ending a session is a single act rather than a chore to skip.</td></tr>
+          <tr><td class="k">sessions</td><td>Every session transcript is indexed into an OpenSearch database, so work is searchable long after the conversation that produced it is gone.</td></tr>
+          <tr><td class="k">backup</td><td>State and archive are backed up to cloud storage, so the memory outlives any one machine.</td></tr>
+        </table>
+        <p class="aside">A sketch rather than a manual; each of these deserves
+          its own page.</p>
       </section>
 
       <section>
