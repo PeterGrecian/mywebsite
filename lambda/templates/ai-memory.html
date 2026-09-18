@@ -126,11 +126,27 @@
           because work constantly turns up things belonging somewhere else.
           Routing a finding to the strand that owns it beats leaving it in a
           transcript, where it dies.</p>
+        <p class="aside">The launcher and the board are conveniences, not
+          requirements. A few terminal windows and the files themselves are a
+          perfectly good first step, and the method works before any of the
+          tooling does.</p>
       </section>
 
       <section>
-        <h2>One account per strand</h2>
-        <p>A strand can run as its own operating-system user rather than as
+        <h2>Letting the operating system do the guarding</h2>
+        <p>Agent tools ask you to approve actions one at a time. In practice
+          that is a bad bargain: either you read every prompt, which is
+          laborious and slows the work to a crawl, or you stop reading them,
+          which is worse — and the usual endpoint is turning permissions off
+          altogether. Neither a prompt you no longer read nor a bypassed
+          check is a boundary.</p>
+        <p>Order makes something better possible. Because a strand is a
+          durable, named unit rather than an ephemeral conversation, an
+          identity can be attached to it — and then the operating system does
+          the guarding, with file ownership and sudo deciding what an agent
+          can reach. That is fine-grained, standard, auditable, and it holds
+          whether or not anyone is paying attention.</p>
+        <p>So a strand can run as its own operating-system user rather than as
           you. Its processes, caches, temporary files and uncommitted working
           state are its own, so one strand cannot quietly disturb another's,
           and whatever it does is attributable in the process table.</p>
