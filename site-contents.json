@@ -24,7 +24,8 @@
     "sort_order": 4,
     "visible": true,
     "extra_url": "https://www.youtube.com/channel/UCXbk1ItK5B8RAqhUPNTX7zw",
-    "extra_label": "Beautiful Clouds on YouTube"
+    "extra_label": "Beautiful Clouds on YouTube",
+    "image_url": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/cards/skycam.jpg"
   },
   {
     "path": "springcam",
