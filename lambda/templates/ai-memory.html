@@ -8,8 +8,11 @@
       .container {{ max-width: 760px; margin: 0 auto; }}
       h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; }}
       .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
-      .nav {{ text-align: center; margin-bottom: 2rem; }}
-      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.4rem; display: inline-block; }}
+      /* Contents left, Home right, on one line above the title. The pills
+         this replaced sat under the heading and competed with it. */
+      .nav {{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.75rem; gap: 1rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; font-size: 0.95rem; }}
+      .nav a.home {{ color: var(--text-secondary); font-size: 0.85rem; }}
       .nav a:hover {{ opacity: 0.8; }}
       section {{ background: var(--card-bg); border: 1px solid var(--divider); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }}
       h2 {{ font-size: 1.05rem; color: var(--text); margin-bottom: 0.75rem; }}
@@ -35,12 +38,12 @@
   </head>
   <body>
     <div class="container">
-      <h1>Strands: AI That Remembers</h1>
-      <p class="subtitle">an introduction to the strand methodology</p>
       <div class="nav">
         <a href="/contents">Contents</a>
-        <a href="/">CV</a>
+        <a class="home" href="/">Home</a>
       </div>
+      <h1>Strands: AI That Remembers</h1>
+      <p class="subtitle">an introduction to the strand methodology</p>
 
       <section>
         <p class="lead">An AI coding session forgets everything when it ends.
