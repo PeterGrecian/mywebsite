@@ -112,6 +112,23 @@
       </section>
 
       <section>
+        <h2>Running them</h2>
+        <p>A strand is a command away. One launcher opens it: it moves into
+          the strand's directory, loads the mission and the state file, opens
+          the working directories that strand needs, and colours the terminal
+          so you know at a glance which one you are in.</p>
+        <p>Several run at once, on a board. Each live strand is a labelled
+          pane, so you can see which are working and drop into any of them.
+          Work is not serialised behind one conversation.</p>
+        <p>And they talk to each other. A strand can send another a message:
+          a spool that persists until the recipient next opens, and a
+          doorbell that wakes one that is already running. That matters
+          because work constantly turns up things belonging somewhere else.
+          Routing a finding to the strand that owns it beats leaving it in a
+          transcript, where it dies.</p>
+      </section>
+
+      <section>
         <h2>The tools around it</h2>
         <p>The files are the method; a few small tools keep the habit cheap
           enough to actually follow.</p>
