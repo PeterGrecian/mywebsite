@@ -55,7 +55,7 @@ class TestAiMemory:
     def test_serves(self, mywebsite, make_event, make_context):
         r = mywebsite.lambda_handler(make_event("/ai-memory"), make_context())
         assert r["statusCode"] == 200
-        assert "AI That Remembers" in r["body"]
+        assert "Strands: AI That Remembers" in r["body"]
 
     def test_has_viewport(self, mywebsite, make_event, make_context):
         r = mywebsite.lambda_handler(make_event("/ai-memory"), make_context())
@@ -117,7 +117,7 @@ class TestContentsCards:
 
     def test_ai_memory_is_first(self, body):
         titles = re.findall(r'class="card-title" href="[^"]*">([^<]+)', body)
-        assert titles[0].startswith("AI That Remembers")
+        assert titles[0].startswith("Strands: AI That Remembers")
 
     def test_github_is_at_the_bottom(self, body):
         """Moved out of the header into a footer, so the cards lead."""
