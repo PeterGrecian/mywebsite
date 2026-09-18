@@ -75,6 +75,7 @@ def render_contents_page(*, theme_css_js, private=False):
       .identity-nav {{ display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }}
       .identity-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 1rem; font-weight: 500; transition: opacity 0.2s; }}
       .identity-nav a:hover {{ opacity: 0.8; }}
+      .colophon {{ margin-top: 2.5rem; color: var(--text-secondary); font-size: 0.8rem; max-width: 500px; line-height: 1.5; }}
       @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .link-ellipse {{ padding: 0.8rem 1.5rem; font-size: 1rem; }} }}
     </style>
     {theme_css_js}
@@ -88,5 +89,7 @@ def render_contents_page(*, theme_css_js, private=False):
     </div>
     <div class="links-container">
 {links_html}    </div>
+    <p class="colophon">Powered by API Gateway, Python Lambda, DynamoDB and
+      Cloudflare.</p>
   </body>
 </html>'''

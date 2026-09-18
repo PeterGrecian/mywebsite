@@ -1,0 +1,44 @@
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Biography - Peter Grecian</title>
+    <style>
+      * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }}
+      .container {{ max-width: 720px; margin: 0 auto; }}
+      h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; }}
+      .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
+      .nav {{ text-align: center; margin-bottom: 2rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.4rem; display: inline-block; }}
+      .nav a:hover {{ opacity: 0.8; }}
+      section {{ background: var(--card-bg); border: 1px solid var(--divider); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }}
+      p {{ color: var(--text); line-height: 1.7; margin-bottom: 0.9rem; font-size: 1.02rem; }}
+      p:last-child {{ margin-bottom: 0; }}
+      a {{ color: var(--accent); }}
+      .pending {{ border-style: dashed; }}
+      .pending p {{ color: var(--text-secondary); }}
+    </style>
+    {theme_css_js}
+  </head>
+  <body>
+    <div class="container">
+      <h1>Peter Grecian</h1>
+      <p class="subtitle">biography</p>
+      <div class="nav">
+        <a href="/contents">Contents</a>
+        <a href="/">CV</a>
+      </div>
+
+      <!-- CONTENT GOES HERE. Replace the .pending section below with
+           ordinary <section><p>...</p></section> blocks. Nothing on this
+           page is generated: it is prose Peter writes. -->
+
+      <section class="pending">
+        <p>This page is being written.</p>
+        <p>In the meantime the <a href="/">CV</a> covers the professional
+           history, and <a href="/contents">Contents</a> lists the rest of
+           the site.</p>
+      </section>
+    </div>
+  </body>
+</html>

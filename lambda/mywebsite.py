@@ -2366,6 +2366,27 @@ def render_privacy_page():
         return f.read().format(theme_css_js=THEME_CSS_JS)
 
 
+def render_biog_page():
+    """Biography — delegated to template. Prose is Peter's; nothing here is
+    generated, which is why the template ships with a placeholder section
+    rather than filler."""
+    _dir = os.path.join(os.path.dirname(__file__), "templates")
+    with open(os.path.join(_dir, "biog.html")) as f:
+        return f.read().format(theme_css_js=THEME_CSS_JS)
+
+
+def render_ai_memory_page():
+    """An introduction to strand methodology — delegated to template.
+
+    The subject belongs to the aifabric strand, not to this site's keeper;
+    this page is a public rendering of it, and the wording was routed there
+    for review rather than treated as ordinary site copy.
+    """
+    _dir = os.path.join(os.path.dirname(__file__), "templates")
+    with open(os.path.join(_dir, "ai-memory.html")) as f:
+        return f.read().format(theme_css_js=THEME_CSS_JS)
+
+
 AI_APPS = [
     {"key": "alerting", "name": "Alerting", "desc": "Incident analysis"},
     {"key": "rcr", "name": "RCR", "desc": "Album ranking"},
@@ -2881,6 +2902,14 @@ def _route_site_test(rq):
     html = ''
     html = render_site_test_page()
     return html
+
+
+def _route_biog(rq):
+    return render_biog_page()
+
+
+def _route_ai_memory(rq):
+    return render_ai_memory_page()
 
 
 def _route_privacy(rq):
@@ -5904,6 +5933,8 @@ _ROUTES_EXACT = {
     '/cv': _route_cv,
     '/contents': _route_contents,
     '/my-contents': _route_my_contents,
+    '/biog': _route_biog,
+    '/ai-memory': _route_ai_memory,
     '/site-test': _route_site_test,
     '/privacy': _route_privacy,
     '/gardencam': _route_gardencam,

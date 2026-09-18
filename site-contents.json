@@ -146,5 +146,21 @@
     "sort_order": 17,
     "visible": true,
     "auth_required": true
+  },
+  {
+    "path": "ai-memory",
+    "title": "AI Which Remembers",
+    "description": "an introduction to strand methodology",
+    "color": "pastel-lavender",
+    "sort_order": 18,
+    "visible": true
+  },
+  {
+    "path": "biog",
+    "title": "Biography",
+    "description": "who I am, at more length than a CV allows",
+    "color": "pastel-peach",
+    "sort_order": 19,
+    "visible": false
   }
 ]

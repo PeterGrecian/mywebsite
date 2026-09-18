@@ -1,0 +1,126 @@
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AI Which Remembers - Peter Grecian</title>
+    <style>
+      * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+      body {{ font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }}
+      .container {{ max-width: 760px; margin: 0 auto; }}
+      h1 {{ color: var(--text); text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; }}
+      .subtitle {{ color: var(--text-secondary); text-align: center; margin-bottom: 2rem; font-size: 0.95rem; }}
+      .nav {{ text-align: center; margin-bottom: 2rem; }}
+      .nav a {{ color: var(--accent); text-decoration: none; background: var(--card-bg); border: 1px solid var(--divider); padding: 0.5rem 1rem; border-radius: 20px; margin: 0 0.4rem; display: inline-block; }}
+      .nav a:hover {{ opacity: 0.8; }}
+      section {{ background: var(--card-bg); border: 1px solid var(--divider); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }}
+      h2 {{ font-size: 1.05rem; color: var(--text); margin-bottom: 0.75rem; }}
+      p {{ color: var(--text); line-height: 1.7; margin-bottom: 0.8rem; }}
+      p:last-child, ul:last-child, table:last-child {{ margin-bottom: 0; }}
+      ul {{ margin: 0 0 0.8rem 1.25rem; }}
+      li {{ color: var(--text); line-height: 1.7; margin-bottom: 0.5rem; }}
+      code {{ font-family: monospace; background: rgba(142,142,147,0.15); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }}
+      a {{ color: var(--accent); }}
+      table {{ width: 100%; border-collapse: collapse; margin-bottom: 0.8rem; }}
+      td {{ padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--divider); vertical-align: top; line-height: 1.55; }}
+      tr:last-child td {{ border-bottom: none; }}
+      td.k {{ color: var(--accent); font-family: monospace; white-space: nowrap; width: 1%; }}
+      .lead {{ font-size: 1.08rem; }}
+      .aside {{ color: var(--text-secondary); font-size: 0.9rem; }}
+      @media (max-width: 600px) {{
+        body {{ padding: 1.25rem 0.75rem; }}
+        section {{ padding: 1rem 1rem; }}
+        td.k {{ white-space: normal; }}
+      }}
+    </style>
+    {theme_css_js}
+  </head>
+  <body>
+    <div class="container">
+      <h1>AI Which Remembers</h1>
+      <p class="subtitle">an introduction to strand methodology</p>
+      <div class="nav">
+        <a href="/contents">Contents</a>
+        <a href="/">CV</a>
+      </div>
+
+      <section>
+        <p class="lead">An AI coding session forgets everything when it ends.
+          That is the whole problem, and most of the effort people put into
+          working with agents goes into papering over it.</p>
+        <p>The usual answers do not hold. Resuming a long conversation works
+          until the context is compacted, and compaction is lossy and cannot
+          be edited: you cannot reach into a summary and correct the thing it
+          got wrong. Starting fresh each time means re-explaining the project
+          from scratch, badly, forever.</p>
+        <p>A <strong>strand</strong> is the alternative. Sessions stay
+          disposable. The memory lives outside them, in git, written in prose
+          a human can read and edit.</p>
+      </section>
+
+      <section>
+        <h2>The unit between a repo and a session</h2>
+        <p>A strand is a long-running theme that spans several repositories
+          and gets revisited every week or so. Not a project, not a ticket, and
+          not a chat log: a workstream with a curated memory attached.</p>
+        <p>Each one is a directory of plain files:</p>
+        <table>
+          <tr><td class="k">CLAUDE.md</td><td>The mission. What this strand is, which repos it spans, how a session should open.</td></tr>
+          <tr><td class="k">STATE.md</td><td>The durable memory. What exists, what is pending, what was decided and why. Deliberately <em>not</em> a log: it gets edited down.</td></tr>
+          <tr><td class="k">IDEAS.md</td><td>An inbox. Anything can append to it from any machine; it is triaged at the start of the next session.</td></tr>
+          <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
+        </table>
+        <p>Because the files are in git, the memory is versioned, diffable and
+          portable. When it is wrong you fix it with an editor.</p>
+      </section>
+
+      <section>
+        <h2>Keepers and builders</h2>
+        <p>Every strand is one of two kinds, and the distinction changes how a
+          session behaves.</p>
+        <ul>
+          <li><strong>A keeper</strong> owns and serves one subject. It stays
+            in steady state: maintain the thing, answer questions about it
+            precisely, resist the urge to start building something new.</li>
+          <li><strong>A builder</strong> has a trajectory. It is growing or
+            changing something, and drives the work forward.</li>
+        </ul>
+        <p>The kind is declared in the strand's own one-line summary, so a
+          session opens already knowing which it is.</p>
+        <p class="aside">This website has a keeper. These pages, the public
+          and private contents split, and the frame-stepping in the video
+          player were all built by it — each in a separate session, none of
+          which remembered the others, all of which read the same STATE.md.</p>
+      </section>
+
+      <section>
+        <h2>The loop</h2>
+        <ul>
+          <li>Between sessions, jot ideas into the inbox from wherever you are.</li>
+          <li>At session start, the agent reads the state and triages the
+            inbox. Promoting an idea is the cheap reversible default; dropping
+            one is the deliberate act, because a good idea dropped is lost
+            silently.</li>
+          <li>Do the work. Prune the pending list while you are there, which
+            is when you have the most context to judge with.</li>
+          <li>At the end, update the state, empty the triaged inbox, commit,
+            push.</li>
+        </ul>
+        <p>The discipline is in step four. A state file that is never pruned
+          decays into a second inbox, and then into noise.</p>
+      </section>
+
+      <section>
+        <h2>Why it is worth the bother</h2>
+        <p>The gain is not that the agent knows more. It is that what it knows
+          is <em>inspectable</em>. A wrong belief in a compacted conversation
+          is untouchable and will quietly steer every later answer. A wrong
+          line in a state file is a line you can delete.</p>
+        <p>It also means sessions cost less. A fresh session that reads a good
+          state file starts productive, so there is no reason to keep a long
+          conversation alive past its usefulness.</p>
+        <p class="aside">The method and its tooling are developed in the open
+          as a working portfolio rather than written up as theory: the code is
+          the evidence.</p>
+      </section>
+    </div>
+  </body>
+</html>
