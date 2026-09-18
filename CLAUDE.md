@@ -71,6 +71,26 @@ DynamoDB table directly; always edit the JSON and re-sync, otherwise
 your changes get silently wiped on the next sync. See the docstring in
 `tools/sync-contents.py` for details.
 
+### Two pages, two flags
+
+One table feeds two navigation pages, on independent flags:
+
+| flag | effect |
+|---|---|
+| `visible: false` | retired or broken — appears on **neither** page |
+| `auth_required: true` | private — **`/my-contents` only**, never `/contents` |
+
+`/my-contents` is guarded by `GARDENCAM_PASSWORD`, the house password that
+already stands in front of every page it links to, and is **not linked from
+the public page** — bookmark it. It sends `Cache-Control: no-store`; note
+`/contents` is edge-cached for 1h by a `path eq "/contents"` rule in
+`cloudflare/cache.tf`, which does not match `/my-contents`, but the page does
+not rely on that rule staying exact.
+
+`auth_required` also draws a PRIVATE badge, which is why it must filter too:
+before it did, the public page listed every private entry and labelled it as
+the thing it was withholding.
+
 ## Shared Data Stores (read from other projects)
 
 - DynamoDB: `pi-fleet-status`, `gardencam-stats`, `gardencam-commands`, `cv-access-logs`, `lambda-execution-logs`

@@ -3,8 +3,20 @@
 import sys
 
 
-def render_contents_page(*, theme_css_js):
-    """Render the contents/navigation page from DynamoDB mywebsite-contents table."""
+def render_contents_page(*, theme_css_js, private=False):
+    """Render the contents/navigation page from DynamoDB mywebsite-contents table.
+
+    Two audiences, one table, two independent flags:
+
+      visible=False       retired or broken — off BOTH pages.
+      auth_required=True  private — shown only on /my-contents, never on the
+                          public /contents.
+
+    `auth_required` used to only add a PRIVATE badge, which left the public
+    page advertising exactly what it was withholding. It now filters as well,
+    and the badge survives on the private page where it is useful: it marks
+    which links will ask for a password.
+    """
     boto3 = sys.modules.get("boto3")
     BOTO3_AVAILABLE = boto3 is not None
     GARDENCAM_REGION = "eu-west-1"
@@ -23,8 +35,11 @@ def render_contents_page(*, theme_css_js):
     # Sort by sort_order
     items.sort(key=lambda x: int(x.get('sort_order', 999)))
 
-    # Filter to visible items only
+    # visible=False is retirement — off both pages.
     items = [i for i in items if i.get('visible', True)]
+    # auth_required is privacy — private page only.
+    if not private:
+        items = [i for i in items if not i.get('auth_required')]
 
     # Build links HTML
     links_html = ""
@@ -40,9 +55,15 @@ def render_contents_page(*, theme_css_js):
         <span class="description">{description}</span>
       </a>\n'''
 
+    # noindex on the private page: it is behind Basic Auth, so a crawler
+    # cannot read it, but there is no reason for the URL itself to be indexed.
+    page_title = "Peter Grecian — private" if private else "Peter Grecian"
+    robots_meta = ('\n    <meta name="robots" content="noindex,nofollow">'
+                   if private else "")
+
     return f'''<html lang="en">
   <head>
-    <title>Peter Grecian</title>
+    <title>{page_title}</title>{robots_meta}
     <style>
       body {{ font-family: var(--font); text-align: center; background: var(--bg); min-height: 100vh; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }}
       h1 {{ color: var(--text); font-size: 2.5rem; margin-bottom: 2rem; }}

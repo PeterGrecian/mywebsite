@@ -2311,9 +2311,9 @@ def render_srfcplus_page():
     from routes.srfcplus import render_srfcplus_page as _f
     return _f()
 
-def render_contents_page():
+def render_contents_page(private=False):
     from routes.contents import render_contents_page as _f
-    return _f(theme_css_js=THEME_CSS_JS)
+    return _f(theme_css_js=THEME_CSS_JS, private=private)
 
 def render_gotg_page():
     """Render GOTG page — delegated to routes/gotg.py."""
@@ -2842,6 +2842,36 @@ def _route_contents(rq):
     html = ''
     html += render_contents_page()
     return html
+
+
+def _route_my_contents(rq):
+    """Private navigation — the same table as /contents, plus the entries
+    marked auth_required.
+
+    Guarded by GARDENCAM_PASSWORD, the de-facto house password that already
+    stands in front of every page this one links to, so it introduces no new
+    credential. Not linked from the public page: you bookmark it.
+
+    no-store matters here. /contents is edge-cached for 1h
+    (cloudflare/cache.tf), and while that rule is `path eq "/contents"` and so
+    does not match this path, an authenticated page should say so itself
+    rather than rely on a neighbouring rule staying exact.
+    """
+    event = rq.event
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html',
+                        'Cache-Control': 'no-store',
+                        'WWW-Authenticate': 'Basic realm="Private contents"'}
+        }
+    return {
+        'statusCode': 200,
+        'body': render_contents_page(private=True),
+        'headers': {'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store'}
+    }
 
 
 def _route_site_test(rq):
@@ -5873,6 +5903,7 @@ _ROUTES_EXACT = {
     '/gitinfo': _route_gitinfo,
     '/cv': _route_cv,
     '/contents': _route_contents,
+    '/my-contents': _route_my_contents,
     '/site-test': _route_site_test,
     '/privacy': _route_privacy,
     '/gardencam': _route_gardencam,

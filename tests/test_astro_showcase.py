@@ -191,7 +191,24 @@ class TestShowcaseDetail:
         assert "Perseid Fireball" in body
 
 
-class TestHubLinksToShowcase:
-    def test_hub_links_to_photos(self, mywebsite, make_event, make_context):
+class TestHubDoesNotLinkToShowcase:
+    """The /astro hub deliberately no longer advertises the Photo Showcase
+    (Peter, 2026-09-18, during the public/private tidy-up). This inverts an
+    earlier test that asserted the link WAS present, so it is rewritten to
+    state the new rule rather than deleted — the point is that the absence is
+    intended, not that someone broke the card.
+
+    Nav-only, as everywhere else in that tidy-up: /astro/photos still serves,
+    and the showcase's own pages still link within themselves.
+    """
+
+    def test_hub_does_not_link_to_photos(self, mywebsite, make_event,
+                                         make_context):
         result = mywebsite.lambda_handler(make_event("/astro"), make_context())
-        assert "/astro/photos" in result["body"]
+        assert "/astro/photos" not in result["body"]
+
+    def test_showcase_itself_still_serves(self, mywebsite, make_event,
+                                          make_context):
+        result = mywebsite.lambda_handler(make_event("/astro/photos"),
+                                          make_context())
+        assert result["statusCode"] == 200

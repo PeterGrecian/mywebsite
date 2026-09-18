@@ -1364,6 +1364,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
 
     return f'''<!doctype html>
 <html lang="en"><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 {_THEME_CSS_JS}
 <title>Sky Camera — {title}</title>
 <style>
@@ -1397,6 +1398,25 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   .marker::after {{ content: attr(data-label); position: absolute; top: -16px; left: -8px; font-size: 0.7rem; color: var(--accent); }}
   .time {{ font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 0.9rem; min-width: 9rem; text-align: center; }}
   .help {{ max-width: 1200px; margin: 0.5rem auto; color: var(--text-secondary); font-size: 0.8rem; text-align: center; }}
+  /* The video is a frame-stepping surface on touch: a horizontal drag steps
+     frames (see the drag block in the script). `pan-y` tells the browser to
+     keep the vertical axis — page scroll stays native — and hand us the
+     horizontal one. Without it the browser claims horizontal drags too and
+     the gesture never reaches us. */
+  video {{ touch-action: pan-y; }}
+  /* Phone layout. Root font-size is 21px so the buttons are already ~44px
+     tall; what is genuinely unreachable on a phone is the 8px scrub bar,
+     and the control row wraps badly at 390px with the time readout inline. */
+  @media (max-width: 700px) {{
+    .bar, .play-region, .clip-band {{ top: 4px; height: 22px; border-radius: 11px; }}
+    .head {{ top: 1px; width: 6px; height: 28px; transform: translateX(-3px); }}
+    .marker, .clip-mark {{ top: 1px; height: 28px; }}
+    .scrub {{ height: 34px; }}
+    .time {{ min-width: 100%; order: 10; }}   /* own row, below the buttons */
+    body.clips-off #clipsSel,
+    body.clips-off #clipAdd,
+    body.clips-off #clipDel {{ display: none; }}
+  }}
 </style>
 </head><body>
   <div class="top">
@@ -1425,7 +1445,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     <select id="clipsSel" class="ctl" title="clips"></select>
     <button id="clipAdd" title="new clip from playhead">+</button>
     <button id="clipDel" title="delete clip containing playhead">−</button>
+    <button id="stepBack" title="step back one frame (←)">◀|</button>
     <button id="play" title="play / pause" style="min-width:3rem;">▶</button>
+    <button id="stepFwd" title="step forward one frame (→)">|▶</button>
     <span class="time" id="time">0.000 / 0.000</span>
     <select id="loopSel" class="ctl" title="loop mode">
       <option value="fwd-once">→</option>
@@ -1446,6 +1468,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     <span class="menu-wrap">
       <button id="actionsBtn" class="menu" title="more">⋯</button>
       <div id="actionsPop" class="menu-pop">
+        <button id="clipsToggle">Show clip controls</button>
         <button id="share">Share clip URL</button>
         <button id="fs">Fullscreen</button>
         <button id="pip" style="display:none;">Picture-in-picture</button>
@@ -1464,14 +1487,15 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     dropped <span id="dropped">0</span>
     <span id="bufferWarn" style="display:none; color:#FF9500;"> ⚠ buffering</span>
   </div>
-  <div class="help">press H for help · space play/pause</div>
+  <div class="help">press H for help · space play/pause ·
+    drag the video left/right to step frames</div>
   <div id="helpHud" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:50; padding:2rem; overflow:auto;">
     <div style="max-width:600px; margin:0 auto; color:var(--text); font-size:0.95rem;">
       <h2 style="color:var(--accent); margin-top:0;">Keyboard shortcuts</h2>
       <table style="width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;">
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">space</td><td>play / pause</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">, .</td><td>play backward · play forward (transport)</td></tr>
-        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame</td></tr>
+        <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">← →</td><td>step one frame (or drag the video left/right)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">&lt; &gt;</td><td>pace slower · faster (¼× ½× 1× 2× 4×)</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">u</td><td>cycle loop mode</td></tr>
         <tr><td style="padding:0.3rem 0.8rem; color:var(--accent);">↑ ↓</td><td>switch source (cycle)</td></tr>
@@ -1840,6 +1864,87 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     }}
   }});
   bar.addEventListener("pointercancel", () => {{ scrubbing = false; }});
+
+  // Frame stepping by drag — the phone's ← →. A phone has no keyboard, so
+  // the video surface itself is the control: a horizontal drag moves one
+  // frame per DRAG_PX_PER_FRAME px, which makes a short flick exactly one
+  // frame and a long drag a ripple through a sequence. Same two-layer
+  // pattern as the timeline scrub above: the head moves synchronously,
+  // the decode is rAF-throttled, and the landing seek is precise.
+  //
+  // Vertical drags must still scroll the page. `touch-action: pan-y` on the
+  // video gives the browser the vertical axis (it sends a pointercancel
+  // when it claims a gesture as a scroll). Mouse pointers ignore
+  // touch-action entirely, so the axis is also decided explicitly here,
+  // before any frame moves — and once it resolves to "y" the drag is
+  // dropped rather than captured.
+  const DRAG_PX_PER_FRAME = 24;
+  const DRAG_SLACK_PX = 10;     // so a tap is never a step
+  let dragId = null, dragX0 = 0, dragY0 = 0, dragT0 = 0;
+  let dragAxis = null, dragFrames = 0, dragPendingT = null, rafDrag = null;
+
+  function applyDragSeek() {{
+    rafDrag = null;
+    if (dragPendingT == null) return;
+    const t = dragPendingT; dragPendingT = null;
+    if (typeof v.fastSeek === "function") v.fastSeek(t);
+    else v.currentTime = t;
+  }}
+
+  v.addEventListener("pointerdown", e => {{
+    if (dragId !== null) return;          // ignore a second finger
+    dragId = e.pointerId; dragX0 = e.clientX; dragY0 = e.clientY;
+    dragT0 = v.currentTime; dragAxis = null; dragFrames = 0;
+  }});
+
+  v.addEventListener("pointermove", e => {{
+    if (e.pointerId !== dragId || !dur()) return;
+    const dx = e.clientX - dragX0, dy = e.clientY - dragY0;
+    if (dragAxis === null) {{
+      if (Math.abs(dx) < DRAG_SLACK_PX && Math.abs(dy) < DRAG_SLACK_PX) return;
+      if (Math.abs(dy) >= Math.abs(dx)) {{ dragId = null; return; }}  // page scroll
+      dragAxis = "x";
+      pause();
+      try {{ v.setPointerCapture(e.pointerId); }} catch(_) {{}}
+    }}
+    const frames = Math.round(dx / DRAG_PX_PER_FRAME);
+    if (frames === dragFrames) return;
+    dragFrames = frames;
+    dragPendingT = Math.max(lo(), Math.min(hi(), dragT0 + frames / FPS));
+    const w = bar.getBoundingClientRect().width;
+    scrubHeadTo(dragPendingT / dur() * w, w);   // immediate visual feedback
+    if (rafDrag == null) rafDrag = requestAnimationFrame(applyDragSeek);
+  }});
+
+  function endDrag(e) {{
+    if (e.pointerId !== dragId) return;
+    try {{ v.releasePointerCapture(e.pointerId); }} catch(_) {{}}
+    if (dragAxis === "x" && dragFrames !== 0) {{
+      if (rafDrag != null) {{ cancelAnimationFrame(rafDrag); rafDrag = null; }}
+      dragPendingT = null;
+      v.currentTime = Math.max(lo(), Math.min(hi(), dragT0 + dragFrames / FPS));
+      if (hasRVFC) v.requestVideoFrameCallback(() => repaint());
+      else repaint();
+    }}
+    dragId = null; dragAxis = null;
+  }}
+  v.addEventListener("pointerup", endDrag);
+  v.addEventListener("pointercancel", endDrag);
+
+  // On-screen equivalents of ← →. The gesture above is undiscoverable on
+  // its own, and a tap is the precise way to ask for exactly one frame.
+  document.getElementById("stepBack").onclick = () => stepFrame(-1);
+  document.getElementById("stepFwd").onclick  = () => stepFrame(+1);
+
+  // Clip in/out is desk work, not phone work: hidden by default at narrow
+  // widths (the CSS rule is inside the media query, so this class is inert
+  // on a desktop) and revealed from the ⋯ menu when wanted.
+  document.body.classList.add("clips-off");
+  const clipsToggle = document.getElementById("clipsToggle");
+  clipsToggle.onclick = () => {{
+    const off = document.body.classList.toggle("clips-off");
+    clipsToggle.textContent = off ? "Show clip controls" : "Hide clip controls";
+  }};
 
   // Actions dropdown wiring.
   const actionsBtn = document.getElementById("actionsBtn");

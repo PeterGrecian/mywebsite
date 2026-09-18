@@ -26,12 +26,6 @@ CAMERAS = [
 # cameras rather than belonging to one of them.
 COLLECTIONS = [
     {
-        "path": "/astro/photos",
-        "title": "Photo Showcase",
-        "desc": "Curated astrophotography captures — deep sky, Milky Way, star trails, polar derotations, and meteor fireballs with full equipment & exposure recipes.",
-        "status": "live",
-    },
-    {
         "path": "/astro/transients",
         "title": "Transients",
         "desc": "Curated one-off captures — meteors and fireballs, lightning, aircraft, satellites, odd frames caught mid-inspection, and daylight test shots.",
