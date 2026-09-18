@@ -127,8 +127,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 13295,
-  "sha": "8234a3899667888f",
+  "len": 14482,
+  "sha": "bc165ed14ecabc7c",
   "status": 200
  },
  "/ai-memory-suffix": {
@@ -1648,8 +1648,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 13295,
-  "sha": "8234a3899667888f",
+  "len": 14482,
+  "sha": "bc165ed14ecabc7c",
   "status": 200
  },
  "/default/ai-memory-suffix": {
@@ -3851,8 +3851,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4261,
-  "sha": "493b7e55b0a20f94",
+  "len": 4268,
+  "sha": "cdc8011115ec55a0",
   "status": 200
  },
  "/default/gitinfo-suffix": {
@@ -4922,7 +4922,7 @@
    "Content-Type"
   ],
   "len": 8111,
-  "sha": "bc8aa934199fe0ef",
+  "sha": "ac430ca9aa312d82",
   "status": 200
  },
  "/default/skycam-suffix": {
@@ -4957,7 +4957,7 @@
    "Content-Type"
   ],
   "len": 1383,
-  "sha": "681fca4dec75a62b",
+  "sha": "2cc9e2810cd08a82",
   "status": 200
  },
  "/default/skycam/build-info-suffix": {
@@ -5308,7 +5308,7 @@
    "Content-Type"
   ],
   "len": 1387,
-  "sha": "e3a96831ba4ae0b0",
+  "sha": "529e278181f0f208",
   "status": 200
  },
  "/default/skycam/player-poc-suffix": {
@@ -8033,8 +8033,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4261,
-  "sha": "493b7e55b0a20f94",
+  "len": 4268,
+  "sha": "cdc8011115ec55a0",
   "status": 200
  },
  "/gitinfo-suffix": {
@@ -9104,7 +9104,7 @@
    "Content-Type"
   ],
   "len": 8111,
-  "sha": "bc8aa934199fe0ef",
+  "sha": "ac430ca9aa312d82",
   "status": 200
  },
  "/skycam-suffix": {
@@ -9139,7 +9139,7 @@
    "Content-Type"
   ],
   "len": 1383,
-  "sha": "681fca4dec75a62b",
+  "sha": "2cc9e2810cd08a82",
   "status": 200
  },
  "/skycam/build-info-suffix": {
@@ -9501,7 +9501,7 @@
    "Content-Type"
   ],
   "len": 1387,
-  "sha": "e3a96831ba4ae0b0",
+  "sha": "529e278181f0f208",
   "status": 200
  },
  "/skycam/player-poc-suffix": {

@@ -129,6 +129,26 @@
       </section>
 
       <section>
+        <h2>One account per strand</h2>
+        <p>A strand can run as its own operating-system user rather than as
+          you. Its processes, caches, temporary files and uncommitted working
+          state are its own, so one strand cannot quietly disturb another's,
+          and whatever it does is attributable in the process table.</p>
+        <p>Groups are deliberately coarser than accounts. A group marks a
+          trust zone, not a project: everything personal in one, anything
+          confidential in another. Per-project groups were considered and
+          rejected — they add synchronisation friction, leak internal names
+          into shared tooling, and buy almost nothing over a clean boundary
+          between zones.</p>
+        <p>The identifiers are allocated from one registry and shared between
+          machines, so a file carried from one estate to another keeps its
+          ownership instead of arriving as somebody else's.</p>
+        <p class="aside">Opt-in per launch at present, not yet the default:
+          this is the daily launcher, and a regression there would cost every
+          session on the desk.</p>
+      </section>
+
+      <section>
         <h2>The tools around it</h2>
         <p>The files are the method; a few small tools keep the habit cheap
           enough to actually follow.</p>
