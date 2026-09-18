@@ -44,7 +44,12 @@ class TestBiog:
                        "pavement artist", "Bamber Gascoigne",
                        "Method Studios", "DeepMind",
                        "TUI", "Infrastructure as Code",
-                       "so that you don't have to"):
+                       "so that you don't have to go on the same journey"):
+            assert phrase in flat, phrase
+
+        # The biog names strands; it should link to the page that explains
+        # them rather than leaving the reader to find it.
+        for phrase in ('<a href="/ai-memory">strands</a>',):
             assert phrase in flat, phrase
 
     def test_imdb_link_matches_the_cv(self, mywebsite, make_event,
