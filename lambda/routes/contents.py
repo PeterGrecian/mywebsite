@@ -107,7 +107,7 @@ def render_contents_page(*, theme_css_js, private=False):
       .card-extra:hover {{ background: var(--divider); }}
       .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
       .footer-nav {{ display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
-      .footer-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 0.95rem; transition: opacity 0.2s; }}
+      .footer-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 0.85rem; word-break: break-all; max-width: 100%; transition: opacity 0.2s; }}
       .footer-nav a:hover {{ opacity: 0.8; }}
       .colophon {{ margin-top: 2.5rem; color: var(--text-secondary); font-size: 0.8rem; max-width: 500px; line-height: 1.5; }}
       @media (max-width: 768px) {{ h1 {{ font-size: 2rem; margin-bottom: 1.5rem; }} .card-body {{ padding: 0.8rem 0.9rem; }} .card-title {{ font-size: 1rem; }} .card-img {{ height: 110px; }} }}
@@ -119,9 +119,9 @@ def render_contents_page(*, theme_css_js, private=False):
     <div class="links-container">
 {links_html}    </div>
     <div class="footer-nav">
-      <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">https://github.com/PeterGrecian</a>
     </div>
-    <p class="colophon">Powered by API Gateway, Python Lambda, DynamoDB and
-      Cloudflare.</p>
+    <p class="colophon">This website is powered by API Gateway, Python
+      Lambda, DynamoDB and Cloudflare.</p>
   </body>
 </html>'''
