@@ -47,15 +47,19 @@
       <p class="subtitle">an introduction to the strand methodology</p>
 
       <section>
-        <p class="lead">An AI coding session forgets everything when it ends.
-          That is the whole problem, and most of the effort people put into
-          working with agents goes into papering over it.</p>
-        <p>The usual answers do not hold. Resuming a long conversation works
-          until the context is compacted, and compaction is lossy and cannot
-          be edited: you cannot reach into a summary and correct the thing it
-          got wrong. Starting fresh each time means re-explaining the project
-          from scratch, badly, forever.</p>
-        <p>A <strong>strand</strong> is the alternative: a strand of
+        <p class="lead">A common frustration when developing anything
+          complex is that the agent has to be taught about the project over
+          and over again.</p>
+        <p>It is tempting to keep a session open so the context is not lost.
+          The cost per turn then climbs, because the whole context is
+          reprocessed for every token generated — that is how these agents
+          work. Run it long enough and the session is compacted instead, and
+          compaction is lossy and cannot be edited: there is no reaching into
+          a summary to correct what it got wrong.</p>
+        <p>Writing documentation might help, but only if the agent reads it,
+          and that is not something you can count on.</p>
+        <p>Which is where strands come in. A <strong>strand</strong> is a
+          strand of
           thought, developed over time and kept clear of the others, so that
           one line of work does not tangle with the rest. The memory lives
           outside the session, in git, written in prose a human can read and
