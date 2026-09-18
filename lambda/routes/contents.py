@@ -41,6 +41,18 @@ def render_contents_page(*, theme_css_js, private=False):
     if not private:
         items = [i for i in items if not i.get('auth_required')]
 
+    # header_link entries are not projects, so they are not cards: they are
+    # links under the name. Biography is the case that prompted it — a card
+    # in a list of things I built reads as another project.
+    header_items = [i for i in items if i.get('header_link')]
+    items = [i for i in items if not i.get('header_link')]
+    header_html = ""
+    if header_items:
+        links = "".join(
+            f'<a href="/{i.get("path", "").lstrip("/")}">{i.get("title", "")}</a>'
+            for i in header_items)
+        header_html = f'    <div class="header-nav">{links}</div>\n'
+
     # Build the cards.
     #
     # A card is a <div>, not an <a>, because some entries carry a second,
@@ -89,7 +101,7 @@ def render_contents_page(*, theme_css_js, private=False):
     <style>
       body {{ font-family: var(--font); text-align: center; background: var(--bg); min-height: 100vh; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }}
       h1 {{ color: var(--text); font-size: 2.5rem; margin-bottom: 2rem; }}
-      .links-container {{ display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 560px; }}
+      .links-container {{ display: flex; flex-direction: column; gap: 1.5rem; width: 100%; max-width: 560px; }}
       /* Cards, not pills. A pill has to stay short, which forced every
          description into a cramped second line; a card gives the text room
          and leaves space for an image. */
@@ -106,6 +118,9 @@ def render_contents_page(*, theme_css_js, private=False):
       .card-extra {{ position: relative; z-index: 1; display: inline-block; margin-top: 0.6rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; border: 1px solid var(--divider); border-radius: 20px; padding: 0.3rem 0.8rem; }}
       .card-extra:hover {{ background: var(--divider); }}
       .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
+      .header-nav {{ display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }}
+      .header-nav a {{ color: var(--accent); text-decoration: none; font-size: 1rem; border-bottom: 1px solid var(--divider); padding-bottom: 0.15rem; }}
+      .header-nav a:hover {{ opacity: 0.8; }}
       .footer-nav {{ display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }}
       .footer-nav a {{ display: inline-block; padding: 0.5rem 1.25rem; border-radius: 50px; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider); text-decoration: none; font-size: 0.85rem; word-break: break-all; max-width: 100%; transition: opacity 0.2s; }}
       .footer-nav a:hover {{ opacity: 0.8; }}
@@ -116,7 +131,7 @@ def render_contents_page(*, theme_css_js, private=False):
   </head>
   <body>
     <h1>Peter Grecian</h1>
-    <div class="links-container">
+{header_html}    <div class="links-container">
 {links_html}    </div>
     <div class="footer-nav">
       <a href="https://github.com/PeterGrecian" target="_blank" rel="noopener">https://github.com/PeterGrecian</a>

@@ -167,7 +167,8 @@
     "title": "Biography",
     "description": "who I am, at more length than a CV allows",
     "color": "pastel-peach",
-    "sort_order": 20,
-    "visible": true
+    "sort_order": 0,
+    "visible": true,
+    "header_link": true
   }
 ]

@@ -142,6 +142,18 @@ class TestContentsCards:
         extra = body.find('class="card-extra"')
         assert extra == -1 or extra > title_end
 
+    def test_biog_is_a_header_link_not_a_card(self, body):
+        """Biography is not a project, so a card in a list of things I built
+        reads wrong. header_link pulls it out of the card list and puts it
+        under the name."""
+        assert 'class="header-nav"' in body
+        assert '<a href="/biog">Biography</a>' in body
+        titles = re.findall(r'class="card-title" href="[^"]*">([^<]+)', body)
+        assert "Biography" not in titles
+
+    def test_header_link_sits_above_the_cards(self, body):
+        assert body.index("header-nav") < body.index('class="card-title"')
+
     def test_astronomy_card_has_its_image(self, body):
         assert 'class="card-img"' in body
         assert "assets/cards/astronomy.jpg" in body
