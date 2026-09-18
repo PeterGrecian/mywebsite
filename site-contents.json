@@ -155,11 +155,12 @@
   },
   {
     "path": "ai-memory",
-    "title": "AI Which Remembers",
-    "description": "an introduction to strand methodology",
+    "title": "AI That Remembers",
+    "description": "an introduction to the strand methodology",
     "color": "pastel-lavender",
     "sort_order": 1,
-    "visible": true
+    "visible": true,
+    "image_url": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/cards/ai-memory.jpg"
   },
   {
     "path": "biog",

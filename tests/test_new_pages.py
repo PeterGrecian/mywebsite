@@ -33,7 +33,7 @@ class TestAiMemory:
     def test_serves(self, mywebsite, make_event, make_context):
         r = mywebsite.lambda_handler(make_event("/ai-memory"), make_context())
         assert r["statusCode"] == 200
-        assert "AI Which Remembers" in r["body"]
+        assert "AI That Remembers" in r["body"]
 
     def test_has_viewport(self, mywebsite, make_event, make_context):
         r = mywebsite.lambda_handler(make_event("/ai-memory"), make_context())
@@ -95,7 +95,7 @@ class TestContentsCards:
 
     def test_ai_memory_is_first(self, body):
         titles = re.findall(r'class="card-title" href="[^"]*">([^<]+)', body)
-        assert titles[0].startswith("AI Which Remembers")
+        assert titles[0].startswith("AI That Remembers")
 
     def test_github_is_at_the_bottom(self, body):
         """Moved out of the header into a footer, so the cards lead."""
@@ -124,9 +124,36 @@ class TestContentsCards:
         assert 'class="card-img"' in body
         assert "assets/cards/astronomy.jpg" in body
 
-    def test_cards_work_without_an_image(self, body):
-        """Only Astronomy has one so far; the rest must still render."""
-        assert body.count('class="card-title"') > body.count('class="card-img"')
+    def test_cards_work_without_an_image(self, mywebsite):
+        """image_url is optional. This renders the no-image path directly
+        rather than counting cards on the live page: every public entry has
+        an image now, so a count-based assertion silently stopped testing
+        anything the moment the last one was filled in."""
+        import sys
+        from unittest.mock import MagicMock
+        from routes.contents import render_contents_page
+
+        items = [
+            {"path": "with", "title": "With", "description": "d",
+             "sort_order": 1, "visible": True,
+             "image_url": "https://example.com/x.jpg"},
+            {"path": "without", "title": "Without", "description": "d",
+             "sort_order": 2, "visible": True},
+        ]
+        fake = MagicMock()
+        fake.resource.return_value.Table.return_value.scan.return_value = {
+            "Items": items}
+        real, sys.modules["boto3"] = sys.modules.get("boto3"), fake
+        try:
+            html = render_contents_page(theme_css_js="", private=False)
+        finally:
+            if real is not None:
+                sys.modules["boto3"] = real
+
+        assert html.count('class="card-title"') == 2
+        assert html.count('class="card-img"') == 1
+        # the imageless card still renders its title and description
+        assert ">Without</a>" in html
 
 
 @pytest.fixture(scope="module")
