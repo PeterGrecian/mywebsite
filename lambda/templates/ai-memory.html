@@ -29,7 +29,17 @@
       td.g {{ color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1.1rem; border-bottom: none; }}
       tr:first-child td.g {{ padding-top: 0; }}
       .lead {{ font-size: 1.08rem; }}
-      .aside {{ color: var(--text-secondary); font-size: 0.9rem; }}
+      /* Was var(--text-secondary) (#8E8E93), which is ~3.3:1 on the light
+         theme's white cards — an AA failure at body size, and tiring over a
+         long page. Opacity on --text stays theme-aware and clears 8:1 in
+         both themes while still reading as secondary. */
+      .aside {{ color: var(--text); opacity: 0.75; font-size: 0.9rem; }}
+      pre {{ background: rgba(142,142,147,0.12); border: 1px solid var(--divider); border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.8rem; overflow-x: auto; font-family: monospace; font-size: 0.82rem; line-height: 1.6; color: var(--text); }}
+      pre b {{ color: var(--accent); font-weight: 600; }}
+      .caption {{ font-size: 0.85rem; opacity: 0.75; margin-bottom: 0.8rem; }}
+      .contact-line {{ font-size: 1.05rem; }}
+      .contact-line a {{ text-decoration: none; }}
+      .contact-line a:hover {{ opacity: 0.8; }}
       @media (max-width: 600px) {{
         body {{ padding: 1.25rem 0.75rem; }}
         section {{ padding: 1rem 1rem; }}
@@ -51,17 +61,18 @@
           complex is that the agent has to be taught about the project over
           and over again.</p>
         <p>It is tempting to keep a session open so the context is not lost.
-          The cost per turn then climbs, because the whole context is
-          reprocessed for every token generated — that is how these agents
-          work. Run it long enough and the session is compacted instead, and
-          compaction is lossy and cannot be edited: there is no reaching into
-          a summary to correct what it got wrong.</p>
+          The cost per turn then climbs, because the whole context goes back
+          up each time you send a message — that is how these agents work.
+          Caching makes the re-read tolerable, but an interruption — lunch!
+          — can be very expensive. If the context gets huge it will be compacted, which is lossy
+          and cannot be edited: there is no reaching into a summary to correct
+          what it got wrong.</p>
         <p>Writing documentation might help, but only if the agent reads it,
           and that is not something you can count on.</p>
-        <p>Which is where strands come in. A <strong>strand</strong> is a
-          strand of
-          thought, developed over time and kept clear of the others, so that
-          one line of work does not tangle with the rest. The memory lives
+        <p>Which is where strands come in. A <strong>strand</strong> (as in a
+          strand of thought) is a line of work, developed over time and kept
+          clear of the others so that it does not tangle with the rest. The
+          memory lives
           outside the session, in git, written in prose a human can read and
           edit.</p>
         <p>None of which makes the sessions themselves disposable. They are
@@ -85,6 +96,27 @@
           <tr><td class="k">IDEAS.md</td><td>An inbox. Anything can append to it from any machine; it is triaged at the start of the next session.</td></tr>
           <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
         </table>
+        <p>Prose, not structure. This is a real entry from the state file of
+          the strand that keeps this website, trimmed to fit:</p>
+<pre><b>## Pending / loose ends</b>
+
+- <b>Half of all mywebsite invocations are one poller.</b>
+  /calendaralarm/api/rules was 1,436 requests in 24h — almost
+  exactly one a minute, against a ~3,000/day total.
+
+  The project is not under active development, but the poller
+  is live (Peter, 2026-09-06). Do not read the silence as
+  "safe to switch off": something deployed is still calling
+  this endpoint every minute.
+
+  Agreed shape when it is picked up: poll every 10 minutes
+  during the day, off at night — roughly a 20x cut. The
+  change belongs to that project's timer, not to this repo.</pre>
+        <p class="caption">Ten lines carrying a measurement, a correction from
+          a human with the date attached, a warning aimed at whoever opens the
+          strand next, a decision recorded without being acted on, and the
+          name of whoever actually owns the fix. None of that survives in a
+          conversation.</p>
         <p>Because the files are in git, the memory is versioned, diffable and
           portable. When it is wrong you fix it with an editor.</p>
       </section>
@@ -142,6 +174,25 @@
           focused, and keeps material that has no bearing on the question out
           of the agent's context. Irrelevant detail does not sit there
           harmlessly; it blunts the answers.</p>
+      </section>
+
+      <section>
+        <h2>Where the saving comes from</h2>
+        <p>Not from buying a smaller model. It comes from not paying to
+          explain the project again. Most of what makes an agent expensive is
+          rediscovery — working out what this is, what was decided and why,
+          before it can start on anything — and that bill arrives at the top
+          of every fresh conversation. A strand settles it once, from a file,
+          in the first few seconds.</p>
+        <p>Tiering down is a weaker lever than it looks. Work given to a
+          cheaper model because it seemed routine has a habit of coming back
+          to be done again properly, and then it has been paid for twice.</p>
+        <p>What the files do buy is freedom of model. The same strand briefs
+          any backend, so a second one can be put on the same question —
+          sometimes deliberately adversarially, to argue against the first —
+          and it arrives already knowing what it is looking at. A reviewer who
+          has to be briefed from scratch is not worth the trouble. One who
+          reads the state file and then disagrees with you is.</p>
       </section>
 
       <section>
@@ -240,7 +291,7 @@
 
           <tr><td class="g" colspan="2">Across all of them</td></tr>
           <tr><td class="k">backlog</td><td>One ordered list for the whole estate. Anyone adds to the bottom; one strand does the ranking, being the only one that sees across them all.</td></tr>
-          <tr><td class="k">proposals</td><td>The drawer of arguments about what to build next, kept where unclassified ones stay visible.</td></tr>
+          <tr><td class="k">proposals</td><td>The drawer of arguments about what to build next, with an index that will not let one be quietly forgotten.</td></tr>
         </table>
         <p class="aside">A sketch rather than a manual; each of these deserves
           its own page.</p>
@@ -262,6 +313,29 @@
           going past its useful life.</p>
         <p class="aside">The tools described here are in daily use rather than
           written up as theory.</p>
+      </section>
+
+      <section>
+        <h2>Putting this to work in a team</h2>
+        <p>Everything above is one person's estate. The method was built
+          there, but the problem it solves is worse in a team: several people
+          teaching the same agent the same codebase, none of them able to see
+          what the others' sessions concluded, and every good decision ending
+          up in a transcript nobody else will ever open. A strand is memory
+          the whole team can read, review and correct — in a pull request,
+          like everything else you already trust.</p>
+        <p>I take consultancy work setting this up. In practice that means
+          finding where the strand boundaries in your system actually fall,
+          writing the first state files alongside the people who own each
+          area, putting in the launcher and the commit habit that keep them
+          current, and deciding what an agent is allowed to reach. It is a
+          small amount of tooling and a large amount of judgement about what
+          is worth writing down.</p>
+        <p>If your team is spending real money on agents and getting
+          inconsistent work back, that is the symptom this addresses. Tell me
+          what you are running and I will tell you whether it would help.</p>
+        <p class="contact-line"><a href="mailto:peter@petergrecian.co.uk">peter@petergrecian.co.uk</a>
+          · <a href="https://www.linkedin.com/in/peter-grecian-1700a317/">LinkedIn</a></p>
       </section>
     </div>
   </body>

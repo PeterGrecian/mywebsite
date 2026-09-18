@@ -118,6 +118,9 @@ def render_contents_page(*, theme_css_js, private=False):
       .card-extra {{ position: relative; z-index: 1; display: inline-block; margin-top: 0.6rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; border: 1px solid var(--divider); border-radius: 20px; padding: 0.3rem 0.8rem; }}
       .card-extra:hover {{ background: var(--divider); }}
       .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
+      .tagline {{ color: var(--text-secondary); font-size: 1rem; line-height: 1.5; max-width: 560px; margin: -1.4rem 0 1.5rem; }}
+      .tagline a {{ color: var(--accent); text-decoration: none; }}
+      .tagline a:hover {{ opacity: 0.8; }}
       .header-nav {{ display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }}
       .header-nav a {{ color: var(--accent); text-decoration: none; font-size: 1rem; border-bottom: 1px solid var(--divider); padding-bottom: 0.15rem; }}
       .header-nav a:hover {{ opacity: 0.8; }}
@@ -131,6 +134,10 @@ def render_contents_page(*, theme_css_js, private=False):
   </head>
   <body>
     <h1>Peter Grecian</h1>
+    <p class="tagline">Cloud and DevOps engineer. I build and share the strands
+      method for working effectively with AI.
+      <a href="https://www.linkedin.com/in/peter-grecian-1700a317/"
+         target="_blank" rel="noopener">LinkedIn</a></p>
 {header_html}    <div class="links-container">
 {links_html}    </div>
     <div class="footer-nav">
