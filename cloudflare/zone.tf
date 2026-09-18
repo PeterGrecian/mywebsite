@@ -19,6 +19,12 @@ resource "cloudflare_zone_settings_override" "pg" {
     # Security
     security_level = "medium"
 
+    # Scrape Shield. Cloudflare's email obfuscation rewrites mailto: links
+    # into a JS-decoded placeholder, so anyone without JavaScript sees
+    # "[email protected]" instead of the address. /ai-memory asks readers to
+    # email, so the address has to survive.
+    email_obfuscation = "off"
+
     # Caching
     browser_cache_ttl = 14400 # 4 hours
     cache_level       = "aggressive"
