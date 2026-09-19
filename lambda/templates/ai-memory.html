@@ -394,6 +394,30 @@
           up in a transcript nobody else will ever open. A strand is memory
           the whole team can read, review and correct — in a pull request,
           like everything else you already trust.</p>
+        <p>The shape that fits a team is two layers. Each person keeps their
+          own strands, because the work is theirs and the judgement in a state
+          file is personal. Alongside them sits a team strand holding what
+          turned out to be shared: the architecture everyone builds against,
+          the conventions, the decisions nobody should have to rediscover.
+          The shared layer is <em>factored out of</em> the personal ones
+          rather than written first — when the same fact has been stated in
+          three people's state files, it belongs in one place and gets
+          promoted there. That is the prune-and-promote discipline described
+          above, applied one level up.</p>
+        <p>What that buys, beyond not writing the same paragraph three times,
+          is that disagreement becomes visible. Two developers holding
+          different beliefs about the same system is normal, and usually stays
+          invisible until something breaks. Here both beliefs are prose in
+          git, about a named subject — so they can be compared, and a
+          contradiction between a personal strand and the shared one is worth
+          flagging the moment it appears. Either the shared file has gone
+          stale or somebody is working from something that stopped being true,
+          and both are better found on a Tuesday afternoon than during an
+          incident.</p>
+        <p class="aside">The two-layer split is a design rather than something
+          already running: one person's estate has no second layer to factor
+          out of it. It is the first thing I would build with a team that
+          wanted it.</p>
         <p>I take consultancy work setting this up. In practice that means
           finding where the strand boundaries in your system actually fall,
           writing the first state files alongside the people who own each
