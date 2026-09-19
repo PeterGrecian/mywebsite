@@ -266,12 +266,26 @@
 
       <section>
         <h2>Running them</h2>
-        <p>What this needs is a terminal coding agent — Claude Code or an
-          equivalent — one that reads the files in front of it and can run
-          the tools. It is not an IDE plugin or a chat window.</p>
-        <p>Several strands run at once, on a board. Each live strand is a labelled
-          pane, so you can see which are working and drop into any of them.
-          Work is not serialised behind one conversation.</p>
+        <p>What this needs is a terminal coding agent — Claude Code, or
+          Gemini's equivalent — rather than an assistant living inside an
+          editor. That is a working requirement, not a preference, and it
+          follows from wanting more than one strand at a time.</p>
+        <p>An agent embedded in an IDE is singular by construction: one
+          window, one project, one conversation, and a second one means a
+          second window pretending to be a second you. A terminal agent is
+          just a process. Seven can run at once, each already in its own
+          directory, on its own mission, in its own colour — and none of them
+          waiting on the others.</p>
+        <p>It also puts the tools the right way round. The agent is not a
+          panel inside the editor; the editor is one of the things the agent
+          can open. It brings up a file it wants you to look at, an image
+          viewer on the frames it has just produced, a browser at the page it
+          has just deployed. Anything you can start from a shell is available
+          to it, which is a much larger set than any plugin interface
+          offers.</p>
+        <p>Several strands at once wants a board. Each live strand is a
+          labelled pane, so you can see which are working and drop into any of
+          them. Work is not serialised behind one conversation.</p>
         <p>And they talk to each other. A strand can send another a message:
           a spool that persists until the recipient next opens, and a
           doorbell that wakes one that is already running. That matters
