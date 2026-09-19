@@ -140,10 +140,41 @@
         </ul>
         <p>The kind is declared in the strand's own one-line summary, so a
           session opens already knowing which it is.</p>
-        <p class="aside">This website has a keeper. These pages, the public
-          and private contents split, and the frame-stepping in the video
-          player were all built by it — each in a separate session, none of
-          which remembered the others, all of which read the same STATE.md.</p>
+      </section>
+
+      <section>
+        <h2>What they look like in practice</h2>
+        <p>These are real strands, in daily use on one estate:</p>
+        <table>
+          <tr><td class="k">mywebsite</td><td>Keeper. This website: the Lambda behind it, the edge rules in front of it, and everything already measured about both.</td></tr>
+          <tr><td class="k">astro-pipeline</td><td>Builder. Turns raw sensor frames into calibrated, catalogued, quality-scored data, across several machines.</td></tr>
+          <tr><td class="k">astro-storage</td><td>Keeper. The storage lifecycle of every camera stream — squash, ship, retain — held as one system rather than per camera.</td></tr>
+          <tr><td class="k">ansible</td><td>Builder. Changes hosts. Applies fleet configuration and fixes the drift that accumulates between applications.</td></tr>
+          <tr><td class="k">pifleet</td><td>Keeper. Who is in the fleet, and whether each always-on host is up.</td></tr>
+          <tr><td class="k">aifabric-sessions</td><td>Keeper. The transcript archive and its search index — the other half of the memory, the one nobody curates.</td></tr>
+          <tr><td class="k">towhom</td><td>Keeper. Owns no code at all. Reads across every other strand and holds the whole-estate picture, and the single ordered backlog.</td></tr>
+        </table>
+        <p>Two things in that list matter more than the names. The strands do
+          not map one-to-one onto repositories — most span several, and the
+          last owns none. And one person runs all of it, which is the point
+          being made: the method is what makes that possible.</p>
+        <p>Take the first, since you are looking at what it maintains. This
+          site is not what a model assumes a website is. There is no Apache,
+          no nginx, no server at all — every page is assembled on demand by a
+          Lambda function behind API Gateway, and the gallery pages are built
+          at request time from artifacts sitting in S3: last night's
+          exposures, the fleet's status, a stack from a camera that spent the
+          night pointing at cloud. Almost nothing here is a static file
+          waiting to be served.</p>
+        <p>Which is exactly the kind of project a fresh conversation gets
+          wrong. Told only that it is a website, an agent reaches for the
+          framework it has seen ten thousand times and starts editing files
+          that do not exist. The keeper's state file settles that before the
+          first question is asked, along with what has already been tried,
+          measured and rejected. These pages, the public and private contents
+          split, and the frame-stepping in the video player were all built by
+          it — each in a separate session, none of which remembered the
+          others, all of which read the same STATE.md.</p>
       </section>
 
       <section>
