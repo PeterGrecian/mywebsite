@@ -81,6 +81,12 @@
           kind of information, though. A transcript is a record of what
           happened on one day. A strand is the curated, focused source of
           truth for an area of work.</p>
+        <p>An archive of transcripts is mostly noise, and it is easy to
+          conclude from that it is not worth keeping. But how much of it is
+          noise turns out not to predict how well it answers a question. Going
+          back to find when something was decided, or what an error message
+          was, works — the ninety-odd per cent that was filler was never in
+          the way of the part that mattered.</p>
       </section>
 
       <section>
@@ -184,11 +190,16 @@
           before it can start on anything — and that bill arrives at the top
           of every fresh conversation. A strand settles it once, from a file,
           in the first few seconds.</p>
-        <p>Tiering down is a weaker lever than it looks. Work given to a
+        <p>Tiering down is a weaker lever than it looks. The standard advice
+          — plan with the expensive model, then hand the writing to a cheap
+          one — is a false economy more often than not. Work given to a
           cheaper model because it seemed routine has a habit of coming back
           to be done again properly, and then it has been paid for twice.</p>
-        <p>What the files do buy is freedom of model. The same strand briefs
-          any backend, so a second one can be put on the same question —
+        <p>What the files do buy is freedom of model. The brief is the strand
+          plus the house rules plus the tools and how to use them, and none of
+          that is vendor-specific: the standard setup here is Claude Code, but
+          the same launcher briefs Gemini and Copilot from the same files. So a
+          second backend can be put on the same question —
           sometimes deliberately adversarially, to argue against the first —
           and it arrives already knowing what it is looking at. A reviewer who
           has to be briefed from scratch is not worth the trouble. One who
@@ -209,6 +220,9 @@
 
       <section>
         <h2>Running them</h2>
+        <p>What this needs is a terminal coding agent — Claude Code or an
+          equivalent — one that reads the files in front of it and can run
+          the tools. It is not an IDE plugin or a chat window.</p>
         <p>A strand is a command away. One launcher opens it: it moves into
           the strand's directory, loads the mission and the state file, opens
           the working directories that strand needs, and colours the terminal
