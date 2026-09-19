@@ -148,21 +148,36 @@
 
       <section>
         <h2>The loop</h2>
+        <p>Say you have an hour and you want to spend it on this site's image
+          caching. You do not open a chat and start explaining what the site
+          is, which framework it is not built on, and what you tried last
+          month. You start the strand that already knows:</p>
+<pre>$ strand mywebsite</pre>
+        <p>That is the whole entry. The launcher moves into the strand's
+          directory, loads the mission and the state file, opens the
+          repositories this strand works across, and colours the terminal so
+          you can see which one you are in. The agent's first words are what
+          is pending and what was decided last time. The work starts at the
+          second sentence rather than the fiftieth.</p>
+        <p>From there the cycle is the same every time:</p>
         <ul>
-          <li>Between sessions, jot ideas into the inbox from wherever you are.</li>
-          <li>At session start, the agent reads the state and triages the
-            inbox. Promoting an idea is the cheap reversible default; dropping
-            one is the deliberate act, because a good idea dropped is lost
-            silently.</li>
+          <li>The agent triages the inbox against the state file. Promoting an
+            idea is the cheap reversible default; dropping one is the
+            deliberate act, because a good idea dropped is lost silently.</li>
           <li>Do the work. Prune the pending list while you are there, which
             is when you have the most context to judge with.</li>
           <li>At the end, document: update the state file, and the mission
             file if the ground has moved. Empty the triaged inbox. Commit and
-            push. One command does all of it, which is the only reason it
-            happens reliably.</li>
+            push. One command does all of it — document, commit, push — which
+            is the only reason it happens reliably.</li>
           <li>Then clear the context deliberately, ready for the next item.
             Nothing is lost by starting again, because what mattered is in the
             state file — and the next turn is cheap instead of dear.</li>
+          <li>Between sessions, when something occurs to you away from the
+            work, spool it to whichever strand owns it — one line from any
+            machine, landing in that strand's inbox for the next session to
+            triage. It is the cheapest way to stop a thought dying in a
+            terminal that is about to be closed.</li>
         </ul>
         <p>The discipline is in the documenting. A state file that is never
           pruned decays into a second inbox, and then into noise.</p>
@@ -223,11 +238,7 @@
         <p>What this needs is a terminal coding agent — Claude Code or an
           equivalent — one that reads the files in front of it and can run
           the tools. It is not an IDE plugin or a chat window.</p>
-        <p>A strand is a command away. One launcher opens it: it moves into
-          the strand's directory, loads the mission and the state file, opens
-          the working directories that strand needs, and colours the terminal
-          so you know at a glance which one you are in.</p>
-        <p>Several run at once, on a board. Each live strand is a labelled
+        <p>Several strands run at once, on a board. Each live strand is a labelled
           pane, so you can see which are working and drop into any of them.
           Work is not serialised behind one conversation.</p>
         <p>And they talk to each other. A strand can send another a message:
