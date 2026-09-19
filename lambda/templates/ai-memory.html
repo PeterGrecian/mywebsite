@@ -111,13 +111,12 @@
   exactly one a minute, against a ~3,000/day total.
 
   The project is not under active development, but the poller
-  is live (Peter, 2026-09-06). Do not read the silence as
-  "safe to switch off": something deployed is still calling
-  this endpoint every minute.
+  is live. Do not read the silence as "safe to switch off":
+  something deployed is still calling this every minute.
 
-  Agreed shape when it is picked up: poll every 10 minutes
-  during the day, off at night — roughly a 20x cut. The
-  change belongs to that project's timer, not to this repo.</pre>
+  Agreed when it is picked up: every 10 minutes by day, off
+  at night — a 20x cut. That change belongs to the other
+  project's timer, not to this repo.</pre>
         <p class="caption">Ten lines carrying a measurement, a correction from
           a human with the date attached, a warning aimed at whoever opens the
           strand next, a decision recorded without being acted on, and the
@@ -236,11 +235,29 @@
           before it can start on anything — and that bill arrives at the top
           of every fresh conversation. A strand settles it once, from a file,
           in the first few seconds.</p>
-        <p>Tiering down is a weaker lever than it looks. The standard advice
-          — plan with the expensive model, then hand the writing to a cheap
-          one — is a false economy more often than not. Work given to a
-          cheaper model because it seemed routine has a habit of coming back
-          to be done again properly, and then it has been paid for twice.</p>
+        <p>The goal is the cheapest thing that can actually do the job, and
+          that is a ladder rather than a switch. At the bottom is a
+          deterministic script, which costs nothing to run. Above it a small
+          cheap model. Above that a large one. Above that a large one plus a
+          person's afternoon. Every rung you can move work down is a real
+          saving, and it compounds, because the work recurs.</p>
+        <p>What decides which rung a task can survive on is almost never the
+          task. It is how much the thing doing it already knows. Handed a
+          codebase cold, a cheap model has to guess at everything the brief
+          does not tell it, and guessing is what produces work that has to be
+          done again. Handed the same task with the architecture, the
+          conventions and the last six decisions in front of it, the same
+          model succeeds — because almost nothing is left to guess. Writing
+          the context down is what lowers the floor.</p>
+        <p>Which is why the usual advice — plan with the expensive model,
+          then hand the writing to a cheap one — is a false economy so often.
+          It tiers down blind, on a hunch that the writing is the routine
+          part, and work given to a cheaper model because it <em>seemed</em>
+          routine has a habit of coming back to be done again properly. Then
+          it has been paid for twice. A strand replaces the hunch with a
+          record: after a few visits the state file says which work on this
+          subject actually proved routine, and that is a far better guide to
+          what can be demoted than anyone's instinct on the day.</p>
         <p>What the files do buy is freedom of model. The brief is the strand
           plus the house rules plus the tools and how to use them, and none of
           that is vendor-specific: the standard setup here is Claude Code, but
@@ -428,6 +445,15 @@
         <p>If your team is spending real money on agents and getting
           inconsistent work back, that is the symptom this addresses. Tell me
           what you are running and I will tell you whether it would help.</p>
+        <p>You need nothing from me to start, and I would rather you tried it
+          first. Open three terminal windows. Give each one a directory, a
+          file saying what that piece of work is and which repositories it
+          touches, and a second file saying where it has got to. Point an
+          agent at each. At the end of every session, make it write down what
+          changed and what is still pending, commit that, and clear the
+          context. Come back tomorrow and start from the file rather than
+          from the beginning. That is the whole method — everything above is
+          what it turns into once you have lived with it for a year.</p>
         <p class="contact-line"><a href="mailto:peter@petergrecian.co.uk">peter@petergrecian.co.uk</a>
           · <a href="https://www.linkedin.com/in/peter-grecian-1700a317/">LinkedIn</a></p>
       </section>

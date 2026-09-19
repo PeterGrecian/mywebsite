@@ -138,8 +138,8 @@ def render_contents_page(*, theme_css_js, private=False):
   </head>
   <body>
     <h1>Peter Grecian</h1>
-    <p class="tagline">Cloud and DevOps engineer. I build and share the strands
-      method for working effectively with AI.
+    <p class="tagline">Consultant developer. I build and share the strands
+      method for developing code with AI.
       <a href="https://www.linkedin.com/in/peter-grecian-1700a317/"
          target="_blank" rel="noopener">LinkedIn</a></p>
 {header_html}    <div class="links-container">
