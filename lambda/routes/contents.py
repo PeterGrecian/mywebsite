@@ -62,9 +62,13 @@ def render_contents_page(*, theme_css_js, private=False):
     # .card-extra sits above it on z-index so the second link still wins its
     # own clicks.
     #
-    # image_url is optional and absent everywhere today — the layout is
-    # written so a card works with or without one, ready for the images
-    # Peter is gathering.
+    # image_url is optional and a card works with or without one. The ones
+    # that have it point at s3://www.petergrecian.co.uk/assets/cards/<name>.jpg,
+    # served straight from the S3 hostname with a 7-day Cache-Control. That
+    # hostname is not in the Cloudflare zone, so replacing an image in place
+    # does not purge anyone's browser cache: change the bytes and returning
+    # visitors keep the old picture for up to a week. Give it a new filename
+    # instead when that matters.
     links_html = ""
     for item in items:
         path = item.get('path', '/')
