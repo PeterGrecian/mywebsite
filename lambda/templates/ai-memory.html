@@ -236,28 +236,30 @@
           of every fresh conversation. A strand settles it once, from a file,
           in the first few seconds.</p>
         <p>The goal is the cheapest thing that can actually do the job, and
-          that is a ladder rather than a switch. At the bottom is a
-          deterministic script, which costs nothing to run. Above it a small
-          cheap model. Above that a large one. Above that a large one plus a
-          person's afternoon. Every rung you can move work down is a real
-          saving, and it compounds, because the work recurs.</p>
-        <p>What decides which rung a task can survive on is almost never the
-          task. It is how much the thing doing it already knows. Handed a
-          codebase cold, a cheap model has to guess at everything the brief
-          does not tell it, and guessing is what produces work that has to be
-          done again. Handed the same task with the architecture, the
-          conventions and the last six decisions in front of it, the same
-          model succeeds — because almost nothing is left to guess. Writing
-          the context down is what lowers the floor.</p>
-        <p>Which is why the usual advice — plan with the expensive model,
-          then hand the writing to a cheap one — is a false economy so often.
-          It tiers down blind, on a hunch that the writing is the routine
-          part, and work given to a cheaper model because it <em>seemed</em>
-          routine has a habit of coming back to be done again properly. Then
-          it has been paid for twice. A strand replaces the hunch with a
-          record: after a few visits the state file says which work on this
-          subject actually proved routine, and that is a far better guide to
-          what can be demoted than anyone's instinct on the day.</p>
+          the usual advice about how to get there is wrong. That advice is to
+          tier the model down: plan with the expensive one, hand the writing
+          to a cheap one. My experience is that anything below the best model
+          available is a false economy. The work comes back — not always, but
+          often enough to lose the saving and the afternoon with it, and you
+          have then paid for it twice.</p>
+        <p>The dial that does pay is how hard the model is asked to think.
+          These agents expose it, and it moves cost far more than most people
+          realise. Maximum reasoning for planning, where being wrong is
+          expensive and the output is short. Something middling for carrying
+          the plan out, where the thinking has already been done. Same model
+          throughout, so nothing has to be re-explained at the handover and
+          no work comes back.</p>
+        <p>This is where the files pay for themselves a second time. Effort
+          is, in the end, the model working out what it has not been told.
+          Give it the architecture, the conventions and the last six
+          decisions in writing, and there is simply less left to derive —
+          so the same task genuinely completes at a lower setting, rather
+          than appearing to and failing later. Context substitutes for
+          reasoning. That is the saving, and it compounds, because the work
+          recurs.</p>
+        <p>Below all of that sits the rung worth aiming for: no model at all.
+          Anything a strand has learned to do the same way every time can be
+          written down as a script, and then it costs nothing to run.</p>
         <p>What the files do buy is freedom of model. The brief is the strand
           plus the house rules plus the tools and how to use them, and none of
           that is vendor-specific: the standard setup here is Claude Code, but
