@@ -93,6 +93,15 @@ def render_contents_page(*, theme_css_js, private=False):
 {extra}        </div>
       </div>\n'''
 
+        # The strand card is the introduction, not one of the projects, so
+        # the list proper starts under it: a rule and a line saying what
+        # everything below it has in common.
+        if path == 'ai-memory':
+            links_html += ('''      <div class="section-break">
+        <hr>
+        <span>Some projects developed using strands:</span>
+      </div>\n''')
+
     # noindex on the private page: it is behind Basic Auth, so a crawler
     # cannot read it, but there is no reason for the URL itself to be indexed.
     page_title = "Peter Grecian — private" if private else "Peter Grecian"
@@ -121,6 +130,10 @@ def render_contents_page(*, theme_css_js, private=False):
       /* Above the stretched title, so a second link keeps its own clicks. */
       .card-extra {{ position: relative; z-index: 1; display: inline-block; margin-top: 0.6rem; font-size: 0.8rem; color: var(--accent); text-decoration: none; border: 1px solid var(--divider); border-radius: 20px; padding: 0.3rem 0.8rem; }}
       .card-extra:hover {{ background: var(--divider); }}
+      /* Divides the strand introduction from the projects below it. */
+      .section-break {{ text-align: left; margin: 0.4rem 0 -0.2rem; }}
+      .section-break hr {{ border: 0; border-top: 1px solid var(--divider); margin: 0 0 0.9rem; }}
+      .section-break span {{ color: var(--text-secondary); font-size: 0.9rem; }}
       .badge {{ font-size: 0.55em; vertical-align: super; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }}
       .tagline {{ color: var(--text-secondary); font-size: 1rem; line-height: 1.5; max-width: 560px; margin: -1.4rem 0 1.5rem; }}
       .tagline a {{ color: var(--accent); text-decoration: none; }}
