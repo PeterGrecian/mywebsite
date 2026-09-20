@@ -411,12 +411,23 @@ def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
 </html>'''
 
 
+# Per-camera subtitle for the calendar page. The renderer is shared by every
+# camera, so the text is a parameter rather than a literal: eclipticam says
+# what it actually is (Peter, 2026-09-19), the rest keep the original line
+# until someone asks for them too.
+CAMERA_SUBTITLES = {
+    "eclipticam": "all night exposures and stacks",
+}
+DEFAULT_CAMERA_SUBTITLE = "night-by-night colour sweeps and stacks"
+
+
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
                                  combined_brightness_url=None,
                                  moon_net_url=None,
                                  sun_net_url=None,
-                                 window_label='', weeks=(), months=()):
+                                 window_label='', weeks=(), months=(),
+                                 subtitle=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -430,14 +441,16 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     Each card links to /astro/<camera>/night/<night>.
     Mirrors /starcam's per-night index in spirit but smaller scope.
     """
+    if subtitle is None:
+        subtitle = CAMERA_SUBTITLES.get(camera, DEFAULT_CAMERA_SUBTITLE)
+
     combined_html = ""
     if combined_brightness_url:
         combined_html = (
             f'<a href="{combined_brightness_url}">'
             f'<img class="combined" src="{combined_brightness_url}" '
             f'alt="per-night brightness curves overlaid"></a>'
-            f'<div class="caption">per-night brightness curves '
-            f'(log&#8322; stops above pedestal vs BST clock)</div>')
+            f'<div class="caption">brightness of the sky</div>')
 
     moon_net_html = ""
     if moon_net_url:
@@ -529,7 +542,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
 <body>
   <div class="container">
     <h1>{title}</h1>
-    <div class="subtitle">night-by-night colour sweeps and stacks</div>
+    <div class="subtitle">{subtitle}</div>
     {combined_html}
     {moon_net_html}
     {sun_net_html}
