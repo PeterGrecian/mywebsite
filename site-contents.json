@@ -160,6 +160,8 @@
     "color": "pastel-lavender",
     "sort_order": 1,
     "visible": true,
+    "extra_url": "https://github.com/PeterGrecian/ai-strands",
+    "extra_label": "Try it by cloning the repo!",
     "image_url": "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/cards/ai-memory-strands.jpg"
   },
   {
