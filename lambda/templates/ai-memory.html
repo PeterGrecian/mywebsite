@@ -137,8 +137,12 @@
           <li><strong>A builder</strong> has a trajectory. It is growing or
             changing something, and drives the work forward.</li>
         </ul>
-        <p>The kind is declared in the strand's own one-line summary, so a
-          session opens already knowing which it is.</p>
+        <p>The kind is not a label kept somewhere on the side. It is the
+          <strong>first word of the strand's one-line summary</strong>: if that
+          word is <em>Keeps</em>, the strand is a keeper, and anything else
+          makes it a builder. Tooling reads it there, and so does a session as
+          it opens — which is why the rule is mechanical rather than a matter
+          of taste.</p>
       </section>
 
       <section>
@@ -456,6 +460,20 @@
           context. Come back tomorrow and start from the file rather than
           from the beginning. That is the whole method — everything above is
           what it turns into once you have lived with it for a year.</p>
+        <p>If you would rather start from something already written down, the
+          cut-down version is public:
+          <a href="https://github.com/PeterGrecian/ai-strands">github.com/PeterGrecian/ai-strands</a>.
+          It holds the idea and its anatomy, the three files a strand needs as
+          a template, and <code>strand-new</code> — about fifty lines of bash
+          with no dependencies. Nothing in it is specific to my machines.</p>
+        <p class="aside">This page is a deliberate cut-down, and so is that
+          repository. A running estate also grows messaging between live
+          sessions, a way of forking one into a new terminal with a briefing,
+          families of strands under a parent, a dictation index that maps
+          misheard words back to house nouns, and a fair amount of arithmetic
+          about what a context window costs. None of it is load-bearing for the
+          method, and all of it makes more sense after a month of doing the
+          simple version.</p>
         <p class="contact-line"><a href="mailto:peter@petergrecian.co.uk">peter@petergrecian.co.uk</a>
           · <a href="https://www.linkedin.com/in/peter-grecian-1700a317/">LinkedIn</a></p>
       </section>
