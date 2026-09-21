@@ -30,7 +30,7 @@
       tr:first-child td.g {{ padding-top: 0; }}
       .lead {{ font-size: 1.08rem; }}
       /* Was var(--text-secondary) (#8E8E93), which is ~3.3:1 on the light
-         theme's white cards — an AA failure at body size, and tiring over a
+         theme's white cards: an AA failure at body size, and tiring over a
          long page. Opacity on --text stays theme-aware and clears 8:1 in
          both themes while still reading as secondary. */
       .aside {{ color: var(--text); opacity: 0.75; font-size: 0.9rem; }}
@@ -62,9 +62,9 @@
           and over again.</p>
         <p>It is tempting to keep a session open so the context is not lost.
           The cost per turn then climbs, because the whole context goes back
-          up each time you send a message — that is how these agents work.
-          Caching makes the re-read tolerable, but an interruption — lunch!
-          — can be very expensive. If the context gets huge it will be compacted, which is lossy
+          up each time you send a message. That is how these agents work.
+          Caching makes the re-read tolerable, but an interruption (lunch!)
+          can be very expensive. If the context gets huge it will be compacted, which is lossy
           and cannot be edited: there is no reaching into a summary to correct
           what it got wrong.</p>
         <p>Writing documentation might help, but only if the agent reads it,
@@ -75,17 +75,16 @@
           memory lives
           outside the session, in git, written in prose a human can read and
           edit.</p>
-        <p>None of which makes the sessions themselves disposable. They are
-          worth keeping, backing up and indexing, and working in strands makes
-          that archive even more useful. They hold a different
-          kind of information, though. A transcript is a record of what
-          happened on one day. A strand is the curated, focused source of
-          truth for an area of work.</p>
+        <p>Sessions are precious. I back mine up and index them in an
+          OpenSearch database, and working in strands makes that archive more
+          useful still. But they are historical, not current: a record of what
+          happened on one day. The strand is the working memory, the curated
+          source of truth for an area of work.</p>
         <p>An archive of transcripts is mostly noise, and it is easy to
           conclude from that it is not worth keeping. But how much of it is
           noise turns out not to predict how well it answers a question. Going
           back to find when something was decided, or what an error message
-          was, works — the ninety-odd per cent that was filler was never in
+          was, works. The ninety-odd per cent that was filler was never in
           the way of the part that mattered.</p>
       </section>
 
@@ -107,7 +106,7 @@
 <pre><b>## Pending / loose ends</b>
 
 - <b>Half of all mywebsite invocations are one poller.</b>
-  /calendaralarm/api/rules was 1,436 requests in 24h — almost
+  /calendaralarm/api/rules was 1,436 requests in 24h, almost
   exactly one a minute, against a ~3,000/day total.
 
   The project is not under active development, but the poller
@@ -115,7 +114,7 @@
   something deployed is still calling this every minute.
 
   Agreed when it is picked up: every 10 minutes by day, off
-  at night — a 20x cut. That change belongs to the other
+  at night: a 20x cut. That change belongs to the other
   project's timer, not to this repo.</pre>
         <p class="caption">Ten lines carrying a measurement, a correction from
           a human with the date attached, a warning aimed at whoever opens the
@@ -141,8 +140,7 @@
           <strong>first word of the strand's one-line summary</strong>: if that
           word is <em>Keeps</em>, the strand is a keeper, and anything else
           makes it a builder. Tooling reads it there, and so does a session as
-          it opens — which is why the rule is mechanical rather than a matter
-          of taste.</p>
+          it opens. The rule is mechanical rather than a matter of taste.</p>
       </section>
 
       <section>
@@ -151,19 +149,19 @@
         <table>
           <tr><td class="k">mywebsite</td><td>Keeper. This website: the Lambda behind it, the edge rules in front of it, and everything already measured about both.</td></tr>
           <tr><td class="k">astro-pipeline</td><td>Builder. Turns raw sensor frames into calibrated, catalogued, quality-scored data, across several machines.</td></tr>
-          <tr><td class="k">astro-storage</td><td>Keeper. The storage lifecycle of every camera stream — squash, ship, retain — held as one system rather than per camera.</td></tr>
+          <tr><td class="k">astro-storage</td><td>Keeper. The storage lifecycle of every camera stream (squash, ship, retain) held as one system rather than per camera.</td></tr>
           <tr><td class="k">ansible</td><td>Builder. Changes hosts. Applies fleet configuration and fixes the drift that accumulates between applications.</td></tr>
           <tr><td class="k">pifleet</td><td>Keeper. Who is in the fleet, and whether each always-on host is up.</td></tr>
-          <tr><td class="k">aifabric-sessions</td><td>Keeper. The transcript archive and its search index — the other half of the memory, the one nobody curates.</td></tr>
+          <tr><td class="k">aifabric-sessions</td><td>Keeper. The transcript archive and its search index: the other half of the memory, the one nobody curates.</td></tr>
           <tr><td class="k">towhom</td><td>Keeper. Owns no code at all. Reads across every other strand and holds the whole-estate picture, and the single ordered backlog.</td></tr>
         </table>
         <p>Two things in that list matter more than the names. The strands do
-          not map one-to-one onto repositories — most span several, and the
+          not map one-to-one onto repositories. Most span several, and the
           last owns none. And one person runs all of it, which is the point
           being made: the method is what makes that possible.</p>
         <p>Take the first, since you are looking at what it maintains. This
           site is not what a model assumes a website is. There is no Apache,
-          no nginx, no server at all — every page is assembled on demand by a
+          no nginx, no server at all. Every page is assembled on demand by a
           Lambda function behind API Gateway, and the gallery pages are built
           at request time from artifacts sitting in S3: last night's
           exposures, the fleet's status, a stack from a camera that spent the
@@ -176,7 +174,7 @@
           first question is asked, along with what has already been tried,
           measured and rejected. These pages, the public and private contents
           split, and the frame-stepping in the video player were all built by
-          it — each in a separate session, none of which remembered the
+          it, each in a separate session, none of which remembered the
           others, all of which read the same STATE.md.</p>
       </section>
 
@@ -202,13 +200,13 @@
             is when you have the most context to judge with.</li>
           <li>At the end, document: update the state file, and the mission
             file if the ground has moved. Empty the triaged inbox. Commit and
-            push. One command does all of it — document, commit, push — which
+            push. One command does all of it (document, commit, push), which
             is the only reason it happens reliably.</li>
           <li>Then clear the context deliberately, ready for the next item.
             Nothing is lost by starting again, because what mattered is in the
-            state file — and the next turn is cheap instead of dear.</li>
+            state file, and the next turn is cheap instead of dear.</li>
           <li>Between sessions, when something occurs to you away from the
-            work, spool it to whichever strand owns it — one line from any
+            work, spool it to whichever strand owns it: one line from any
             machine, landing in that strand's inbox for the next session to
             triage. It is the cheapest way to stop a thought dying in a
             terminal that is about to be closed.</li>
@@ -235,15 +233,15 @@
         <h2>Where the saving comes from</h2>
         <p>Not from buying a smaller model. It comes from not paying to
           explain the project again. Most of what makes an agent expensive is
-          rediscovery — working out what this is, what was decided and why,
-          before it can start on anything — and that bill arrives at the top
-          of every fresh conversation. A strand settles it once, from a file,
+          rediscovery: working out what this is, what was decided and why,
+          before it can start on anything. That bill arrives at the top of
+          every fresh conversation. A strand settles it once, from a file,
           in the first few seconds.</p>
         <p>The goal is the cheapest thing that can actually do the job, and
           the usual advice about how to get there is wrong. That advice is to
           tier the model down: plan with the expensive one, hand the writing
           to a cheap one. My experience is that anything below the best model
-          available is a false economy. The work comes back — not always, but
+          available is a false economy. The work comes back. Not always, but
           often enough to lose the saving and the afternoon with it, and you
           have then paid for it twice.</p>
         <p>The dial that does pay is how hard the model is asked to think.
@@ -256,7 +254,7 @@
         <p>This is where the files pay for themselves a second time. Effort
           is, in the end, the model working out what it has not been told.
           Give it the architecture, the conventions and the last six
-          decisions in writing, and there is simply less left to derive —
+          decisions in writing, and there is simply less left to derive,
           so the same task genuinely completes at a lower setting, rather
           than appearing to and failing later. Context substitutes for
           reasoning. That is the saving, and it compounds, because the work
@@ -268,9 +266,9 @@
           plus the house rules plus the tools and how to use them, and none of
           that is vendor-specific: the standard setup here is Claude Code, but
           the same launcher briefs Gemini and Copilot from the same files. So a
-          second backend can be put on the same question —
-          sometimes deliberately adversarially, to argue against the first —
-          and it arrives already knowing what it is looking at. A reviewer who
+          second backend can be put on the same question (sometimes
+          deliberately adversarially, to argue against the first) and it
+          arrives already knowing what it is looking at. A reviewer who
           has to be briefed from scratch is not worth the trouble. One who
           reads the state file and then disagrees with you is.</p>
       </section>
@@ -289,15 +287,15 @@
 
       <section>
         <h2>Running them</h2>
-        <p>What this needs is a terminal coding agent — Claude Code, or
-          Gemini's equivalent — rather than an assistant living inside an
+        <p>What this needs is a terminal coding agent (Claude Code, or
+          Gemini's equivalent) rather than an assistant living inside an
           editor. That is a working requirement, not a preference, and it
           follows from wanting more than one strand at a time.</p>
         <p>An agent embedded in an IDE is singular by construction: one
           window, one project, one conversation, and a second one means a
           second window pretending to be a second you. A terminal agent is
           just a process. Seven can run at once, each already in its own
-          directory, on its own mission, in its own colour — and none of them
+          directory, on its own mission, in its own colour, and none of them
           waiting on the others.</p>
         <p>It also puts the tools the right way round. The agent is not a
           panel inside the editor; the editor is one of the things the agent
@@ -326,12 +324,12 @@
         <p>Agent tools ask you to approve actions one at a time. In practice
           that is a bad bargain: either you read every prompt, which is
           laborious and slows the work to a crawl, or you stop reading them,
-          which is worse — and the usual endpoint is turning permissions off
+          which is worse. The usual endpoint is turning permissions off
           altogether. Neither a prompt you no longer read nor a bypassed
           check is a boundary.</p>
         <p>Order makes something better possible. Because a strand is a
           durable, named unit rather than an ephemeral conversation, an
-          identity can be attached to it — and then the operating system does
+          identity can be attached to it, and then the operating system does
           the guarding, with file ownership and sudo deciding what an agent
           can reach. That is fine-grained, standard, auditable, and it holds
           whether or not anyone is paying attention.</p>
@@ -342,7 +340,7 @@
         <p>Groups are deliberately coarser than accounts. A group marks a
           trust zone, not a project: everything personal in one, anything
           confidential in another. Per-project groups were considered and
-          rejected — they add synchronisation friction, leak internal names
+          rejected: they add synchronisation friction, leak internal names
           into shared tooling, and buy almost nothing over a clean boundary
           between zones.</p>
         <p>The identifiers are allocated from one registry and shared between
@@ -415,7 +413,7 @@
           teaching the same agent the same codebase, none of them able to see
           what the others' sessions concluded, and every good decision ending
           up in a transcript nobody else will ever open. A strand is memory
-          the whole team can read, review and correct — in a pull request,
+          the whole team can read, review and correct, in a pull request,
           like everything else you already trust.</p>
         <p>The shape that fits a team is two layers. Each person keeps their
           own strands, because the work is theirs and the judgement in a state
@@ -423,7 +421,7 @@
           turned out to be shared: the architecture everyone builds against,
           the conventions, the decisions nobody should have to rediscover.
           The shared layer is <em>factored out of</em> the personal ones
-          rather than written first — when the same fact has been stated in
+          rather than written first. When the same fact has been stated in
           three people's state files, it belongs in one place and gets
           promoted there. That is the prune-and-promote discipline described
           above, applied one level up.</p>
@@ -431,7 +429,7 @@
           is that disagreement becomes visible. Two developers holding
           different beliefs about the same system is normal, and usually stays
           invisible until something breaks. Here both beliefs are prose in
-          git, about a named subject — so they can be compared, and a
+          git, about a named subject, so they can be compared, and a
           contradiction between a personal strand and the shared one is worth
           flagging the moment it appears. Either the shared file has gone
           stale or somebody is working from something that stopped being true,
@@ -458,13 +456,13 @@
           agent at each. At the end of every session, make it write down what
           changed and what is still pending, commit that, and clear the
           context. Come back tomorrow and start from the file rather than
-          from the beginning. That is the whole method — everything above is
+          from the beginning. That is the whole method. Everything above is
           what it turns into once you have lived with it for a year.</p>
         <p>If you would rather start from something already written down, the
           cut-down version is public:
           <a href="https://github.com/PeterGrecian/ai-strands">github.com/PeterGrecian/ai-strands</a>.
           It holds the idea and its anatomy, the three files a strand needs as
-          a template, and <code>strand-new</code> — about fifty lines of bash
+          a template, and <code>strand-new</code>, about fifty lines of bash
           with no dependencies. Nothing in it is specific to my machines.</p>
         <p class="aside">This page is a deliberate cut-down, and so is that
           repository. A running estate also grows messaging between live

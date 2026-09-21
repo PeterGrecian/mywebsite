@@ -130,9 +130,15 @@ class TestContentsCards:
         assert titles[0].startswith("Strands: AI That Remembers")
 
     def test_github_is_at_the_bottom(self, body):
-        """Moved out of the header into a footer, so the cards lead."""
+        """Moved out of the header into a footer, so the cards lead.
+
+        Matches the PROFILE link exactly: cards carry their own github
+        links now (the strand card points at ai-strands), so a substring
+        search finds one of those first and proves nothing about where
+        the profile sits.
+        """
         assert "identity-nav" not in body
-        gh = body.index("github.com/PeterGrecian")
+        gh = body.index('href="https://github.com/PeterGrecian"')
         assert gh > body.rindex('class="card-title"')
 
     def test_skycam_card_carries_the_youtube_link(self, body):
