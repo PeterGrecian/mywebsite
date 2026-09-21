@@ -6,6 +6,7 @@ relative to the working directory exactly as they do in /var/task. Doing
 that in a session fixture would leak the chdir into every other test.
 """
 
+import contextlib
 import hashlib
 import json
 import os
@@ -47,10 +48,106 @@ def _install_boto3_stub():
     sys.modules["boto3.dynamodb.conditions"] = MagicMock()
 
 
+# ---------------------------------------------------------------------------
+# Build stamps are pinned, not normalised.
+#
+# `./deploy` writes two files that nothing tracks in git: build_info.py (the
+# version, commit, commit time, deploy counter and deploy time) and
+# gitinfo.html (the origin, the commit subject and the commit date). Most
+# pages render some of it -- /skycam's top bar carries the pet name, which is
+# seeded from "<commit>#<deploy>" precisely so that it changes on EVERY
+# deploy.
+#
+# Left alone, that meant every deploy reddened ~129 routes on both payload
+# shapes whether or not any behaviour had moved, and the only way back to
+# green was a regen whose diff was then too noisy to read -- which defeats
+# the point of a golden master. So the sweep supplies its own fixed versions
+# of both artefacts and puts the real ones back afterwards. A build stamp
+# then cannot drift, and a `sha`/`len` change means the RENDERING changed.
+#
+# Pinning rather than post-hoc normalising also keeps `len` honest: the
+# snapshot records the raw body length, and a regex that rewrites the body
+# after the fact cannot fix a length. The stamp is constant in the body, so
+# the length is constant too.
+_PINNED_BUILD_INFO = {
+    "VERSION": "0.0.0-golden",
+    "COMMIT": "0000000",
+    "COMMIT_TIME": "2000-01-01T00:00:00+00:00",
+    "DEPLOY_COUNT": 0,
+    "DEPLOY_TIME": 946684800,
+    "GARDENCAM_VERSION": "0.0.0-golden",
+    "GARDENCAM_COMMIT": "0000000",
+    "GARDENCAM_COMMIT_TIME": "2000-01-01T00:00:00+00:00",
+}
+
+_PINNED_GITINFO = (
+    "<title>Peter Grecian - Git Info</title>\n"
+    "<body>\n"
+    "git@github.com:PeterGrecian/mywebsite.git<br>"
+    "0000000 golden<br>Sat Jan 1 00:00:00 GMT 2000<br>\n"
+    '<a href="https://github.com/PeterGrecian/mywebsite/commit/0000000">'
+    "https://github.com/PeterGrecian/mywebsite/commit/0000000</a>\n"
+    "</body></html>\n"
+)
+
+
+def _install_build_info_stub():
+    """Put a fixed `build_info` in sys.modules before anything imports it.
+
+    routes/gardencam.py binds its values at import time, so this has to be in
+    place before the module is built -- and it stays installed, because the
+    module cache is shared with any later sweep in the same process.
+    """
+    existing = sys.modules.get("build_info")
+    if isinstance(existing, types.ModuleType) and getattr(existing, "_is_golden_stub", False):
+        return
+    stub = types.ModuleType("build_info")
+    stub._is_golden_stub = True
+    for k, v in _PINNED_BUILD_INFO.items():
+        setattr(stub, k, v)
+    sys.modules["build_info"] = stub
+
+
+def _with_pinned_gitinfo(paths):
+    """Iterate `paths` with the fixed gitinfo.html in place.
+
+    A generator so the swap is undone by the sweep's own teardown, however
+    the loop ends -- an exception mid-sweep must not leave a stub file where
+    the deploy artefact belongs.
+    """
+    with _pinned_gitinfo():
+        yield from paths
+
+
+@contextlib.contextmanager
+def _pinned_gitinfo():
+    """Swap in a fixed gitinfo.html for the duration of the sweep.
+
+    /gitinfo serves the file verbatim, and deploy regenerates it with the
+    current commit subject -- prose no regex could normalise. The real file
+    (or its absence, on a tree that has never deployed) is restored on the
+    way out.
+    """
+    path = os.path.join(LAMBDA_DIR, "gitinfo.html")
+    had = os.path.exists(path)
+    original = open(path, "rb").read() if had else None
+    try:
+        with open(path, "w") as f:
+            f.write(_PINNED_GITINFO)
+        yield
+    finally:
+        if had:
+            with open(path, "wb") as f:
+                f.write(original)
+        elif os.path.exists(path):
+            os.remove(path)
+
+
 def _build_module():
     import importlib.util
 
     _install_boto3_stub()
+    _install_build_info_stub()
     if LAMBDA_DIR not in sys.path:
         sys.path.insert(0, LAMBDA_DIR)
     spec = importlib.util.spec_from_file_location(
@@ -71,6 +168,17 @@ _NORMALISERS = [
     (re.compile(r"\b\d+\.\d+\s*(ms|s|seconds)\b"), "DUR"),
     (re.compile(r"MagicMock[^>]*>"), "MAGICMOCK>"),
     (re.compile(r"\d{2}:\d{2}(:\d{2})?"), "TIME"),
+    # /event prints the working directory and its listing, as a deploy-time
+    # sanity check. The listing's ORDER is filesystem order, which changes
+    # whenever a file is written next to it -- __pycache__ and the deploy
+    # artefacts move around -- and the path itself differs between a laptop
+    # and /var/task.
+    (re.compile(r"pwd = [^<]*<br>[^<]*<br>"), "pwd = PWD<br>LISTING<br>"),
+    # /lambda-stats/data labels its histogram in days-ago, computed from the
+    # clock, so the bucket boundaries slide through the day. Only a list made
+    # entirely of one-decimal numbers is masked: a chart with real category
+    # labels stays pinned.
+    (re.compile(r'"labels": \["\d+\.\d"(?:, "\d+\.\d")*\]'), '"labels": [AGES]'),
 ]
 
 
@@ -129,7 +237,7 @@ def sweep_all(paths, fmt="v2"):
     try:
         os.chdir(LAMBDA_DIR)
         devnull = open(os.devnull, "w")
-        for path in paths:
+        for path in _with_pinned_gitinfo(paths):
             sys.stdout = devnull          # routes print freely; keep test output readable
             try:
                 resp = mod.lambda_handler(_event(path, fmt=fmt), _context())
