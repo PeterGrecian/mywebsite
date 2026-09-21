@@ -14,6 +14,12 @@ CAMERAS = [
         "status": "live",
     },
     {
+        "path": "/astro/firstscope",
+        "title": "FirstScope",
+        "desc": "Celestron 76/300 tabletop Newtonian at prime focus \u2014 pointed at the pole, no tracking, frames de-rotated and stacked afterwards.",
+        "status": "live",
+    },
+    {
         "path": "/astro/eclipticam",
         "title": "Ecliptic Camera",
         "desc": "Two-camera Pi (OV5647 v1 + IMX708 Wide) — day and night astro along the ecliptic.",
@@ -25,6 +31,12 @@ CAMERAS = [
 # Non-camera destinations under /astro — collections that cut ACROSS the
 # cameras rather than belonging to one of them.
 COLLECTIONS = [
+    {
+        "path": "/astro/notes",
+        "title": "Field Notes",
+        "desc": "The logbook \u2014 what an instrument showed on a given night and what we concluded from it, tagged by instrument and linked to the pages of the instruments themselves.",
+        "status": "live",
+    },
     {
         "path": "/astro/transients",
         "title": "Transients",
@@ -1979,5 +1991,430 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
       }});
     }})();
   </script>
+</body>
+</html>'''
+
+
+# ---------------------------------------------------------------------------
+# Field Notes (/astro/notes) and the instrument pages under it.
+#
+# The logbook: what an instrument showed on a given night and what we concluded
+# from it, tagged by instrument so Polecam, eclipticam and the FirstScope land
+# in one dated stream. Reads ONE S3 object (notes/index.json, written by
+# astro/bin/add-note) and presigns only the figures it draws — the same
+# discipline the transients gallery and the calendar manifest follow.
+#
+# Entries are written as Markdown cards in ~/astro/notes/ and the figures are
+# build artefacts rendered from a recipe in the card, so nothing here is the
+# source of anything: this module only draws what the manifest says.
+
+NOTE_INSTRUMENTS = [
+    ("firstscope", "FirstScope"),
+    ("astrocam", "Polecam"),
+    ("eclipticam", "Ecliptic"),
+    ("canon", "EOS"),
+    ("starcam", "Starcam"),
+    ("xoverpi", "xoverpi"),
+    ("other", "Other"),
+]
+
+# Instruments with a page of their own. An entry's instrument tag links here
+# when it is listed, and is plain text when it is not — so adding a note about
+# something that has no page yet is not a broken link.
+INSTRUMENT_PAGES = {"firstscope": "/astro/firstscope"}
+
+# Cameras whose nights have pages, for the "night page ->" link on an entry.
+NIGHT_PAGE_CAMERAS = ("astrocam", "eclipticam", "canon")
+
+
+def _esc(s):
+    """Minimal HTML escape. Card prose is ours, but it is written in a file
+    and passed through a manifest, so it is not worth trusting to habit."""
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;"))
+
+
+def _note_label(slug):
+    for s, label in NOTE_INSTRUMENTS:
+        if s == slug:
+            return label
+    return str(slug).replace("-", " ").title()
+
+
+def note_instrument_counts(items):
+    """[(slug, label, count)] in chip order, known instruments first, unknown
+    ones appended alphabetically. Empty instruments are dropped — a chip that
+    filters to nothing is a dead end."""
+    counts = {}
+    for e in items:
+        slug = e.get("instrument") or "other"
+        counts[slug] = counts.get(slug, 0) + 1
+    known = [s for s, _ in NOTE_INSTRUMENTS]
+    ordered = [s for s in known if counts.get(s)]
+    ordered += sorted(s for s in counts if s not in known)
+    return [(s, _note_label(s), counts[s]) for s in ordered]
+
+
+def _paras(text, cls):
+    """Blank-line-separated paragraphs of a manifest text field."""
+    out = [p.strip() for p in str(text or "").split("\n\n") if p.strip()]
+    return "".join(f'<p class="{cls}">{_esc(p)}</p>' for p in out)
+
+
+NOTES_CSS = '''
+    body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }
+    .subtitle { text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-bottom: 1.2rem; }
+    .chip { display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px; background: var(--card-bg); color: var(--text-secondary); text-decoration: none; font-size: 0.8rem; }
+    .chip:hover { opacity: 0.85; }
+    .chip.on { color: var(--accent); }
+    .chip .n { opacity: 0.6; font-size: 0.72rem; margin-left: 0.2rem; }
+    .n-list { display: flex; flex-direction: column; gap: 1rem; }
+    .n-card { margin: 0; background: var(--card-bg); border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); }
+    .n-shot { display: block; background: #000; overflow: hidden; }
+    .n-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .n-body { padding: 0.85rem 1rem 0.95rem; display: flex; flex-direction: column; }
+    .n-title { font-weight: 600; font-size: 1rem; }
+    .n-title a { color: inherit; text-decoration: none; }
+    .n-title a:hover { color: var(--accent); }
+    .n-meta { color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.2rem; }
+    .n-meta a { color: var(--accent); text-decoration: none; }
+    .n-sum { font-size: 0.88rem; line-height: 1.55; margin: 0.5rem 0 0; }
+    .n-sum + .n-sum { margin-top: 0.5rem; }
+    .n-tags { margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .n-tag { font-size: 0.7rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 0.1rem 0.5rem; }
+    .n-links { display: flex; gap: 0.8rem; align-items: center; margin-top: 0.7rem; padding-top: 0.45rem; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+    .n-links a { color: var(--accent); text-decoration: none; }
+    .n-read { margin-left: auto; font-weight: 500; }
+    .empty { text-align: center; color: var(--text-secondary); }
+    code { font-size: 0.85em; }
+    .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+    @media (max-width: 620px) { .n-card { grid-template-columns: 1fr; } .n-shot img { height: auto; } }
+'''
+
+
+def render_astro_notes(*, theme_css_js, items, counts, selected=None):
+    """The Field Notes index: dated entries, newest first, chips by instrument.
+
+    items: manifest entries already filtered to `selected`, each with a
+        'thumb_url' presigned where a thumbnail exists.
+    counts: from note_instrument_counts() over the UNFILTERED set, so the
+        chips keep describing the whole logbook while one is active.
+    """
+    total = sum(c for _s, _l, c in counts)
+    chips = [f'<a class="chip{"" if selected else " on"}" href="/astro/notes">'
+             f'All <span class="n">{total}</span></a>']
+    for slug, label, n in counts:
+        on = " on" if slug == selected else ""
+        chips.append(f'<a class="chip{on}" href="/astro/notes/{slug}">'
+                     f'{label} <span class="n">{n}</span></a>')
+    chips_html = f'<div class="chips">{"".join(chips)}</div>'
+
+    if not items:
+        body = ('<p class="empty">No entries for this instrument yet.</p>'
+                if selected else
+                '<p class="empty">The logbook is empty &mdash; write a card in '
+                '<code>astro/notes/</code> and publish it with '
+                '<code>astro/bin/add-note</code>.</p>')
+    else:
+        cards = []
+        for e in items:
+            note_id = e.get("id") or ""
+            href = f"/astro/notes/{note_id}" if note_id else ""
+            thumb = e.get("thumb_url") or ""
+            inst = e.get("instrument") or "other"
+            inst_label = _note_label(inst)
+            inst_html = (f'<a href="{INSTRUMENT_PAGES[inst]}">{inst_label}</a>'
+                         if inst in INSTRUMENT_PAGES else inst_label)
+            meta = f'{_esc(e.get("date") or "")} &middot; {inst_html}'
+            tags = "".join(f'<span class="n-tag">{_esc(t)}</span>'
+                           for t in (e.get("tags") or []))
+            tags_html = f'<div class="n-tags">{tags}</div>' if tags else ""
+            night_html = ""
+            if e.get("night") and inst in NIGHT_PAGE_CAMERAS:
+                night_html = (f'<a href="/astro/{inst}/night/{e["night"]}">'
+                              f'night page &rarr;</a>')
+            shot = (f'<a class="n-shot" href="{href}">'
+                    f'<img src="{thumb}" alt="{_esc(e.get("title"))}" '
+                    f'loading="lazy"></a>' if thumb else "")
+            title = _esc(e.get("title") or "Untitled")
+            title_html = f'<a href="{href}">{title}</a>' if href else title
+            cards.append(
+                f'<figure class="n-card">{shot}'
+                f'<figcaption class="n-body">'
+                f'<div class="n-title">{title_html}</div>'
+                f'<div class="n-meta">{meta}</div>'
+                f'{_paras(e.get("summary"), "n-sum")}'
+                f'{tags_html}'
+                f'<div class="n-links">{night_html}'
+                f'<a class="n-read" href="{href}">Read the note &rarr;</a>'
+                f'</div></figcaption></figure>')
+        body = f'<div class="n-list">{"".join(cards)}</div>'
+
+    heading = ("Field Notes" if not selected
+               else f"Field Notes &mdash; {_note_label(selected)}")
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field Notes</title>
+  {theme_css_js}
+  <style>{NOTES_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>{heading}</h1>
+    <div class="subtitle">A logbook of what the instruments showed, and what
+      we concluded from it.</div>
+    {chips_html}
+    {body}
+    <div class="footer"><a href="/astro">&larr; Astro</a> &middot;
+      <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+NOTE_DETAIL_CSS = '''
+    body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin: 1rem 0 0.3rem; line-height: 1.3; }
+    .d-meta { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; }
+    .d-meta a { color: var(--accent); text-decoration: none; }
+    .d-fig { margin: 0 0 1.4rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; }
+    .d-fig img { width: 100%; height: auto; display: block; background: #000; }
+    .d-fig figcaption { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; padding: 0.6rem 0.85rem 0.75rem; }
+    .d-sum { font-size: 1rem; line-height: 1.65; margin: 0 0 0.8rem; }
+    .d-body { font-size: 0.95rem; line-height: 1.7; margin: 0 0 0.8rem; }
+    h2 { font-size: 1rem; margin: 1.6rem 0 0.5rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .d-nums { font-size: 0.9rem; line-height: 1.6; padding-left: 1.2rem; margin: 0; }
+    .d-nums li { margin-bottom: 0.3rem; }
+    .d-tags { margin: 1.2rem 0 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .d-tag { font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 0.12rem 0.55rem; }
+    .d-nav { display: flex; justify-content: space-between; gap: 1rem; margin: 2rem 0 0; padding-top: 0.8rem; border-top: 1px solid var(--divider, #2C2C2E); font-size: 0.85rem; }
+    .d-nav a { color: var(--accent); text-decoration: none; max-width: 45%; }
+    .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+'''
+
+
+def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
+                             next_item=None):
+    """One Field Notes entry: its figures, prose and measured values."""
+    title = _esc(item.get("title") or "Field note")
+    inst = item.get("instrument") or "other"
+    inst_label = _note_label(inst)
+    inst_html = (f'<a href="{INSTRUMENT_PAGES[inst]}">{inst_label}</a>'
+                 if inst in INSTRUMENT_PAGES else inst_label)
+    meta = [_esc(item.get("date") or ""), inst_html]
+    if item.get("night") and inst in NIGHT_PAGE_CAMERAS:
+        meta.append(f'<a href="/astro/{inst}/night/{item["night"]}">'
+                    f'night {_esc(item["night"])} &rarr;</a>')
+
+    figs = []
+    for f in (item.get("figures") or []):
+        url = f.get("url") or ""
+        if not url:
+            continue
+        cap = (f'<figcaption>{_esc(f.get("caption"))}</figcaption>'
+               if f.get("caption") else "")
+        figs.append(f'<figure class="d-fig"><a href="{url}">'
+                    f'<img src="{url}" alt="{_esc(f.get("caption"))}">'
+                    f'</a>{cap}</figure>')
+
+    numbers = [x for x in (item.get("numbers") or []) if x]
+    nums_html = ""
+    if numbers:
+        lis = "".join(f'<li>{_esc(x)}</li>' for x in numbers)
+        nums_html = f'<h2>Measured</h2><ul class="d-nums">{lis}</ul>'
+
+    tags = "".join(f'<span class="d-tag">{_esc(t)}</span>'
+                   for t in (item.get("tags") or []))
+    tags_html = f'<div class="d-tags">{tags}</div>' if tags else ""
+
+    nav = []
+    if prev_item and prev_item.get("id"):
+        nav.append(f'<a href="/astro/notes/{prev_item["id"]}">&larr; '
+                   f'{_esc(prev_item.get("title"))}</a>')
+    else:
+        nav.append("<span></span>")
+    if next_item and next_item.get("id"):
+        nav.append(f'<a href="/astro/notes/{next_item["id"]}">'
+                   f'{_esc(next_item.get("title"))} &rarr;</a>')
+
+    body_html = _paras(item.get("body"), "d-body")
+    body_section = f'<h2>Notes</h2>{body_html}' if body_html else ""
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  {theme_css_js}
+  <style>{NOTE_DETAIL_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>{title}</h1>
+    <div class="d-meta">{" &middot; ".join(meta)}</div>
+    {"".join(figs)}
+    {_paras(item.get("summary"), "d-sum")}
+    {body_section}
+    {nums_html}
+    {tags_html}
+    <div class="d-nav">{"".join(nav)}</div>
+    <div class="footer"><a href="/astro/notes">&larr; Field Notes</a> &middot;
+      <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+# ---------------------------------------------------------------------------
+# Instrument pages. One page per physical instrument, NOT per Pi: the
+# FirstScope rode starcam from 2026-09-08 and moved to xoverpi on 2026-09-14,
+# and it is the same tube either way — naming the page for the host would
+# split one instrument's story across two pages and rename it whenever it is
+# re-mounted.
+#
+# Everything here is measured or read off the hardware; the figures for a
+# night live in the Field Notes entries, which this page links to rather than
+# duplicates.
+
+INSTRUMENT_SPECS = {
+    "firstscope": {
+        "title": "FirstScope",
+        "subtitle": "Celestron FirstScope 76/300, IYA 2009 edition "
+                    "(21024-IYA)",
+        "note_tag": "firstscope",
+        "blurb": "A 76 mm tabletop Newtonian with a spherical primary, no "
+                 "tracking and no finder &mdash; pointed at the celestial "
+                 "pole and left to run, so the sky rotates through the field "
+                 "and the frames are registered afterwards.",
+        "specs": [
+            ("Optics", "76 mm Newtonian, spherical primary, f/3.95"),
+            ("Focal length", "300 mm"),
+            ("Tracking", "None &mdash; fixed mount, the sky drifts through"),
+            ("Finder", "None"),
+            ("Field of view", "0.69 &times; 0.52 degrees"),
+            ("Plate scale", "1.925 arcsec per pixel (binned 2&times;2)"),
+            ("Frames", "1296 &times; 972, already binned 2&times;2 at capture"),
+            ("Typical sub", "3 seconds"),
+        ],
+        "history": [
+            ("2026-09-08", "First light on <strong>starcam</strong>."),
+            ("2026-09-14", "Moved to <strong>xoverpi</strong>, which writes "
+                           "frames straight to muppet's bigstore over NFS and "
+                           "processes them where they land."),
+            ("2026-09-20", "11,911 frames at 3 s &mdash; the night the "
+                           "de-rotation numbers below come from."),
+        ],
+        "results": [
+            ("19.2&times;", "noise reduction from 600 de-rotated frames, "
+                            "against 21.7&times; for a perfect stack"),
+            ("4.32&deg;", "from the celestial pole, bearing 54&deg; left of "
+                          "straight up"),
+            ("37 min", "a star's dwell inside the field at that offset"),
+            ("&le; 11.5&Prime;", "PSF FWHM, an upper bound from stacked "
+                                 "stars"),
+        ],
+        "closing": "The pole offset is the number that matters most: dwell "
+                   "time inside the field goes as its reciprocal, so walking "
+                   "the mount closer &mdash; 13.38&deg;, then 7.66&deg;, then "
+                   "4.32&deg; over four nights &mdash; buys integration "
+                   "directly. Inside 0.28&deg; a star would stay in frame all "
+                   "night.",
+    },
+}
+
+INSTRUMENT_CSS = '''
+    body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; margin: 1rem 0 0.2rem; }
+    .i-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.1rem; }
+    .i-blurb { font-size: 1rem; line-height: 1.65; margin: 0 0 1.5rem; }
+    h2 { font-size: 0.95rem; margin: 1.7rem 0 0.6rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .i-specs { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 0.35rem 1rem; font-size: 0.9rem; background: var(--card-bg); border-radius: 8px; padding: 0.9rem 1rem; }
+    .i-specs dt { color: var(--text-secondary); }
+    .i-specs dd { margin: 0; }
+    .i-hist { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; line-height: 1.6; }
+    .i-hist li { display: grid; grid-template-columns: minmax(0, 7rem) minmax(0, 1fr); gap: 0.6rem; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .i-hist .when { color: var(--text-secondary); }
+    .i-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem; }
+    .i-stat { background: var(--card-bg); border-radius: 8px; padding: 0.8rem 0.9rem; }
+    .i-stat .v { font-size: 1.25rem; font-weight: 600; }
+    .i-stat .l { color: var(--text-secondary); font-size: 0.78rem; line-height: 1.45; margin-top: 0.25rem; }
+    .i-close { font-size: 0.95rem; line-height: 1.7; margin: 1rem 0 0; }
+    .i-notes { list-style: none; padding: 0; margin: 0; }
+    .i-notes li { padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.92rem; }
+    .i-notes a { color: var(--accent); text-decoration: none; }
+    .i-notes .when { color: var(--text-secondary); font-size: 0.78rem; margin-left: 0.4rem; }
+    .empty { color: var(--text-secondary); font-size: 0.9rem; }
+    .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+'''
+
+
+def render_astro_instrument(*, theme_css_js, slug, notes=()):
+    """One instrument's page, with the Field Notes entries that mention it.
+
+    `notes` are manifest entries already filtered to this instrument; the
+    page lists them newest first and links out, so the prose stays in one
+    place (the logbook) rather than being restated here.
+    """
+    spec = INSTRUMENT_SPECS[slug]
+    specs_html = "".join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in spec["specs"])
+    hist_html = "".join(f'<li><span class="when">{w}</span><span>{t}</span></li>'
+                        for w, t in spec["history"])
+    stats_html = "".join(f'<div class="i-stat"><div class="v">{v}</div>'
+                         f'<div class="l">{l}</div></div>'
+                         for v, l in spec["results"])
+    if notes:
+        items = "".join(
+            f'<li><a href="/astro/notes/{e.get("id","")}">'
+            f'{_esc(e.get("title"))}</a>'
+            f'<span class="when">{_esc(e.get("date"))}</span></li>'
+            for e in notes)
+        notes_html = f'<ul class="i-notes">{items}</ul>'
+    else:
+        notes_html = ('<p class="empty">No field notes for this instrument '
+                      'yet.</p>')
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{spec["title"]}</title>
+  {theme_css_js}
+  <style>{INSTRUMENT_CSS}</style>
+</head>
+<body>
+  <div class="container">
+    <h1>{spec["title"]}</h1>
+    <div class="i-sub">{spec["subtitle"]}</div>
+    <p class="i-blurb">{spec["blurb"]}</p>
+
+    <h2>The instrument</h2>
+    <dl class="i-specs">{specs_html}</dl>
+
+    <h2>Where it has been</h2>
+    <ul class="i-hist">{hist_html}</ul>
+
+    <h2>First results</h2>
+    <div class="i-results">{stats_html}</div>
+    <p class="i-close">{spec["closing"]}</p>
+
+    <h2>Field notes</h2>
+    {notes_html}
+
+    <div class="footer"><a href="/astro/notes">&larr; Field Notes</a> &middot;
+      <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
 </body>
 </html>'''

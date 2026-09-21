@@ -4493,6 +4493,102 @@ def _route_x50(rq):
     }
 
 
+def _route_x56(rq):
+    """/astro/notes, /astro/notes/<instrument>, /astro/notes/<entry-id>.
+
+    One S3 get for the manifest, then presign only what is drawn: thumbnails
+    on the index, full figures on an entry. Same discipline as the transients
+    gallery and the calendar's manifest fast path.
+    """
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    import json as _json
+    m = re.search(r'/astro/notes(?:/([a-z0-9-]+))?/?$', path)
+    selected = m.group(1)
+    from routes.astro import (render_astro_notes, render_astro_note_detail,
+                              note_instrument_counts)
+    items = []
+    try:
+        s3 = s3_client()
+        obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='notes/index.json')
+        items = _json.loads(obj['Body'].read()).get('items', []) or []
+    except Exception as e:
+        print(f"notes: no manifest ({e})")
+
+    # 1. An entry id wins over an instrument slug.
+    by_id = {e.get('id'): (i, e) for i, e in enumerate(items) if e.get('id')}
+    if selected and selected in by_id:
+        idx, item = by_id[selected]
+        item = dict(item)
+        item['figures'] = [
+            dict(f, url=get_presigned_url(f['key'], bucket=ASTRO_BUCKET))
+            for f in (item.get('figures') or []) if f.get('key')]
+        return {
+            'statusCode': 200,
+            'body': render_astro_note_detail(
+                theme_css_js=THEME_CSS_JS,
+                item=item,
+                prev_item=items[idx - 1] if idx > 0 else None,
+                next_item=items[idx + 1] if idx + 1 < len(items) else None),
+            'headers': {'Content-Type': 'text/html; charset=utf-8'}
+        }
+
+    # 2. Instrument filter, or the whole logbook.
+    counts = note_instrument_counts(items)
+    known = {c[0] for c in counts}
+    if selected and selected not in known:
+        return {'statusCode': 302,
+                'headers': {'Location': '/astro/notes'}, 'body': ''}
+    shown = [dict(e) for e in items
+             if not selected or (e.get('instrument') or 'other') == selected]
+    for e in shown:
+        if e.get('thumb_key'):
+            e['thumb_url'] = get_presigned_url(e['thumb_key'],
+                                               bucket=ASTRO_BUCKET)
+    return {
+        'statusCode': 200,
+        'body': render_astro_notes(theme_css_js=THEME_CSS_JS, items=shown,
+                                   counts=counts, selected=selected),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
+def _route_x57(rq):
+    """/astro/<instrument> for instruments with a page of their own.
+
+    Reads the notes manifest only to list that instrument's entries; the
+    page still renders (with an empty notes list) if the manifest is absent,
+    because the instrument facts are not in it.
+    """
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    import json as _json
+    from routes.astro import render_astro_instrument, INSTRUMENT_SPECS
+    m = re.search(r'/astro/([a-z0-9-]+)/?$', path)
+    slug = m.group(1)
+    if slug not in INSTRUMENT_SPECS:
+        return {'statusCode': 302,
+                'headers': {'Location': '/astro'}, 'body': ''}
+    tag = INSTRUMENT_SPECS[slug].get('note_tag', slug)
+    notes = []
+    try:
+        s3 = s3_client()
+        obj = s3.get_object(Bucket=ASTRO_BUCKET, Key='notes/index.json')
+        notes = [e for e in (_json.loads(obj['Body'].read()).get('items')
+                             or [])
+                 if (e.get('instrument') or '') == tag]
+    except Exception as e:
+        print(f"instrument {slug}: no notes manifest ({e})")
+    return {
+        'statusCode': 200,
+        'body': render_astro_instrument(theme_css_js=THEME_CSS_JS,
+                                        slug=slug, notes=notes),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
 def _route_x51(rq):
     event, context, path, route = rq.event, rq.context, rq.path, rq.route
     stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
@@ -5995,6 +6091,8 @@ _ROUTES_PATTERN = [
     (_PRED, lambda route: route.endswith('/astro/color-max-test') or route.endswith('/astro/colour-max-test'), _route_x48),
     (_PRED, lambda route: re.search(r'/astro/(?:photos|showcase)(?:/([a-z0-9-]+))?/?$', route), _route_x49),
     (_PRED, lambda route: re.search(r'/astro/transients(?:/([a-z0-9-]+))?/?$', route), _route_x50),
+    (_PRED, lambda route: re.search(r'/astro/notes(?:/([a-z0-9-]+))?/?$', route), _route_x56),
+    (_PRED, lambda route: re.search(r'/astro/(firstscope)/?$', route), _route_x57),
     (_PRED, lambda route: re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route), _route_x51),
     (_PRED, lambda route: re.search(r'/astro/disks/?$', route), _route_x52),
     (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
