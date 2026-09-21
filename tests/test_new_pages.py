@@ -165,8 +165,11 @@ class TestContentsCards:
         assert body.index("header-nav") < body.index('class="card-title"')
 
     def test_astronomy_card_has_its_image(self, body):
+        """The filename changes whenever the picture does -- the S3 host is
+        outside the Cloudflare zone, so a new image needs a new key -- hence
+        the prefix, not the exact name."""
         assert 'class="card-img"' in body
-        assert "assets/cards/astronomy.jpg" in body
+        assert "assets/cards/astronomy" in body
 
     def test_cards_work_without_an_image(self, mywebsite):
         """image_url is optional. This renders the no-image path directly
