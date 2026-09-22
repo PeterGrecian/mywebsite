@@ -1,5 +1,7 @@
 """Astro hub page — lists the project's astronomy cameras."""
 
+import re
+
 
 # Ordered as the hub renders them: the cameras still taking data, then the
 # cross-camera collections, then the retired ones under their own heading.
@@ -2179,6 +2181,113 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
 </html>'''
 
 
+# --- a very small Markdown subset, for Field Notes section bodies ----------
+#
+# Entries are written as Markdown cards and the interesting ones argue with
+# TABLES — astro-capture's sky-brightness note has four. Rendering sections as
+# plain paragraphs turned those into rows of pipe characters, so the site
+# renders the subset a logbook actually uses and nothing else: h3/h4 headings,
+# pipe tables, bullet and numbered lists, 4-space indented blocks (a formula,
+# usually), **bold** and `code`. Everything is escaped FIRST and the inline
+# pass only ever re-introduces tags we wrote ourselves, so a card cannot
+# inject markup.
+#
+# Deliberately not a Markdown library: the Lambda has no dependency for one,
+# and the failure mode of a half-supported feature here is a visible row of
+# pipes, not a broken page.
+
+# Links are INTERNAL ONLY: the href must start with a single "/" and hold
+# nothing but path characters. Entries cross-reference each other constantly
+# (a result in one note is the method in another), which is worth supporting;
+# letting a card emit an arbitrary href is not, since the card text arrives
+# through a manifest. An external-looking link is left as plain text rather
+# than silently rewritten, so the author sees it did not take.
+# The (?!/) matters: "//evil.com/x" starts with a slash but a browser reads
+# it as protocol-relative and leaves the site.
+_MD_LINK = re.compile(r"\[([^\]]+)\]\((/(?!/)[A-Za-z0-9/_.\-]*)\)")
+
+
+def _md_inline(text):
+    out = _esc(text)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out)
+    out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+    out = _MD_LINK.sub(r'<a href="\2">\1</a>', out)
+    return out
+
+
+def _md_table(rows):
+    """Pipe-table lines -> <table>. Row 2 is the alignment rule and is
+    dropped; a table with no body rows still renders its header."""
+    def cells(line):
+        return [c.strip() for c in line.strip().strip("|").split("|")]
+    head = cells(rows[0])
+    body = [cells(r) for r in rows[2:]] if len(rows) > 2 else []
+    th = "".join(f"<th>{_md_inline(c)}</th>" for c in head)
+    trs = "".join(
+        "<tr>" + "".join(f"<td>{_md_inline(c)}</td>" for c in r) + "</tr>"
+        for r in body)
+    return (f'<div class="md-tw"><table class="md-t">'
+            f'<thead><tr>{th}</tr></thead><tbody>{trs}</tbody>'
+            f'</table></div>')
+
+
+def _md(text):
+    """Render one section body. See the note above for the supported subset."""
+    lines = str(text or "").split("\n")
+    html, i = [], 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            i += 1
+            continue
+        # Table: a pipe line followed by an alignment rule.
+        if (line.lstrip().startswith("|") and i + 1 < len(lines)
+                and re.fullmatch(r"\s*\|[\s:|-]+\|\s*", lines[i + 1] or "")):
+            rows = []
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                rows.append(lines[i])
+                i += 1
+            html.append(_md_table(rows))
+            continue
+        # Indented block — a formula or a snippet.
+        if line.startswith("    ") or line.startswith("\t"):
+            block = []
+            while i < len(lines) and (lines[i].startswith("    ")
+                                      or lines[i].startswith("\t")
+                                      or not lines[i].strip()):
+                if lines[i].strip():
+                    block.append(lines[i][4:] if lines[i].startswith("    ")
+                                 else lines[i][1:])
+                i += 1
+            html.append(f'<pre class="md-pre">{_esc(chr(10).join(block))}</pre>')
+            continue
+        # Bullet or numbered list.
+        m_ul = re.match(r"^\s*[-*]\s+(.*)$", line)
+        m_ol = re.match(r"^\s*\d+\.\s+(.*)$", line)
+        if m_ul or m_ol:
+            tag = "ul" if m_ul else "ol"
+            pat = r"^\s*[-*]\s+(.*)$" if m_ul else r"^\s*\d+\.\s+(.*)$"
+            items = []
+            while i < len(lines):
+                m = re.match(pat, lines[i] or "")
+                if not m:
+                    break
+                items.append(f"<li>{_md_inline(m.group(1))}</li>")
+                i += 1
+            html.append(f'<{tag} class="md-l">{"".join(items)}</{tag}>')
+            continue
+        # Sub-heading inside a section.
+        m_h = re.match(r"^(#+)\s+(.*)$", line)
+        if m_h:
+            level = min(3 + len(m_h.group(1)), 6)
+            html.append(f'<h{level}>{_md_inline(m_h.group(2))}</h{level}>')
+            i += 1
+            continue
+        html.append(f'<p class="d-body">{_md_inline(line)}</p>')
+        i += 1
+    return "".join(html)
+
+
 NOTE_DETAIL_CSS = '''
     body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
     .container { max-width: 860px; margin: 0 auto; }
@@ -2192,6 +2301,14 @@ NOTE_DETAIL_CSS = '''
     .d-body { font-size: 0.95rem; line-height: 1.7; margin: 0 0 0.8rem; }
     h2 { font-size: 1rem; margin: 1.6rem 0 0.5rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .d-nums { font-size: 0.9rem; line-height: 1.6; padding-left: 1.2rem; margin: 0; }
+    .md-l { font-size: 0.93rem; line-height: 1.65; padding-left: 1.2rem; margin: 0 0 0.8rem; }
+    .md-l li { margin-bottom: 0.25rem; }
+    .md-tw { overflow-x: auto; margin: 0 0 1.1rem; }
+    .md-t { border-collapse: collapse; font-size: 0.86rem; min-width: 100%; }
+    .md-t th, .md-t td { padding: 0.35rem 0.7rem; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--divider, #2C2C2E); }
+    .md-t th { color: var(--text-secondary); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .md-t tbody tr:last-child td { border-bottom: none; }
+    .md-pre { background: var(--card-bg); border-radius: 6px; padding: 0.7rem 0.9rem; overflow-x: auto; font-size: 0.85rem; margin: 0 0 1.1rem; }
     .d-nums li { margin-bottom: 0.3rem; }
     .d-tags { margin: 1.2rem 0 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .d-tag { font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 0.12rem 0.55rem; }
@@ -2226,11 +2343,22 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
                     f'<img src="{url}" alt="{_esc(f.get("caption"))}">'
                     f'</a>{cap}</figure>')
 
-    numbers = [x for x in (item.get("numbers") or []) if x]
+    # Ordered sections, each keeping its own heading and Markdown. Entries
+    # published before the manifest carried sections fall back to the old
+    # body/numbers pair, so an old entry keeps rendering after a schema change.
+    sections = item.get("sections")
+    if sections:
+        body_section = "".join(
+            f'<h2>{_esc(s.get("heading"))}</h2>{_md(s.get("md"))}'
+            for s in sections)
+    else:
+        legacy = _paras(item.get("body"), "d-body")
+        body_section = f'<h2>Notes</h2>{legacy}' if legacy else ""
+        numbers = [x for x in (item.get("numbers") or []) if x]
+        if numbers:
+            lis = "".join(f'<li>{_esc(x)}</li>' for x in numbers)
+            body_section += f'<h2>Measured</h2><ul class="d-nums">{lis}</ul>'
     nums_html = ""
-    if numbers:
-        lis = "".join(f'<li>{_esc(x)}</li>' for x in numbers)
-        nums_html = f'<h2>Measured</h2><ul class="d-nums">{lis}</ul>'
 
     tags = "".join(f'<span class="d-tag">{_esc(t)}</span>'
                    for t in (item.get("tags") or []))
@@ -2245,9 +2373,6 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
     if next_item and next_item.get("id"):
         nav.append(f'<a href="/astro/notes/{next_item["id"]}">'
                    f'{_esc(next_item.get("title"))} &rarr;</a>')
-
-    body_html = _paras(item.get("body"), "d-body")
-    body_section = f'<h2>Notes</h2>{body_html}' if body_html else ""
 
     return f'''<!DOCTYPE html>
 <html lang="en">

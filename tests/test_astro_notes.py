@@ -206,3 +206,116 @@ class TestHub:
         body = result["body"]
         assert "/astro/notes" in body
         assert "/astro/firstscope" in body
+
+
+class TestMarkdownSubset:
+    """The section renderer. A logbook entry argues with tables, so the
+    failure that matters is a table rendering as a row of pipe characters."""
+
+    @staticmethod
+    def _md(text):
+        from routes.astro import _md
+        return _md(text)
+
+    def test_table_becomes_a_table(self, mywebsite):
+        html = self._md("| night | stops |\n|---|---|\n| 2026-09-21 | 4.987 |")
+        assert "<table" in html and "<th>night</th>" in html
+        assert "<td>4.987</td>" in html
+        assert "|" not in html
+
+    def test_alignment_rule_is_not_a_row(self, mywebsite):
+        html = self._md("| a | b |\n|:--|--:|\n| 1 | 2 |")
+        assert html.count("<tr>") == 2          # header + one body row
+        assert "---" not in html
+
+    def test_table_scrolls_rather_than_breaking_the_page(self, mywebsite):
+        # Ten-column tables exist; the page must not scroll horizontally.
+        assert 'class="md-tw"' in self._md("| a | b |\n|---|---|\n| 1 | 2 |")
+
+    def test_bullets_become_a_list(self, mywebsite):
+        html = self._md("- first thing\n- second thing")
+        assert html.count("<li>") == 2 and "<ul" in html
+
+    def test_indented_block_is_preformatted(self, mywebsite):
+        html = self._md("    mu_G = ZP + 2.5 * log10(4 * p^2 / S_sky)")
+        assert "<pre" in html and "mu_G = ZP" in html
+
+    def test_bold_and_code_inline(self, mywebsite):
+        html = self._md("the **darkest** frame at `02:26`")
+        assert "<strong>darkest</strong>" in html and "<code>02:26</code>" in html
+
+    def test_paragraphs_survive(self, mywebsite):
+        html = self._md("one line\n\nanother line")
+        assert html.count("<p") == 2
+
+    def test_markup_in_a_card_is_escaped(self, mywebsite):
+        # Card text is ours, but it goes through a manifest; only tags this
+        # renderer writes itself should reach the page.
+        html = self._md("a <script>alert(1)</script> line")
+        assert "<script>" not in html and "&lt;script&gt;" in html
+
+    def test_table_cell_markup_is_escaped(self, mywebsite):
+        html = self._md("| a |\n|---|\n| <b>x</b> |")
+        assert "<b>" not in html and "&lt;b&gt;" in html
+
+
+class TestSectionedEntry:
+    """Entries carry ordered sections; older ones carry body/numbers. Both
+    must render, because a schema change must not blank an old entry."""
+
+    SECTIONED = {"schema": 1, "items": [{
+        "id": "2026-09-21-astrocam-sky-brightness",
+        "title": "What our sky actually measures",
+        "instrument": "astrocam", "date": "2026-09-21",
+        "summary": "We measured it instead of reading a map.",
+        "sections": [
+            {"heading": "The night", "md": "| hour | mean |\n|---|---|\n| 02 | 81.8 |"},
+            {"heading": "Results", "md": "**18.1 mag/arcsec^2**, which is Bortle 7."},
+        ],
+        "figures": [], "thumb_key": None}]}
+
+    def test_sections_render_in_order_with_headings(self, mywebsite,
+                                                    make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/notes/2026-09-21-astrocam-sky-brightness",
+                         manifest=self.SECTIONED)
+        body = result["body"]
+        assert body.index("The night") < body.index("Results")
+        assert "<th>hour</th>" in body
+        assert "<strong>18.1 mag/arcsec^2</strong>" in body
+
+    def test_legacy_body_and_numbers_still_render(self, mywebsite,
+                                                  make_event, make_context):
+        result, _ = _get(mywebsite, make_event, make_context,
+                         "/astro/notes/2026-09-20-firstscope-derotation")
+        body = result["body"]
+        assert "The pole is 4.32 degrees" in body
+        assert "19.2x noise reduction" in body
+
+
+class TestMarkdownLinks:
+    """Entries cross-reference each other — a result in one note is the
+    method in another — so internal links are supported and external ones
+    are deliberately not."""
+
+    @staticmethod
+    def _md(text):
+        from routes.astro import _md
+        return _md(text)
+
+    def test_internal_link_renders(self, mywebsite):
+        html = self._md("see [the sky note](/astro/notes/2026-09-21-x)")
+        assert '<a href="/astro/notes/2026-09-21-x">the sky note</a>' in html
+
+    def test_external_link_is_left_as_text(self, mywebsite):
+        html = self._md("see [evil](https://example.com/x)")
+        assert "<a " not in html and "example.com" in html
+
+    def test_javascript_href_is_left_as_text(self, mywebsite):
+        html = self._md("see [x](javascript:alert(1))")
+        assert "<a " not in html and "javascript" in html
+
+    def test_protocol_relative_href_is_left_as_text(self, mywebsite):
+        # "//evil.com" starts with a slash but is not an internal path.
+        html = self._md("see [x](//evil.com/y)")
+        assert "<a " not in html
