@@ -20,6 +20,23 @@ GARDENCAM_REGION = "eu-west-1"
 STARCAM_BUCKET = "starcam-berrylands-eu-west-1"
 # Unified astro deliverables (unify-cameras): <camera>/nights/<date>/...
 ASTRO_BUCKET = "astro-berrylands-eu-west-1"
+
+# astrocam's (and eclipticam's, also an IMX708) black level is 64 ADU (measured 64.3 +/- 0.1 from occluded trees
+# and roofline, 2026-09-25). The pipeline's published "stops" subtract 50, so
+# they are re-based here: stops50 = log2(mean - 50) -> log2(mean - 64). A
+# manifest entry that carries its own "black_level" is trusted as is, so this
+# switches itself off once the pipeline re-bases at source.
+ASTRO_BLACK = {"astrocam": 64.0, "eclipticam": 64.0}
+PIPELINE_PEDESTAL = 50.0
+
+
+def _rebase_stops(camera, stops, entry=None):
+    black = ASTRO_BLACK.get(camera)
+    if black is None or stops is None or (entry or {}).get("black_level"):
+        return stops
+    import math as _m
+    above = 2.0 ** float(stops) + PIPELINE_PEDESTAL - black
+    return round(_m.log2(max(above, 0.5)), 2)
 GARDENCAM_PARAMETER_NAME = "/berrylands/gardencam/password"
 GARDENCAM_PASSWORD = None
 GARDENCAM_EARLIEST_IMAGE = "2026-01-19"  # First image: garden_20260119_185439.jpg
@@ -4581,10 +4598,37 @@ def _route_x57(rq):
                  if (e.get('instrument') or '') == tag]
     except Exception as e:
         print(f"instrument {slug}: no notes manifest ({e})")
+    # A rig photo, if the spec declares one. Presigned like every other
+    # astro image; a failure here costs the figure, not the page.
+    photo_url = None
+    photo = INSTRUMENT_SPECS[slug].get('photo') or {}
+    if photo.get('key'):
+        try:
+            photo_url = get_presigned_url(photo['key'], bucket=ASTRO_BUCKET)
+        except Exception as e:
+            print(f"instrument {slug}: no photo ({e})")
+    history_photo_url = None
+    hp = INSTRUMENT_SPECS[slug].get('history_photo') or {}
+    if hp.get('key'):
+        try:
+            history_photo_url = get_presigned_url(hp['key'],
+                                                  bucket=ASTRO_BUCKET)
+        except Exception as e:
+            print(f"instrument {slug}: no history photo ({e})")
+    marks = []
+    for m in INSTRUMENT_SPECS[slug].get('history_marks') or []:
+        try:
+            marks.append(dict(m, url=get_presigned_url(m['key'],
+                                                       bucket=ASTRO_BUCKET)))
+        except Exception as e:
+            print(f"instrument {slug}: no mark photo ({e})")
     return {
         'statusCode': 200,
         'body': render_astro_instrument(theme_css_js=THEME_CSS_JS,
-                                        slug=slug, notes=notes),
+                                        slug=slug, notes=notes,
+                                        photo_url=photo_url,
+                                        history_photo_url=history_photo_url,
+                                        history_marks=marks),
         'headers': {'Content-Type': 'text/html; charset=utf-8'}
     }
 
@@ -4821,7 +4865,8 @@ def _route_x55(rq):
                         'summary': {
                             'n_frames': entry.get('n_frames'),
                             'n_stacked': entry.get('n_stacked'),
-                            'stops': entry.get('stops'),
+                            'stops': _rebase_stops(camera, entry.get('stops'),
+                                                   entry),
                             'verdict': entry.get('verdict'),
                         }})
 
@@ -4871,11 +4916,12 @@ def _route_x55(rq):
                             if summary:
                                 anchor = summary.get('anchor') or {}
                                 if 'stops' in anchor and anchor['stops'] is not None:
-                                    summary['stops'] = anchor['stops']
+                                    summary['stops'] = _rebase_stops(camera, anchor['stops'],
+                                                                     anchor)
                                 elif 'per_s' in anchor:
                                     import math as _math
                                     per_s = anchor['per_s']
-                                    pedestal = 2048.0 if camera == 'canon' else 50.0
+                                    pedestal = 2048.0 if camera == 'canon' else ASTRO_BLACK.get(camera, 50.0)
                                     exp_gain = 480.0 if camera == 'canon' else 59.9
                                     hours = summary.get('hours') or []
                                     min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)
@@ -4915,7 +4961,15 @@ def _route_x55(rq):
             # guards on these URLs, so None hides both blocks cleanly.
             moon_net_url = None
             sun_net_url = None
-            from routes.astro import render_astro_camera_calendar
+            from routes.astro import (render_astro_camera_calendar,
+                                      CAMERA_PHOTOS)
+            rig_url = None
+            if camera in CAMERA_PHOTOS:
+                try:
+                    rig_url = get_presigned_url(
+                        CAMERA_PHOTOS[camera]['key'], bucket=ASTRO_BUCKET)
+                except Exception:
+                    pass
             return {
                 'statusCode': 200,
                 'body': render_astro_camera_calendar(
@@ -4925,7 +4979,7 @@ def _route_x55(rq):
                     moon_net_url=moon_net_url,
                     sun_net_url=sun_net_url,
                     window_label=window_label, weeks=weeks,
-                    months=months),
+                    months=months, photo_url=rig_url),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
         # Nights nav strip (nights[:14]). Prefer the precomputed manifest
@@ -4956,11 +5010,12 @@ def _route_x55(rq):
                 if summary:
                     anchor = summary.get('anchor') or {}
                     if 'stops' in anchor and anchor['stops'] is not None:
-                        summary['stops'] = anchor['stops']
+                        summary['stops'] = _rebase_stops(camera, anchor['stops'],
+                                                         anchor)
                     elif 'per_s' in anchor:
                         import math as _math
                         per_s = anchor['per_s']
-                        pedestal = 2048.0 if camera == 'canon' else 50.0
+                        pedestal = 2048.0 if camera == 'canon' else ASTRO_BLACK.get(camera, 50.0)
                         exp_gain = 480.0 if camera == 'canon' else 59.9
                         hours = summary.get('hours') or []
                         min_hr = min((h.get('mean_brightness', 9999) for h in hours), default=None)

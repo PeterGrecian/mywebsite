@@ -143,6 +143,80 @@ def _pinned_gitinfo():
             os.remove(path)
 
 
+# ---------------------------------------------------------------------------
+# The clock is pinned, for the same reason the build stamps are.
+#
+# Several camera pages build a date list that runs from a fixed start date to
+# TODAY (mywebsite.py's gallery sweeps) or anchor a calendar on today
+# (routes/camera.py's `_date.today()`). Those pages therefore grow by a row a
+# day, so a snapshot taken on Monday is red on Tuesday with nothing having
+# changed. Measured 2026-09-23: 107 of 979 routes drifted purely on the
+# calendar, and freezing both `datetime` and `date` took it to zero against
+# the SAME golden file — the snapshot was right and the sweep was wrong.
+#
+# Note it takes both classes. Freezing `datetime` alone still left the six
+# starcam routes red, because that calendar asks `date.today()`, not
+# `datetime.utcnow()`.
+#
+# GOLDEN_DAY must not be moved casually: it is the day the snapshot describes,
+# so changing it is a regen, not a tidy-up.
+_GOLDEN_DAY = (2026, 9, 21)
+
+
+def _frozen_datetime_module():
+    import datetime as real
+
+    frozen_date = real.date(*_GOLDEN_DAY)
+    frozen_dt = real.datetime(*_GOLDEN_DAY, 12, 0, 0)
+
+    class _DateTime(real.datetime):
+        @classmethod
+        def utcnow(cls):
+            return frozen_dt
+
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_dt if tz is None else frozen_dt.replace(tzinfo=tz)
+
+        @classmethod
+        def today(cls):
+            return frozen_dt
+
+    class _Date(real.date):
+        @classmethod
+        def today(cls):
+            return frozen_date
+
+    stub = types.ModuleType("datetime")
+    for name in dir(real):
+        if not name.startswith("__"):
+            setattr(stub, name, getattr(real, name))
+    stub.datetime = _DateTime
+    stub.date = _Date
+    stub._is_golden_stub = True
+    return stub
+
+
+@contextlib.contextmanager
+def _pinned_clock():
+    """Freeze the clock for the sweep, then put the real module back.
+
+    It stays installed for the WHOLE sweep, not just the import: routes are
+    imported lazily inside handlers, so a stub removed after _build_module()
+    would leave the late arrivals (routes/camera.py among them) on the real
+    clock.
+    """
+    real = sys.modules.get("datetime")
+    sys.modules["datetime"] = _frozen_datetime_module()
+    try:
+        yield
+    finally:
+        if real is not None:
+            sys.modules["datetime"] = real
+        else:
+            del sys.modules["datetime"]
+
+
 def _build_module():
     import importlib.util
 
@@ -230,6 +304,11 @@ def _context():
 
 def sweep_all(paths, fmt="v2"):
     """Dispatch every path and return a normalised snapshot dict."""
+    with _pinned_clock():
+        return _sweep_all_inner(paths, fmt)
+
+
+def _sweep_all_inner(paths, fmt):
     mod = _build_module()
     old_cwd = os.getcwd()
     old_stdout = sys.stdout

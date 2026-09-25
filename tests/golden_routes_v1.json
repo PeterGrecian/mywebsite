@@ -186,8 +186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6915,
-  "sha": "2341010265601d7a",
+  "len": 7144,
+  "sha": "bc96f5a32b492896",
   "status": 200
  },
  "/astro-suffix": {
@@ -1707,8 +1707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6915,
-  "sha": "2341010265601d7a",
+  "len": 7144,
+  "sha": "bc96f5a32b492896",
   "status": 200
  },
  "/default/astro-suffix": {
@@ -3049,7 +3049,7 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1480,
+  "len": 1502,
   "sha": "17f61d5e19821abd",
   "status": 200
  },
@@ -7207,7 +7207,7 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1464,
+  "len": 1486,
   "sha": "936c1d620d10c79f",
   "status": 200
  },

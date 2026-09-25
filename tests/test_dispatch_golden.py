@@ -121,3 +121,28 @@ def test_both_payload_shapes_agree_except_event_debug(golden, golden_v1):
     assert differing <= {"/event", "/default/event"}, (
         f"payload shape changes routing for: {sorted(differing - {'/event', '/default/event'})[:20]}"
     )
+
+
+def test_sweep_clock_reaches_the_rendering():
+    """The pinned clock must actually reach the pages, not just sit in a stub.
+
+    Several camera pages run a date list up to today, so before the clock was
+    pinned 107 of 979 routes drifted purely because time passed (measured
+    2026-09-23). If moving the pinned day does NOT move those pages' hashes,
+    the freeze is not in force and the snapshot is back to rotting by the
+    calendar.
+    """
+    import golden_sweep as gs
+
+    route = "/default/skycam/videos"
+    before = gs.sweep_all([route], fmt="v2")[route]["sha"]
+    real_day = gs._GOLDEN_DAY
+    try:
+        gs._GOLDEN_DAY = (2026, 3, 1)
+        moved = gs.sweep_all([route], fmt="v2")[route]["sha"]
+    finally:
+        gs._GOLDEN_DAY = real_day
+    assert before != moved
+
+    again = gs.sweep_all([route], fmt="v2")[route]["sha"]
+    assert again == before          # and restoring the day restores the hash

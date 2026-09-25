@@ -6,6 +6,7 @@ High-resolution images and thumbnails live in S3 (s3://.../showcase/).
 
 from __future__ import annotations
 import html
+import re
 
 SHOWCASE_CATEGORIES = {
     "deep-sky": "Deep Sky",
@@ -43,6 +44,19 @@ def showcase_category_counts(items):
 
 def _escape(text):
     return html.escape(str(text or ""))
+
+
+# Cards are plain text and get escaped, so a card cannot smuggle markup in.
+# But a note that argues a card's numbers -- the sky-brightness measurement
+# behind the Sky Quality line, say -- is worth following, and a bare path
+# printed as text is not followable. So after escaping, turn site-relative
+# /astro/... paths in PROSE into links. Prose only: HUD values stay plain.
+_PROSE_PATH = re.compile(r"(/astro/[A-Za-z0-9][A-Za-z0-9/_-]*)")
+
+
+def _linkify(escaped):
+    """Link /astro/... paths in already-escaped prose. Escaped in, HTML out."""
+    return _PROSE_PATH.sub(r'<a href="\1">\1</a>', escaped)
 
 
 def _format_exposure_summary(exposure):
@@ -689,8 +703,8 @@ def render_astro_showcase_detail(*, theme_css_js, item, prev_item=None, next_ite
     sub_time_li = f'<li><span class="hud-label">Sub Exposure</span><span class="hud-val">{sub_time}</span></li>' if sub_time else ''
     total_int_li = f'<li><span class="hud-label">Total Integration</span><span class="hud-val">{total_int}</span></li>' if total_int else ''
 
-    cap_block = f'<div class="prose-block"><h2>Observational Overview</h2><p>{caption}</p></div>' if caption else ''
-    proc_block = f'<div class="prose-block"><h2>Calibration &amp; Processing Recipe</h2><p>{processing}</p></div>' if processing else ''
+    cap_block = f'<div class="prose-block"><h2>Observational Overview</h2><p>{_linkify(caption)}</p></div>' if caption else ''
+    proc_block = f'<div class="prose-block"><h2>Calibration &amp; Processing Recipe</h2><p>{_linkify(processing)}</p></div>' if processing else ''
 
     time_sub = f' &middot; {time_str}' if time_str else ''
     cam_sub = f' &middot; Camera: {camera}' if camera else ''

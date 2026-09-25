@@ -170,9 +170,9 @@ class TestCalendarRoute:
                                                    make_event, make_context):
         # The whole point of the change: 7 presigns, not one per published
         # night. Each presign is a ~0.14s boto3 client build on a 128MB
-        # Lambda when the client is not cached.
+        # Lambda when the client is not cached. Plus one for the rig photo.
         mywebsite.lambda_handler(make_event("/astro/astrocam"), make_context())
-        assert astro_s3.generate_presigned_url.call_count == 7
+        assert astro_s3.generate_presigned_url.call_count == 7 + 1
 
     def test_week_link_renders_that_block(self, mywebsite, astro_s3,
                                           make_event, make_context):
@@ -307,12 +307,31 @@ class TestEclipticamThumbnails:
             result = mywebsite.lambda_handler(make_event("/astro/eclipticam"), make_context())
             assert result["statusCode"] == 200
             # Both entries (even the one with thumb.jpg in manifest) should use max.jpg
-            assert all(k.endswith("/max.jpg") for k in signed_keys)
+            assert all(k.endswith("/max.jpg") for k in signed_keys
+                       if not k.startswith("site/"))
             assert "343/471" in result["body"]
-            assert "5.4" in result["body"]
+            # stops 5.42 are re-based from pedestal 50 to black 64 on display
+            assert f"{mywebsite._rebase_stops('eclipticam', 5.42):.1f}" in result["body"]
             assert "259/263" in result["body"]
-            assert "4.6" in result["body"]
+            assert f"{mywebsite._rebase_stops('eclipticam', 4.59):.1f}" in result["body"]
             assert "verdict-clear" not in result["body"]
         mywebsite._S3_CLIENTS.clear()
 
 
+
+
+class TestRebaseStops:
+    """astrocam stops re-based from the pipeline's pedestal 50 to black 64."""
+
+    def test_astrocam_is_rebased(self, mywebsite):
+        # 2026-09-21: frame mean 81.711 -> log2(31.7)=4.99 at 50, log2(17.7)=4.15 at 64
+        assert mywebsite._rebase_stops("astrocam", 4.99) == 4.15
+
+    def test_other_cameras_untouched(self, mywebsite):
+        assert mywebsite._rebase_stops("canon", 5.42) == 5.42
+
+    def test_entry_with_black_level_is_trusted(self, mywebsite):
+        assert mywebsite._rebase_stops("astrocam", 4.15, {"black_level": 64}) == 4.15
+
+    def test_none_passes_through(self, mywebsite):
+        assert mywebsite._rebase_stops("astrocam", None) is None

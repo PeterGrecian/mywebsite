@@ -177,8 +177,8 @@ class TestInstrumentPage:
                          "/astro/firstscope")
         assert result["statusCode"] == 200
         body = result["body"]
-        assert "f/3.95" in body
-        assert "1.925 arcsec per pixel" in body
+        assert "f/4" in body
+        assert "2 arcsec per pixel" in body
 
     def test_lists_only_its_own_notes(self, mywebsite, make_event,
                                       make_context):
@@ -195,7 +195,7 @@ class TestInstrumentPage:
         result, _ = _get(mywebsite, make_event, make_context,
                          "/astro/firstscope", manifest=None)
         assert result["statusCode"] == 200
-        assert "f/3.95" in result["body"]
+        assert "f/4" in result["body"]
         assert "No field notes" in result["body"]
 
 
@@ -319,3 +319,47 @@ class TestMarkdownLinks:
         # "//evil.com" starts with a slash but is not an internal path.
         html = self._md("see [x](//evil.com/y)")
         assert "<a " not in html
+
+
+class TestInstrumentPhoto:
+    """The FirstScope page opens with a photo of the rig. The spec declares
+    the S3 key; the handler presigns it; a presign failure must cost the
+    figure and not the page.
+    """
+
+    def test_photo_renders_when_presigned(self):
+        from routes.astro import render_astro_instrument
+        html = render_astro_instrument(theme_css_js="", slug="firstscope",
+                                       photo_url="https://example/x.jpg")
+        assert 'class="i-photo"' in html
+        assert 'src="https://example/x.jpg"' in html
+        assert "Raspberry Pi camera" in html
+        assert "cable-tied" in html
+        # above the blurb, which is the top of the page
+        assert html.index('class="i-photo"') < html.index('class="i-blurb"')
+
+    def test_page_still_renders_without_a_photo(self):
+        from routes.astro import render_astro_instrument
+        html = render_astro_instrument(theme_css_js="", slug="firstscope",
+                                       photo_url=None)
+        assert 'class="i-photo"' not in html
+        assert 'class="i-blurb"' in html
+
+    def test_camera_and_host_are_in_the_specs(self):
+        from routes.astro import INSTRUMENT_SPECS
+        specs = dict(INSTRUMENT_SPECS["firstscope"]["specs"])
+        assert "lens removed" in specs["Camera"]
+        assert "Pi 3" in specs["Computer"]
+
+
+class TestInstrumentQuest:
+    """A quest is a target, not a result — it sits above the measured
+    numbers and must never read as though it has been achieved.
+    """
+
+    def test_quest_renders_above_the_results(self):
+        from routes.astro import render_astro_instrument
+        html = render_astro_instrument(theme_css_js="", slug="firstscope")
+        assert "Polaris B" in html
+        assert "Herschel" in html and "1779" in html
+        assert html.index('class="i-quest"') < html.index('class="i-stat"')

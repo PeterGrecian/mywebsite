@@ -1,5 +1,7 @@
 """Astro hub page — lists the project's astronomy cameras."""
 
+import base64
+import os
 import re
 
 
@@ -12,7 +14,7 @@ CAMERAS = [
     {
         "path": "/astro/astrocam",
         "title": "Astro Camera",
-        "desc": "Pi 4 + Camera Module v2 (IMX219). Nightly star-trail and pole-derotated stacks with hot/cold pixel masking.",
+        "desc": "Pi 4 + Camera Module 3 (IMX708). Nightly star-trail and pole-derotated stacks with hot/cold pixel masking.",
         "status": "live",
     },
     {
@@ -24,7 +26,7 @@ CAMERAS = [
     {
         "path": "/astro/eclipticam",
         "title": "Ecliptic Camera",
-        "desc": "Two-camera Pi (OV5647 v1 + IMX708 Wide) — day and night astro along the ecliptic.",
+        "desc": "Pi with a Camera Module 3 Wide (IMX708 Wide), day and night astro along the ecliptic. A v1 camera (OV5647) is fitted but not used.",
         "status": "live",
     },
 ]
@@ -105,7 +107,7 @@ def render_astro_hub(*, theme_css_js):
 <body>
   <div class="container">
     <h1>Astro</h1>
-    <div class="subtitle">scientific astronomy cameras — measurements, not timelapses</div>
+    <div class="subtitle">Long exposure, large area, urban astronomy. Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, which means that galaxies, even our own, are not the place to start.</div>
 {cards}
 {collections}
 {historical}
@@ -243,10 +245,12 @@ def _section(sec):
         v = (f'{stacked} / {s["n_frames"]}' if stacked is not None
              else f'{s["n_frames"]}')
         stats.append(_stat("frames stacked / captured", v))
+    # The route re-bases stops into s["stops"] (black level), so it wins
+    # over the anchor's raw pipeline value.
     anchor = s.get("anchor") or {}
-    stops = anchor.get("stops") if isinstance(anchor, dict) else None
-    if stops is None:
-        stops = s.get("stops")
+    stops = s.get("stops")
+    if stops is None and isinstance(anchor, dict):
+        stops = anchor.get("stops")
     if stops is not None:
         stats.append(_stat("brightness index", f'{stops:.2f} stops' if isinstance(stops, (int, float)) else f'{stops} stops'))
     derot = s.get("derot")
@@ -431,8 +435,39 @@ def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
 # until someone asks for them too.
 CAMERA_SUBTITLES = {
     "eclipticam": "all night exposures and stacks",
+    "astrocam": "night-by-night colour sweeps and stacks with a camera "
+                "facing north and towards the pole and zenith",
 }
 DEFAULT_CAMERA_SUBTITLE = "night-by-night colour sweeps and stacks"
+
+# Caption under the multi-night brightness plot; the default is used for
+# cameras without their own.
+BRIGHTNESS_CAPTIONS = {
+    "astrocam": "brightness curves (and an old reference) for a week.  "
+                "Clouds are bright in the suburbs and overcast is about 8, "
+                "deep darkness about 4.  4 stops or bits is 16x more photons.  The pedestal is 6 bits and must be greater "
+                "than the electrical noise of the sensor.",
+}
+DEFAULT_BRIGHTNESS_CAPTION = "brightness of the sky"
+
+# The rig itself, shown under the subtitle. Keys are in ASTRO_BUCKET and
+# presigned by the caller (Peter's photos, 2026-09-24, EXIF stripped).
+CAMERA_PHOTOS = {
+    "astrocam": {"key": "site/astrocam-rig.jpg",
+                 "alt": "The Astro Camera: a clear plastic box taped shut, "
+                        "on a wooden arm outside the window above the garden",
+                 "caption": "Pi 4 and v3 camera in a sandwich box from an "
+                            "upstairs window.  The white triangle is a lens "
+                            "cover driven by the Pi with an SG90 servo (not visible, "
+                            "far outside of box).  The "
+                            "lens is covered with a phone protector glass."},
+    "eclipticam": {"key": "site/eclipticam-rig.jpg",
+                   "alt": "The Ecliptic Camera: a Pi in a cardboard box on "
+                          "the windowsill, two ribbon cables running to "
+                          "cameras at the glass",
+                   "caption": "Two cameras are fitted, but only the v3 Wide "
+                              "(IMX708) is used.  The v1 is not."},
+}
 
 
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
@@ -441,7 +476,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  moon_net_url=None,
                                  sun_net_url=None,
                                  window_label='', weeks=(), months=(),
-                                 subtitle=None):
+                                 subtitle=None, photo_url=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -458,13 +493,23 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     if subtitle is None:
         subtitle = CAMERA_SUBTITLES.get(camera, DEFAULT_CAMERA_SUBTITLE)
 
+    photo = CAMERA_PHOTOS.get(camera)
+    photo_html = ''
+    if photo and photo_url:
+        cap = (f'<figcaption>{photo["caption"]}</figcaption>'
+               if photo.get("caption") else '')
+        photo_html = (f'<figure class="rig"><img src="{photo_url}" '
+                      f'alt="{_esc(photo["alt"])}">{cap}</figure>')
+
     combined_html = ""
     if combined_brightness_url:
         combined_html = (
             f'<a href="{combined_brightness_url}">'
             f'<img class="combined" src="{combined_brightness_url}" '
             f'alt="per-night brightness curves overlaid"></a>'
-            f'<div class="caption">brightness of the sky</div>')
+            f'<div class="caption">'
+            f'{BRIGHTNESS_CAPTIONS.get(camera, DEFAULT_BRIGHTNESS_CAPTION)}'
+            f'</div>')
 
     moon_net_html = ""
     if moon_net_url:
@@ -541,6 +586,9 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-meta {{ display: flex; justify-content: space-between; align-items: baseline; padding: 0.45rem 0.65rem; }}
     .night-date {{ font-weight: 600; font-size: 0.85rem; }}
     .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .rig {{ max-width: 480px; margin: 0 auto 1.5rem; }}
+    .rig img {{ display: block; width: 100%; height: auto; border-radius: 12px; }}
+    .rig figcaption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
     .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
@@ -557,6 +605,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
   <div class="container">
     <h1>{title}</h1>
     <div class="subtitle">{subtitle}</div>
+    {photo_html}
     {combined_html}
     {moon_net_html}
     {sun_net_html}
@@ -2249,6 +2298,21 @@ def _md(text):
                 i += 1
             html.append(_md_table(rows))
             continue
+        # Display maths: a "$$" line opens and closes a TeX block, which
+        # KaTeX typesets in the browser (see _KATEX_HEAD).
+        st = line.strip()
+        if len(st) > 4 and st.startswith("$$") and st.endswith("$$"):
+            html.append(f'<div class="md-math">{_esc(st)}</div>')
+            i += 1
+            continue
+        if st == "$$":
+            tex, i = [], i + 1
+            while i < len(lines) and lines[i].strip() != "$$":
+                tex.append(lines[i])
+                i += 1
+            i += 1
+            html.append(f'<div class="md-math">$${_esc(chr(10).join(tex))}$$</div>')
+            continue
         # Indented block — a formula or a snippet.
         if line.startswith("    ") or line.startswith("\t"):
             block = []
@@ -2289,6 +2353,8 @@ def _md(text):
 
 
 NOTE_DETAIL_CSS = '''
+    .md-math { overflow-x: auto; margin: 0.8rem 0; }
+    .d-subtitle { font-size: 1.05rem; color: var(--text-secondary); margin: 0 0 0.6rem; }
     body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
     .container { max-width: 860px; margin: 0 auto; }
     h1 { font-size: 1.5rem; margin: 1rem 0 0.3rem; line-height: 1.3; }
@@ -2317,6 +2383,22 @@ NOTE_DETAIL_CSS = '''
     .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
     .footer a { color: var(--accent); text-decoration: none; }
 '''
+
+
+# KaTeX, loaded only on a note that contains maths: $$...$$ for display,
+# \\( ... \\) inline. Plain "$" is left alone so prices never typeset.
+_KATEX_HEAD = (
+    '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'
+    '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>'
+    '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" '
+    'onload="renderMathInElement(document.body,{delimiters:['
+    "{left:'$$',right:'$$',display:true},{left:'\\\\(',right:'\\\\)',display:false}]})\"></script>")
+
+
+def _has_math(item):
+    texts = [item.get("summary") or ""] + [
+        sec.get("md") or "" for sec in (item.get("sections") or [])]
+    return any("$$" in t or "\\(" in t for t in texts)
 
 
 def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
@@ -2382,10 +2464,12 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
   <title>{title}</title>
   {theme_css_js}
   <style>{NOTE_DETAIL_CSS}</style>
+  {_KATEX_HEAD if _has_math(item) else ""}
 </head>
 <body>
   <div class="container">
     <h1>{title}</h1>
+    {f'<div class="d-subtitle">{_esc(item["subtitle"])}</div>' if item.get("subtitle") else ""}
     <div class="d-meta">{" &middot; ".join(meta)}</div>
     {"".join(figs)}
     {_paras(item.get("summary"), "d-sum")}
@@ -2414,20 +2498,72 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
 INSTRUMENT_SPECS = {
     "firstscope": {
         "title": "FirstScope",
-        "subtitle": "Celestron FirstScope 76/300, IYA 2009 edition "
-                    "(21024-IYA)",
+        "subtitle": "I was delighted when my wife rescued this telescope, "
+                    "which is actually my first scope, from a backroom shelf "
+                    "at my mother-in-law's.  The Celestron FirstScope "
+                    "(76/300, IYA 2009 edition), came out in 2009, for about "
+                    "&pound;50, is intended as a gift typically for teenagers, "
+                    "and for me offers the perfect blend of parsimony, "
+                    "hardware hacking, software and actually seeing things.",
         "note_tag": "firstscope",
-        "blurb": "A 76 mm tabletop Newtonian with a spherical primary, no "
-                 "tracking and no finder &mdash; pointed at the celestial "
-                 "pole and left to run, so the sky rotates through the field "
-                 "and the frames are registered afterwards.",
+        # Peter's own words, a paragraph per entry.
+        "blurb": [
+            "The Celestron FirstScope model 21024-IYA is a 76mm (3\") "
+            "Newtonian.  The light comes from the sky (obviously) through the "
+            "window, which I must get round to cleaning, and into the tube at "
+            "the top (obviously).  It travels the tube, dodging a little "
+            "mirror (which we will come back to) and hits the mirror at the "
+            "bottom.  It's made of glass, but with the metal at the front and "
+            "is curved like part of the inside of a sphere, which would be "
+            "twice the size of a beach ball, and is 76mm in diameter.  The "
+            "light reflects, travels up the tube and hits the mirror which it "
+            "scraped past on the way down and is reflected at 90 degrees to "
+            "the eyepiece where normal people use an eyepiece to focus it.  "
+            "The distance from the bottom mirror to the angled one is about "
+            "300mm, or a foot.  That's 1 billionth of a light second.  I use "
+            "it to look at Polaris which is 450 light years away!",
+            "I replaced the eyepiece with a Raspberry Pi camera v1 which I "
+            "took the lens off.  One day I might splash out &pound;50 on a "
+            "Raspberry Pi High Quality camera, but for now the v1 camera I "
+            "already had will do fine.  The camera takes a photo for 3 "
+            "seconds every 3 seconds and whilst it's taking the next one, "
+            "sends it over the network (the white cable) to be stored and "
+            "processed.  The position and orientation of the camera are "
+            "crucial - I really need to find Polaris to work out what I'm "
+            "looking at, the window looks out North, towards London and "
+            "Heathrow airport 9 miles away.  Polaris has the advantage of not "
+            "moving much as the earth rotates and I like the challenge of "
+            "resolving the fainter companion star which orbits around it.  "
+            "The next step is to mount lasers on the scope and mark on the "
+            "walls and table where the camera is pointed.  Focus is crucial "
+            "and I'll have to either move the camera and focus using the moon "
+            "or get lucky, or think of something cunning.",
+        ],
+        # The rig photo is the page's first thing: this instrument is a
+        # hardware answer as much as an optical one, and the camera and its
+        # host are easier shown than described.
+        "photo": {
+            "key": "site/firstscope-rig.jpg",
+            "alt": "The FirstScope on a windowsill, a Raspberry Pi camera at "
+                   "the focuser and a Pi 3 cable-tied to the tube",
+            "caption": "The rig as it runs: a <strong>Raspberry Pi camera "
+                       "v1</strong> with the lens removed sits at the "
+                       "focuser, its sensor bare to the light cone, and the "
+                       "<strong>Pi 3</strong> that reads it is cable-tied to "
+                       "the tube.",
+        },
         "specs": [
-            ("Optics", "76 mm Newtonian, spherical primary, f/3.95"),
+            ("Optics", "76 mm Newtonian, spherical primary, f/4"),
+            ("Camera", "Raspberry Pi Camera v1, lens removed, the "
+                       "sensor sits at the focuser"),
+            ("Computer", "Raspberry Pi 3, cable-tied to the tube"),
             ("Focal length", "300 mm"),
-            ("Tracking", "None &mdash; fixed mount, the sky drifts through"),
-            ("Finder", "None"),
-            ("Field of view", "0.69 &times; 0.52 degrees"),
-            ("Plate scale", "1.925 arcsec per pixel (binned 2&times;2)"),
+            ("Tracking", "None, fixed mount, the sky drifts through"),
+            ("Finder", "None, but 2 lasers mark where it points on the "
+                       "walls"),
+            ("Field of view", "0.7 &times; 0.5 degrees, about the width of the "
+                              "moon"),
+            ("Plate scale", "2 arcsec per pixel (binned 2&times;2)"),
             ("Frames", "1296 &times; 972, already binned 2&times;2 at capture"),
             ("Typical sub", "3 seconds"),
         ],
@@ -2436,33 +2572,306 @@ INSTRUMENT_SPECS = {
             ("2026-09-14", "Moved to <strong>xoverpi</strong>, which writes "
                            "frames straight to muppet's bigstore over NFS and "
                            "processes them where they land."),
-            ("2026-09-20", "11,911 frames at 3 s &mdash; the night the "
+            ("2026-09-20", "12,000 frames at 3 s, the night the "
                            "de-rotation numbers below come from."),
+            ("2026-09-25", "2 lasers added, powered with 5V and a "
+                           "shared 470R resistor.  The 2 USB plugs are "
+                           "joined with hot glue, the craft stick to that, "
+                           "then the lasers to that.  They mark where "
+                           "the scope is pointing on the walls: the wall to "
+                           "the right is 101cm away, the wall to the left is "
+                           "124cm."),
         ],
         "results": [
-            ("19.2&times;", "noise reduction from 600 de-rotated frames, "
-                            "against 21.7&times; for a perfect stack"),
-            ("4.32&deg;", "from the celestial pole, bearing 54&deg; left of "
+            ("19&times;", "noise reduction from 600 de-rotated frames, "
+                            "against 22&times; for a perfect stack"),
+            ("4&deg;", "from the celestial pole, bearing 50&deg; left of "
                           "straight up"),
             ("37 min", "a star's dwell inside the field at that offset"),
-            ("&le; 11.5&Prime;", "PSF FWHM, an upper bound from stacked "
-                                 "stars"),
+            ("&Omega;", "what a star looks like at the moment: a ring "
+                        "about 25 arc seconds across with a gap at the "
+                        "bottom.  The ring means it's out of focus and the "
+                        "gap means something is blocking part of the light.  "
+                        "At best focus it should be a dot about 2 arc "
+                        "seconds across"),
         ],
-        "closing": "The pole offset is the number that matters most: dwell "
-                   "time inside the field goes as its reciprocal, so walking "
-                   "the mount closer &mdash; 13.38&deg;, then 7.66&deg;, then "
-                   "4.32&deg; over four nights &mdash; buys integration "
-                   "directly. Inside 0.28&deg; a star would stay in frame all "
-                   "night.",
+        # A target, not a result: what the instrument is FOR, stated before
+        # the numbers it has produced. Kept separate from "results" so the
+        # page never reads as though the quest is already done.
+        "quest": [{
+            "title": "First quest",
+            "body": "Resolve <strong>Polaris B</strong>, the faint "
+                    "companion to the pole star, first seen by William "
+                    "Herschel in 1779.  A and B are 18 arc seconds apart.  "
+                    "The naked eye can at best separate things about an arc minute "
+                    "apart, 3 times too big, so no chance there, but "
+                    "a 76mm mirror can in theory separate two stars about 2 "
+                    "arc seconds apart, 10 times closer than we need.  Wow!  "
+                    "It's the width of the mirror that decides this, not the "
+                    "focal length.  The focal length decides how big things "
+                    "come out on the camera, and here 18 arc seconds is "
+                    "about 10 pixels.<br><br>Those are \"binned\" pixels.  "
+                    "The camera has a colour sensor, so each pixel is really "
+                    "4 cells (red, two greens and a blue) added together, "
+                    "and at a pinch I could use the cells separately."
+                    "<br><br>The hard part is brightness.  B is about 500 "
+                    "times fainter than A.  Each cell gives a 10 bit number, "
+                    "0 to 1023, and some of that is lost to the pedestal (the "
+                    "camera adds a bit so that black is not zero, because you "
+                    "can't risk a number being negative because of noise and "
+                    "being lost), so in one "
+                    "3 second photo B is barely there next to A.  The answer "
+                    "is software: add hundreds of photos together and B "
+                    "builds up out of the noise.  Luckily Polaris hardly "
+                    "moves as the earth rotates, so I don't need to track it "
+                    "or do much derotating before adding them up.",
+            # Arithmetic from astro-capture, 2026-09-23. The point of
+            # printing it is that the angle is the easy half: the pair is
+            # ten times wider than the aperture's limit, and the difficulty
+            # is entirely the brightness ratio and therefore the focuser.
+            "rows": [
+                ("Separation of A and B", "18&Prime;"),
+                ("Resolving limit of 76 mm", "2&Prime;"),
+                ("So the pair is", "10&times; wider than the limit"),
+                ("At 2&Prime; per binned pixel", "10 pixels apart"),
+                ("B is fainter by", "500 times"),
+                ("B's magnitude", "It's fairly dim at mag 8.7, but a 30 minute "
+                                  "stack (average) should achieve 12.1 mag"),
+                ("Stack depth", "10 bits per picture, but averaging 600 "
+                                 "frames gives more than 19 bits"),
+            ],
+            "after": "Focusing is difficult: Celestron have put some effort "
+                     "into the mechanism and are makers of some very fine "
+                     "instruments, so this is quite useable, however focusing "
+                     "using images relayed from the camera to a laptop, in "
+                     "the dark, is more difficult.  The geometry of "
+                     "the scope, f/4, is the focal length divided by the "
+                     "width of the mirror (300mm / 76mm, near enough).  A "
+                     "small number like that means a short, fat cone of "
+                     "light, which is good for brightness but very fussy "
+                     "about focus.  At f/4 the depth of focus is about 17 "
+                     "microns, so a tenth of a millimetre out spreads Polaris "
+                     "A into a disc 17&Prime; across, which is the whole gap "
+                     "between A and B.<br><br>A potential cunning idea, as "
+                     "well as the lasers so I can move and replace the scope "
+                     "where it was consistently, is to move the camera up and "
+                     "down 10 microns or so, very much the kind of movement "
+                     "heating metal tubes 50mm long or so achieves with 10 "
+                     "degrees C.  This can be done with the Pi and is a "
+                     "really cool challenge.  Use 3 tubes and the sensor tilt "
+                     "can be adjusted too so the focus is even over the "
+                     "whole sensor."
+                     "<br><br>Very long observations can be made.  It's all "
+                     "automatic, so a month, or even a year.  It will be "
+                     "fascinating to see what can be detected.  The effect of "
+                     "cold weather - I might need to temperature control the "
+                     "room the scope is in, or put it in a box.  The effect "
+                     "of cold on the atmosphere.  Polaris A is a Cepheid "
+                     "variable and detecting that would be awesome but very "
+                     "difficult.",
+        }, {
+            "title": "Second quest",
+            "body": "Find <strong>NGC 3172</strong>, also known as "
+                    "Polarissima Borealis, the closest galaxy to the North "
+                    "Celestial Pole.  It's a faint spiral of about 14th "
+                    "magnitude, which is way dim, 6 times fainter than the "
+                    "12.1 a 30 minute stack should reach, and it's a smudge "
+                    "not a point, so its light is spread out too.  Against a "
+                    "Surbiton sky of 18.1 mag/arcsec&sup2; that's going to "
+                    "take a lot of pictures, probably tens of hours.  The "
+                    "good news is that, like Polaris, it hardly moves as the "
+                    "earth rotates (it's about 1 degree from the pole) so the "
+                    "rig can just sit there and collect, night after night."
+                    "<br><br>It's not in the same field as Polaris, they are "
+                    "about 1.5 degrees apart, so I'll have to move the scope, "
+                    "which is where the lasers come in.  First with the v1 "
+                    "camera I already have, to see how far it gets, then "
+                    "with the Raspberry Pi High Quality camera, which has 12 "
+                    "bits instead of 10, a field of 2.3 moons (1.2 degrees), "
+                    "and is maybe twice as sensitive, with very slightly less "
+                    "resolution, still about 1 arc second per pixel.  Seeing the same galaxy come out sooner and "
+                    "cleaner will show what the &pound;50 actually bought.  "
+                    "I'll probably start collecting raw unbinned images "
+                    "about that time, maybe stacking 20 at a time on the Pi to "
+                    "reduce storage size.",
+        }],
+        # The laser mod (Peter's photo, 2026-09-25), under the timeline.
+        "history_photo": {
+            "key": "site/firstscope-lasers.jpg",
+            "alt": "The FirstScope with a craft stick under the Pi holding "
+                   "two small brass lasers, one pointing to each side",
+            "caption": "The 2 lasers on a craft stick, hot glued to the "
+                       "USB plugs, one pointing at each wall.",
+        },
+        # Targets near the pole (2026-09-25, checked and extended by
+        # astro-science: ~/tmp/firstscope/targets.py, cross.py). Distances from SIMBAD
+        # coordinates precessed to 2026; time in field = 0.7 deg over the
+        # drift rate 15.04 deg/h x sin(pole distance). Magnitudes approximate.
+        "targets": {
+            "title": "Targets near the pole",
+            "intro": "With the lasers I can point the scope at things of "
+                     "interest near the pole, and there are quite a few.  "
+                     "The scope doesn't move but the sky turns about the "
+                     "pole, so every star circles it and a target only "
+                     "crosses the field if the field is the same distance "
+                     "from the pole, within about half a field.  So the "
+                     "distance picks the pointing and the time of night "
+                     "picks where round the pole to put it.  The closer to "
+                     "the pole the longer a target stays.  The times are "
+                     "for the v1 camera's 0.7 degree field; the HQ camera's "
+                     "would be about 1.7 times longer.",
+            "rows": [
+                ("Polaris and B", "0.6&deg;", "4 hours",
+                 "The first quest."),
+                ("&lambda; UMi", "1.0&deg;", "2.7 hours",
+                 "A 6th magnitude star, handy for checking the pointing."),
+                ("NGC 3172", "1.1&deg;", "2.5 hours",
+                 "The second quest.  The closest galaxy to the pole, about "
+                 "14th magnitude."),
+                ("The Engagement Ring", "around Polaris", "",
+                 "A ring of 8th and 9th magnitude stars with Polaris as "
+                 "the diamond."),
+                ("24 UMi", "3.1&deg;", "52 minutes",
+                 "A 6th magnitude star, right on the distance of the "
+                 "current pointing."),
+                ("&delta; UMi (Yildun)", "3.4&deg;", "47 minutes",
+                 "A 4th magnitude star, bright enough to aim by."),
+                ("2 UMi", "3.6&deg;", "44 minutes",
+                 "A 4th magnitude star, as bright as Yildun."),
+                ("NGC 1544", "3.7&deg;", "43 minutes",
+                 "A galaxy, about 13th magnitude."),
+                ("NGC 2276 and NGC 2300", "4.3&deg;", "37 minutes",
+                 "A pair of galaxies, about 11th magnitude, a harder "
+                 "cousin of NGC 3172."),
+                ("NGC 188", "4.6&deg;", "35 minutes",
+                 "One of the oldest open clusters known, 8th magnitude and "
+                 "about 15 arc minutes across, so it fits the field."),
+                ("NGC 2268", "5.7&deg;", "28 minutes",
+                 "A galaxy, about 12th magnitude."),
+                ("NGC 6251", "7.5&deg;", "21 minutes",
+                 "A galaxy with a famous radio jet, about 13th to 14th "
+                 "magnitude.  Plain to look at, but a good story."),
+                ("IC 3568 (the Lemon Slice)", "7.6&deg;", "21 minutes",
+                 "A small bright planetary nebula, about 11.6 magnitude and "
+                 "18 arc seconds across, so around 9 pixels."),
+                ("&epsilon; UMi", "8.0&deg;", "20 minutes",
+                 "A 4th magnitude star."),
+            ],
+            "after": "Right now the field is about 3.1 degrees from the "
+                     "pole, so only 24 UMi and Yildun can cross it, and "
+                     "both do so in daylight (about 08:25 BST) until about "
+                     "December.  To catch 24 UMi in the dark, the field "
+                     "needs to be 3.1 degrees to the left of the pole, "
+                     "where it crosses at about midnight.  Worked out by "
+                     "astro-science, assuming the camera isn't rotated; "
+                     "the next plate solve will tell.",
+        },
+        # The laser marks on the two walls, cropped from Peter's photos.
+        "history_marks": [
+            {"key": "site/firstscope-mark-left.jpg",
+             "label": "Left wall, 124cm",
+             "alt": "Graph paper on the left wall with two pencil crosses, "
+                    "the red laser dot on the left one"},
+            {"key": "site/firstscope-mark-right.jpg",
+             "label": "Right wall, 101cm",
+             "alt": "Graph paper on the right wall with two pencil crosses, "
+                    "the red laser dot on the left one"},
+        ],
+        # Provisional, from the wall marks (2026-09-25): both dots moved
+        # left, 48 mm at 124 cm and 58 mm at 101 cm. Solved as a 2.7 deg
+        # azimuth turn plus a ~1 cm shift towards the window; x cos(51.4)
+        # gives 1.7 deg on the sky. Old pole offset from the 2026-09-20 note.
+        "marks_note": "The black crosses are the last positions, when the "
+                      "pole was 4.3 degrees from the middle of the field, "
+                      "about 2.5 up and 3.5 left.  Both dots have moved "
+                      "left, about 5cm on each wall, which works out as "
+                      "turning the scope about 2.7 degrees left (the two "
+                      "walls disagree a little, which is the scope also "
+                      "shifting about 1cm towards the window).  Pointing "
+                      "51 degrees up, that moves the field about 1.7 "
+                      "degrees left on the sky, so provisionally the pole "
+                      "is now about 2.5 up and 1.8 left, about 3 degrees "
+                      "away.  The side lasers can't see up and down: "
+                      "tilting the scope just spins them about their own "
+                      "beams.",
+        # Peter's voice, drafted with help: what modelling the spherical
+        # mirror says about the two quests (sa_psf.py, 2026-09-24).
+        # A star as it looks now, pixel for pixel from a derotated stack
+        # (Peter's screenshot, 2026-09-24). Shown enlarged with hard pixels.
+        "results_photo": {
+            "file": "firstscope-omega.png",
+            "alt": "A star shown as a small ring with a gap at the bottom, "
+                   "like a capital omega",
+            "caption": "A star as it looks now, enlarged 5 times, one "
+                       "square per pixel.",
+        },
+        "modelling": {
+            "title": "Modelling the mirror",
+            "body": "The mirror is spherical, not parabolic like a proper "
+                    "telescope, which is cheaper to make but means the light "
+                    "from a star doesn't all come to the same point.  I "
+                    "modelled it (with help from Claude).  A perfect sphere "
+                    "this size still gives a sharp core about 2 arc seconds "
+                    "across, but only 10 or 15 percent of the light is in it "
+                    "and the rest is spread into a halo about 26 arc seconds "
+                    "across.  B is 18 arc seconds from A, just outside that, "
+                    "so on paper splitting them is feasible, but only in a "
+                    "sweet spot of focus about 60 microns wide, and not "
+                    "where A looks sharpest.  Seeing and the window will "
+                    "make it harder.<br><br>Infrared makes it worse, as the "
+                    "halo spreads further at longer wavelengths, and the v1 "
+                    "camera probably lost its IR filter with its lens.  So "
+                    "comparing the red, green and blue channels separately "
+                    "should be interesting and help find the limit of the "
+                    "scope.<br><br>The galaxy is the opposite.  It's bigger "
+                    "than the blur so the mirror hardly matters, what "
+                    "matters is the Surbiton sky and how many hours I stack.  "
+                    "Infrared helps, it's more light, and the focus isn't "
+                    "critical.  So the two quests pull the rig in opposite "
+                    "directions, which is a nice problem to have.",
+        },
     },
 }
+
+def _quest_html(quest):
+    quest_rows = "".join(f'<dt>{k}</dt><dd>{v}</dd>'
+                         for k, v in quest.get("rows", ()))
+    return (f'<section class="i-quest">'
+            f'<h2>{quest.get("title", "Quest")}</h2>'
+            f'<p>{quest.get("body", "")}</p>'
+            + (f'<dl class="i-specs q-rows">{quest_rows}</dl>'
+               if quest_rows else '')
+            + (f'<p class="q-after">{quest["after"]}</p>'
+               if quest.get("after") else '')
+            + '</section>')
+
 
 INSTRUMENT_CSS = '''
     body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
     .container { max-width: 860px; margin: 0 auto; }
     h1 { font-size: 1.6rem; margin: 1rem 0 0.2rem; }
-    .i-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.1rem; }
+    .i-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.1rem; }
     .i-blurb { font-size: 1rem; line-height: 1.65; margin: 0 0 1.5rem; }
+    .i-marks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0 0 1.5rem; }
+    .i-marks figure { margin: 0; }
+    .i-marks img { width: 100%; height: auto; display: block; border-radius: 8px; }
+    .i-marks figcaption { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.3rem; }
+    .i-tw { overflow-x: auto; margin: 0 0 1.6rem; }
+    .i-targets { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.45; }
+    .i-targets th { text-align: left; color: var(--text-secondary); font-weight: 600; padding: 0.4rem 0.6rem 0.4rem 0; border-bottom: 1px solid var(--divider, #2C2C2E); white-space: nowrap; }
+    .i-targets td { padding: 0.45rem 0.6rem 0.45rem 0; border-bottom: 1px solid var(--divider, #2C2C2E); vertical-align: top; }
+    .i-targets td:nth-child(-n+3) { white-space: nowrap; }
+    .i-rphoto { margin: 1rem 0 0; }
+    .i-rphoto img { width: 365px; max-width: 100%; image-rendering: pixelated; display: block; }
+    .i-rphoto figcaption { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; }
+    .i-quest { background: var(--card-bg); border-radius: 12px; padding: 0.9rem 1.1rem; margin: 0 0 1.6rem; }
+    .i-quest h2 { margin: 0 0 0.4rem; }
+    .i-quest p { margin: 0; font-size: 0.95rem; line-height: 1.6; }
+    .i-quest .q-rows { margin: 0.9rem 0 0; background: none; padding: 0; }
+    .i-quest .q-after { margin-top: 0.9rem; }
+    .i-photo { margin: 0 0 1.5rem; }
+    .i-photo img { display: block; width: 100%; max-width: 420px; height: auto; border-radius: 12px; margin: 0 auto; }
+    .i-photo figcaption { font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary); margin: 0.6rem auto 0; max-width: 520px; text-align: center; }
     h2 { font-size: 0.95rem; margin: 1.7rem 0 0.6rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .i-specs { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 0.35rem 1rem; font-size: 0.9rem; background: var(--card-bg); border-radius: 8px; padding: 0.9rem 1rem; }
     .i-specs dt { color: var(--text-secondary); }
@@ -2485,12 +2894,17 @@ INSTRUMENT_CSS = '''
 '''
 
 
-def render_astro_instrument(*, theme_css_js, slug, notes=()):
+def render_astro_instrument(*, theme_css_js, slug, notes=(), photo_url=None,
+                            history_photo_url=None, history_marks=()):
     """One instrument's page, with the Field Notes entries that mention it.
 
     `notes` are manifest entries already filtered to this instrument; the
     page lists them newest first and links out, so the prose stays in one
     place (the logbook) rather than being restated here.
+
+    `photo_url` is presigned by the caller. A spec may declare a photo and
+    still render without one -- an expired or failed presign drops the
+    figure rather than the page.
     """
     spec = INSTRUMENT_SPECS[slug]
     specs_html = "".join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in spec["specs"])
@@ -2510,6 +2924,77 @@ def render_astro_instrument(*, theme_css_js, slug, notes=()):
         notes_html = ('<p class="empty">No field notes for this instrument '
                       'yet.</p>')
 
+    quests = spec.get("quest") or []
+    if isinstance(quests, dict):
+        quests = [quests]
+    quest_html = "".join(_quest_html(q) for q in quests)
+
+    photo = spec.get("photo") or {}
+    if photo and photo_url:
+        photo_html = (f'<figure class="i-photo">'
+                      f'<img src="{photo_url}" alt="{_esc(photo.get("alt"))}" '
+                      f'loading="lazy">'
+                      f'<figcaption>{photo.get("caption", "")}</figcaption>'
+                      f'</figure>')
+    else:
+        photo_html = ''
+
+    hp = spec.get("history_photo") or {}
+    history_photo_html = ''
+    if hp and history_photo_url:
+        history_photo_html = (
+            f'<figure class="i-photo"><img src="{history_photo_url}" '
+            f'alt="{_esc(hp.get("alt"))}" loading="lazy">'
+            f'<figcaption>{hp.get("caption", "")}</figcaption></figure>')
+
+    marks_html = ''
+    if history_marks:
+        cells = "".join(
+            f'<figure><img src="{m["url"]}" alt="{_esc(m.get("alt"))}" '
+            f'loading="lazy"><figcaption>{m.get("label", "")}</figcaption>'
+            f'</figure>' for m in history_marks)
+        marks_html = f'<div class="i-marks">{cells}</div>'
+        if spec.get("marks_note"):
+            marks_html += f'<p class="i-blurb">{spec["marks_note"]}</p>'
+
+    rp = spec.get("results_photo")
+    results_photo_html = ''
+    if rp:
+        try:
+            with open(os.path.join(os.path.dirname(os.path.dirname(
+                    os.path.abspath(__file__))), rp["file"]), "rb") as fh:
+                data = base64.b64encode(fh.read()).decode()
+            results_photo_html = (
+                f'<figure class="i-rphoto"><img src="data:image/png;base64,'
+                f'{data}" alt="{_esc(rp["alt"])}">'
+                f'<figcaption>{rp["caption"]}</figcaption></figure>')
+        except OSError:
+            pass
+
+    tg = spec.get("targets")
+    targets_html = ''
+    if tg:
+        trs = "".join(f'<tr><td>{a}</td><td>{b}</td><td>{c}</td><td>{d}</td></tr>'
+                      for a, b, c, d in tg["rows"])
+        targets_html = (f'<h2>{tg["title"]}</h2>'
+                        f'<p class="i-blurb">{tg["intro"]}</p>'
+                        f'<div class="i-tw"><table class="i-targets"><thead><tr>'
+                        f'<th>Target</th><th>From the pole</th>'
+                        f'<th>Time in the field</th><th></th></tr></thead>'
+                        f'<tbody>{trs}</tbody></table></div>'
+                        + (f'<p class="i-blurb">{tg["after"]}</p>'
+                           if tg.get("after") else ''))
+
+    modelling = spec.get("modelling")
+    modelling_html = (f'<h2>{modelling["title"]}</h2>'
+                      f'<p class="i-blurb">{modelling["body"]}</p>'
+                      if modelling else '')
+
+    blurb = spec["blurb"]
+    if isinstance(blurb, str):
+        blurb = [blurb]
+    blurb_html = "".join(f'<p class="i-blurb">{b}</p>' for b in blurb)
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2523,17 +3008,25 @@ def render_astro_instrument(*, theme_css_js, slug, notes=()):
   <div class="container">
     <h1>{spec["title"]}</h1>
     <div class="i-sub">{spec["subtitle"]}</div>
-    <p class="i-blurb">{spec["blurb"]}</p>
+    {photo_html}
+    {blurb_html}
+    {quest_html}
+
+    {targets_html}
 
     <h2>The instrument</h2>
     <dl class="i-specs">{specs_html}</dl>
 
-    <h2>Where it has been</h2>
+    {modelling_html}
+
+    <h2>Timeline and milestones</h2>
     <ul class="i-hist">{hist_html}</ul>
+    {history_photo_html}
+    {marks_html}
 
     <h2>First results</h2>
     <div class="i-results">{stats_html}</div>
-    <p class="i-close">{spec["closing"]}</p>
+    {results_photo_html}
 
     <h2>Field notes</h2>
     {notes_html}

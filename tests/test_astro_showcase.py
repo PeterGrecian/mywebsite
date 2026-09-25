@@ -212,3 +212,28 @@ class TestHubDoesNotLinkToShowcase:
         result = mywebsite.lambda_handler(make_event("/astro/photos"),
                                           make_context())
         assert result["statusCode"] == 200
+
+
+class TestProseLinks:
+    """Card prose is escaped, so a card cannot inject markup — but a bare
+    /astro/... path printed as text is not followable, and a card's numbers
+    often rest on a Field Note that should be one click away. _linkify runs
+    AFTER escaping, on prose only.
+    """
+
+    def test_path_becomes_a_link(self):
+        from routes.astro_showcase import _escape, _linkify
+        out = _linkify(_escape("method in /astro/notes/2026-09-21-x"))
+        assert '<a href="/astro/notes/2026-09-21-x">' in out
+
+    def test_markup_in_a_card_stays_escaped(self):
+        from routes.astro_showcase import _escape, _linkify
+        out = _linkify(_escape('<script>alert(1)</script> /astro/notes/x'))
+        assert "<script>" not in out
+        assert "&lt;script&gt;" in out
+        assert '<a href="/astro/notes/x">' in out
+
+    def test_plain_prose_is_untouched(self):
+        from routes.astro_showcase import _escape, _linkify
+        text = "forty subs, no paths at all"
+        assert _linkify(_escape(text)) == text

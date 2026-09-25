@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""Serve the mywebsite Lambda locally so a page can be edited and refreshed.
+
+The fast loop for site work: run this, open http://localhost:8321/astro in
+ChromeOS Chrome (Crostini listeners are port-forwarded), edit
+lambda/routes/*.py, hit refresh. Every request re-imports the handler if any
+source file changed, so there is no restart and no ./deploy in the loop.
+
+Real AWS credentials are used, so S3 listings, presigned image URLs and
+DynamoDB reads behave exactly as they do in production. The two DynamoDB
+WRITES the Lambda does per request (mywebsite connection log,
+lambda-execution-logs) are stubbed out, so local refreshes do not pollute
+the access history or the cost figures on /lambda-stats. Pass --log to let
+them through.
+
+    tools/serve-local                 # 0.0.0.0:8321
+    tools/serve-local -p 8322 --log
+"""
+
+import argparse
+import importlib
+import os
+import pathlib
+import sys
+import time
+import traceback
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+LAMBDA_DIR = REPO / "lambda"
+sys.path.insert(0, str(LAMBDA_DIR))
+
+ARGS = None
+_site = None
+_mtimes = {}
+
+
+def _source_mtimes():
+    files = list(LAMBDA_DIR.glob("*.py")) + list((LAMBDA_DIR / "routes").glob("*.py"))
+    files += list((LAMBDA_DIR / "templates").glob("*.html"))
+    return {f: f.stat().st_mtime for f in files}
+
+
+def _load(force=False):
+    """(Re)import the handler when a source file has changed."""
+    global _site, _mtimes
+    now = _source_mtimes()
+    if _site is not None and not force and now == _mtimes:
+        return _site
+    _mtimes = now
+    for name in [n for n in sys.modules if n == "mywebsite" or n.startswith("routes")]:
+        del sys.modules[name]
+    t0 = time.time()
+    _site = importlib.import_module("mywebsite")
+    if not ARGS.log:
+        _site.log_connection = lambda *a, **k: None
+        _site.log_execution_metrics = lambda *a, **k: None
+    print(f"[serve-local] loaded handler in {time.time() - t0:.2f}s")
+    return _site
+
+
+class _Context:
+    aws_request_id = "local"
+    function_name = "mywebsite-local"
+    memory_limit_in_mb = 512
+    log_group_name = "local"
+    log_stream_name = "local"
+
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def do_GET(self):
+        self._serve("GET")
+
+    def do_POST(self):
+        self._serve("POST")
+
+    def _serve(self, method):
+        path, _, query = self.path.partition("?")
+        length = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(length).decode("utf-8", "replace") if length else None
+        event = {
+            "rawPath": path,
+            "rawQueryString": query,
+            "queryStringParameters": dict(
+                p.split("=", 1) if "=" in p else (p, "")
+                for p in query.split("&") if p
+            ),
+            "headers": {k.lower(): v for k, v in self.headers.items()},
+            "requestContext": {"stage": "", "http": {"method": method}},
+            "body": body,
+            "isBase64Encoded": False,
+        }
+        event["headers"].setdefault("x-forwarded-for", "127.0.0.1")
+        t0 = time.time()
+        try:
+            resp = _load().lambda_handler(event, _Context())
+        except Exception:
+            tb = traceback.format_exc()
+            print(tb, file=sys.stderr)
+            resp = {
+                "statusCode": 500,
+                "headers": {"Content-Type": "text/plain; charset=utf-8"},
+                "body": tb,
+            }
+        status = resp.get("statusCode", 200)
+        out = resp.get("body") or ""
+        if resp.get("isBase64Encoded"):
+            import base64
+            out = base64.b64decode(out)
+        elif isinstance(out, str):
+            out = out.encode("utf-8")
+        self.send_response(status)
+        for k, v in (resp.get("headers") or {}).items():
+            if k.lower() not in ("content-length", "transfer-encoding"):
+                self.send_header(k, v)
+        for c in resp.get("cookies") or []:
+            self.send_header("Set-Cookie", c)
+        self.send_header("Content-Length", str(len(out)))
+        # No caching locally — a refresh must show the edit.
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        if method != "HEAD":
+            self.wfile.write(out)
+        print(f"[serve-local] {method} {self.path} -> {status} "
+              f"{len(out)}B {(time.time() - t0) * 1000:.0f}ms")
+
+    def log_message(self, *a):
+        pass
+
+
+def main():
+    global ARGS
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("-p", "--port", type=int, default=8321)
+    ap.add_argument("--host", default="0.0.0.0")
+    ap.add_argument("--log", action="store_true",
+                    help="allow the per-request DynamoDB writes (off by default)")
+    ARGS = ap.parse_args()
+    os.chdir(LAMBDA_DIR)          # the handler reads cv.html etc. relative to itself
+    _load(force=True)
+    print(f"[serve-local] http://localhost:{ARGS.port}/astro  "
+          f"(edit lambda/routes/*.py and refresh)")
+    ThreadingHTTPServer((ARGS.host, ARGS.port), Handler).serve_forever()
+
+
+if __name__ == "__main__":
+    main()
