@@ -83,7 +83,7 @@ THEME_CSS_JS = FAVICON_TAGS + '''\n<script>
 </script>
 <style>
 :root{font-size:21px;--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
-:root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
+:root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#48484A;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
 #settings-btn{position:fixed;top:0.8rem;right:0.8rem;background:none;border:none;color:var(--text-secondary);font-size:1.2rem;cursor:pointer;z-index:10000;font-family:var(--font);padding:0.3rem;line-height:1;letter-spacing:2px;opacity:0.5;}
 #settings-btn:hover{opacity:1;}
 #settings-menu{display:none;position:fixed;top:2.4rem;right:0.8rem;background:var(--card-bg);border:1px solid var(--divider);border-radius:10px;padding:0.3rem 0;z-index:10000;min-width:160px;font-family:var(--font);box-shadow:0 4px 12px rgba(0,0,0,0.3);}

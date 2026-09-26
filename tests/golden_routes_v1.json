@@ -7,7 +7,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/": {
@@ -18,7 +18,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/-suffix": {
@@ -128,7 +128,7 @@
    "Content-Type"
   ],
   "len": 35815,
-  "sha": "6f5a7aafd46a11b2",
+  "sha": "23ee8930c2c86659",
   "status": 200
  },
  "/ai-memory-suffix": {
@@ -187,7 +187,7 @@
    "Content-Type"
   ],
   "len": 7551,
-  "sha": "a626bc51534ae084",
+  "sha": "ea31a7c0b4da46b2",
   "status": 200
  },
  "/astro-suffix": {
@@ -426,7 +426,7 @@
    "Content-Type"
   ],
   "len": 4485,
-  "sha": "97ec7191edd13cd4",
+  "sha": "f5aa99e6aff1f1ca",
   "status": 200
  },
  "/astro/astrocam-suffix": {
@@ -449,7 +449,7 @@
    "Content-Type"
   ],
   "len": 4485,
-  "sha": "97ec7191edd13cd4",
+  "sha": "f5aa99e6aff1f1ca",
   "status": 200
  },
  "/astro/astrocam/child": {
@@ -484,7 +484,7 @@
    "Content-Type"
   ],
   "len": 4481,
-  "sha": "3ec796a44b6f14b3",
+  "sha": "8175a055e23b4d5a",
   "status": 200
  },
  "/astro/canon-suffix": {
@@ -507,7 +507,7 @@
    "Content-Type"
   ],
   "len": 4481,
-  "sha": "3ec796a44b6f14b3",
+  "sha": "8175a055e23b4d5a",
   "status": 200
  },
  "/astro/canon/child": {
@@ -566,7 +566,7 @@
    "Content-Type"
   ],
   "len": 10126,
-  "sha": "f0c793f62c054a62",
+  "sha": "333728c17f5284c8",
   "status": 200
  },
  "/astro/color-max-test-suffix": {
@@ -625,7 +625,7 @@
    "Content-Type"
   ],
   "len": 10126,
-  "sha": "f0c793f62c054a62",
+  "sha": "333728c17f5284c8",
   "status": 200
  },
  "/astro/colour-max-test-suffix": {
@@ -684,7 +684,7 @@
    "Content-Type"
   ],
   "len": 5394,
-  "sha": "6f5dd7e49b7914de",
+  "sha": "6db3157fb4509154",
   "status": 200
  },
  "/astro/disks-suffix": {
@@ -707,7 +707,7 @@
    "Content-Type"
   ],
   "len": 5394,
-  "sha": "6f5dd7e49b7914de",
+  "sha": "6db3157fb4509154",
   "status": 200
  },
  "/astro/disks/?$": {
@@ -802,7 +802,7 @@
    "Content-Type"
   ],
   "len": 4491,
-  "sha": "a33c4ea252ec3e76",
+  "sha": "ef2055b8b8ba602a",
   "status": 200
  },
  "/astro/eclipticam-suffix": {
@@ -825,7 +825,7 @@
    "Content-Type"
   ],
   "len": 4491,
-  "sha": "a33c4ea252ec3e76",
+  "sha": "ef2055b8b8ba602a",
   "status": 200
  },
  "/astro/eclipticam/child": {
@@ -860,7 +860,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/astro/photos-suffix": {
@@ -883,7 +883,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/astro/photos/child": {
@@ -917,7 +917,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/astro/showcase-suffix": {
@@ -940,7 +940,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/astro/showcase/child": {
@@ -1033,7 +1033,7 @@
    "Content-Type"
   ],
   "len": 11818,
-  "sha": "5d199d552b8f7df7",
+  "sha": "1d250f7ae86f2b65",
   "status": 200
  },
  "/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -1116,7 +1116,7 @@
    "Content-Type"
   ],
   "len": 11818,
-  "sha": "5d199d552b8f7df7",
+  "sha": "1d250f7ae86f2b65",
   "status": 200
  },
  "/astro/storage/2026-01": {
@@ -1127,7 +1127,7 @@
    "Content-Type"
   ],
   "len": 11818,
-  "sha": "5d199d552b8f7df7",
+  "sha": "1d250f7ae86f2b65",
   "status": 200
  },
  "/astro/storage/child": {
@@ -1162,7 +1162,7 @@
    "Content-Type"
   ],
   "len": 7279,
-  "sha": "30745465462f79fb",
+  "sha": "5caf41c06e12e727",
   "status": 200
  },
  "/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -1245,7 +1245,7 @@
    "Content-Type"
   ],
   "len": 7279,
-  "sha": "30745465462f79fb",
+  "sha": "5caf41c06e12e727",
   "status": 200
  },
  "/astro/transients/child": {
@@ -1279,7 +1279,7 @@
    "Content-Type"
   ],
   "len": 7312,
-  "sha": "56c57ca5622bd025",
+  "sha": "e4255c074e3226b9",
   "status": 200
  },
  "/biog-suffix": {
@@ -1410,7 +1410,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/contents-suffix": {
@@ -1528,7 +1528,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/default/": {
@@ -1539,7 +1539,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/default/-suffix": {
@@ -1649,7 +1649,7 @@
    "Content-Type"
   ],
   "len": 35815,
-  "sha": "6f5a7aafd46a11b2",
+  "sha": "23ee8930c2c86659",
   "status": 200
  },
  "/default/ai-memory-suffix": {
@@ -1708,7 +1708,7 @@
    "Content-Type"
   ],
   "len": 7551,
-  "sha": "a626bc51534ae084",
+  "sha": "ea31a7c0b4da46b2",
   "status": 200
  },
  "/default/astro-suffix": {
@@ -1947,7 +1947,7 @@
    "Content-Type"
   ],
   "len": 4485,
-  "sha": "97ec7191edd13cd4",
+  "sha": "f5aa99e6aff1f1ca",
   "status": 200
  },
  "/default/astro/astrocam-suffix": {
@@ -1970,7 +1970,7 @@
    "Content-Type"
   ],
   "len": 4485,
-  "sha": "97ec7191edd13cd4",
+  "sha": "f5aa99e6aff1f1ca",
   "status": 200
  },
  "/default/astro/astrocam/child": {
@@ -2005,7 +2005,7 @@
    "Content-Type"
   ],
   "len": 4481,
-  "sha": "3ec796a44b6f14b3",
+  "sha": "8175a055e23b4d5a",
   "status": 200
  },
  "/default/astro/canon-suffix": {
@@ -2028,7 +2028,7 @@
    "Content-Type"
   ],
   "len": 4481,
-  "sha": "3ec796a44b6f14b3",
+  "sha": "8175a055e23b4d5a",
   "status": 200
  },
  "/default/astro/canon/child": {
@@ -2087,7 +2087,7 @@
    "Content-Type"
   ],
   "len": 10126,
-  "sha": "f0c793f62c054a62",
+  "sha": "333728c17f5284c8",
   "status": 200
  },
  "/default/astro/color-max-test-suffix": {
@@ -2146,7 +2146,7 @@
    "Content-Type"
   ],
   "len": 10126,
-  "sha": "f0c793f62c054a62",
+  "sha": "333728c17f5284c8",
   "status": 200
  },
  "/default/astro/colour-max-test-suffix": {
@@ -2205,7 +2205,7 @@
    "Content-Type"
   ],
   "len": 5394,
-  "sha": "6f5dd7e49b7914de",
+  "sha": "6db3157fb4509154",
   "status": 200
  },
  "/default/astro/disks-suffix": {
@@ -2228,7 +2228,7 @@
    "Content-Type"
   ],
   "len": 5394,
-  "sha": "6f5dd7e49b7914de",
+  "sha": "6db3157fb4509154",
   "status": 200
  },
  "/default/astro/disks/?$": {
@@ -2323,7 +2323,7 @@
    "Content-Type"
   ],
   "len": 4491,
-  "sha": "a33c4ea252ec3e76",
+  "sha": "ef2055b8b8ba602a",
   "status": 200
  },
  "/default/astro/eclipticam-suffix": {
@@ -2346,7 +2346,7 @@
    "Content-Type"
   ],
   "len": 4491,
-  "sha": "a33c4ea252ec3e76",
+  "sha": "ef2055b8b8ba602a",
   "status": 200
  },
  "/default/astro/eclipticam/child": {
@@ -2381,7 +2381,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/default/astro/photos-suffix": {
@@ -2404,7 +2404,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/default/astro/photos/child": {
@@ -2438,7 +2438,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/default/astro/showcase-suffix": {
@@ -2461,7 +2461,7 @@
    "Content-Type"
   ],
   "len": 11295,
-  "sha": "bd8b221cf1dd68e0",
+  "sha": "dfc77523a8444d76",
   "status": 200
  },
  "/default/astro/showcase/child": {
@@ -2554,7 +2554,7 @@
    "Content-Type"
   ],
   "len": 11818,
-  "sha": "5d199d552b8f7df7",
+  "sha": "1d250f7ae86f2b65",
   "status": 200
  },
  "/default/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -2637,7 +2637,7 @@
    "Content-Type"
   ],
   "len": 11818,
-  "sha": "5d199d552b8f7df7",
+  "sha": "1d250f7ae86f2b65",
   "status": 200
  },
  "/default/astro/storage/child": {
@@ -2672,7 +2672,7 @@
    "Content-Type"
   ],
   "len": 7279,
-  "sha": "30745465462f79fb",
+  "sha": "5caf41c06e12e727",
   "status": 200
  },
  "/default/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -2755,7 +2755,7 @@
    "Content-Type"
   ],
   "len": 7279,
-  "sha": "30745465462f79fb",
+  "sha": "5caf41c06e12e727",
   "status": 200
  },
  "/default/astro/transients/child": {
@@ -2789,7 +2789,7 @@
    "Content-Type"
   ],
   "len": 7312,
-  "sha": "56c57ca5622bd025",
+  "sha": "e4255c074e3226b9",
   "status": 200
  },
  "/default/biog-suffix": {
@@ -2920,7 +2920,7 @@
    "Content-Type"
   ],
   "len": 8257,
-  "sha": "4f7bfe689f26da70",
+  "sha": "0fd67598bf721329",
   "status": 200
  },
  "/default/contents-suffix": {
@@ -3983,7 +3983,7 @@
    "Content-Type"
   ],
   "len": 52910,
-  "sha": "95a017f07fd83041",
+  "sha": "0b1940aaa7a27e06",
   "status": 200
  },
  "/default/gotg-suffix": {
@@ -4101,7 +4101,7 @@
    "Content-Type"
   ],
   "len": 18057,
-  "sha": "d0a3db85d1a002e8",
+  "sha": "1614649dd985c6bb",
   "status": 200
  },
  "/default/lambda-stats-suffix": {
@@ -4219,7 +4219,7 @@
    "Content-Type"
   ],
   "len": 5805,
-  "sha": "997059cfe5a328b2",
+  "sha": "fe4791e08f670f15",
   "status": 200
  },
  "/default/manim-suffix": {
@@ -4627,7 +4627,7 @@
    "Content-Type"
   ],
   "len": 9150,
-  "sha": "acdde2d6b8c883d9",
+  "sha": "960341a6243e9901",
   "status": 200
  },
  "/default/pi-fleet-suffix": {
@@ -4686,7 +4686,7 @@
    "Content-Type"
   ],
   "len": 9655,
-  "sha": "4a96f76a62746e88",
+  "sha": "93abe5f0b2555c0c",
   "status": 200
  },
  "/default/privacy-suffix": {
@@ -4863,7 +4863,7 @@
    "Content-Type"
   ],
   "len": 12924,
-  "sha": "2c223cf48ad184a3",
+  "sha": "71b0b098dce00b23",
   "status": 200
  },
  "/default/site-test-suffix": {
@@ -4922,7 +4922,7 @@
    "Content-Type"
   ],
   "len": 8109,
-  "sha": "373cbc899991be71",
+  "sha": "4044b4728734f30c",
   "status": 200
  },
  "/default/skycam-suffix": {
@@ -6899,7 +6899,7 @@
    "Content-Type"
   ],
   "len": 5408,
-  "sha": "b9effe210d1b3249",
+  "sha": "1dd0e6210fe4966e",
   "status": 200
  },
  "/default/stereo-nav": {
@@ -8165,7 +8165,7 @@
    "Content-Type"
   ],
   "len": 52910,
-  "sha": "95a017f07fd83041",
+  "sha": "0b1940aaa7a27e06",
   "status": 200
  },
  "/gotg-suffix": {
@@ -8283,7 +8283,7 @@
    "Content-Type"
   ],
   "len": 18057,
-  "sha": "d0a3db85d1a002e8",
+  "sha": "1614649dd985c6bb",
   "status": 200
  },
  "/lambda-stats-suffix": {
@@ -8401,7 +8401,7 @@
    "Content-Type"
   ],
   "len": 5805,
-  "sha": "997059cfe5a328b2",
+  "sha": "fe4791e08f670f15",
   "status": 200
  },
  "/manim-suffix": {
@@ -8809,7 +8809,7 @@
    "Content-Type"
   ],
   "len": 9150,
-  "sha": "acdde2d6b8c883d9",
+  "sha": "960341a6243e9901",
   "status": 200
  },
  "/pi-fleet-suffix": {
@@ -8868,7 +8868,7 @@
    "Content-Type"
   ],
   "len": 9655,
-  "sha": "4a96f76a62746e88",
+  "sha": "93abe5f0b2555c0c",
   "status": 200
  },
  "/privacy-suffix": {
@@ -9045,7 +9045,7 @@
    "Content-Type"
   ],
   "len": 12924,
-  "sha": "2c223cf48ad184a3",
+  "sha": "71b0b098dce00b23",
   "status": 200
  },
  "/site-test-suffix": {
@@ -9104,7 +9104,7 @@
    "Content-Type"
   ],
   "len": 8109,
-  "sha": "373cbc899991be71",
+  "sha": "4044b4728734f30c",
   "status": 200
  },
  "/skycam-suffix": {
@@ -11092,7 +11092,7 @@
    "Content-Type"
   ],
   "len": 5408,
-  "sha": "b9effe210d1b3249",
+  "sha": "1dd0e6210fe4966e",
   "status": 200
  },
  "/stereo-nav": {
