@@ -186,8 +186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7144,
-  "sha": "bc96f5a32b492896",
+  "len": 7265,
+  "sha": "844ad2a7829e4d55",
   "status": 200
  },
  "/astro-suffix": {
@@ -1707,8 +1707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7144,
-  "sha": "bc96f5a32b492896",
+  "len": 7265,
+  "sha": "844ad2a7829e4d55",
   "status": 200
  },
  "/default/astro-suffix": {
