@@ -102,12 +102,13 @@ def render_astro_hub(*, theme_css_js):
     .badge {{ display: inline-block; margin-left: 0.5rem; padding: 0.1rem 0.5rem; font-size: 0.7rem; font-weight: 400; color: var(--text-secondary); background: var(--divider, #2C2C2E); border-radius: 6px; vertical-align: middle; }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
+    :root[data-theme="light"] .subtitle, :root[data-theme="light"] .cam-desc {{ color: var(--text); }}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Astro</h1>
-    <div class="subtitle">Long exposure, large area, urban astronomy. Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, which means that galaxies, even our own, are not the place to start.</div>
+    <div class="subtitle">Long exposure, wide angle, automated astronomy.<br>Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky.</div>
 {cards}
 {collections}
 {historical}
