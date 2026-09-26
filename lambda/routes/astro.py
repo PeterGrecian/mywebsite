@@ -93,7 +93,8 @@ def render_astro_hub(*, theme_css_js):
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
     .container {{ max-width: 800px; margin: 0 auto; }}
     h1 {{ text-align: center; font-size: 1.6rem; margin: 1.5rem 0 0.3rem; }}
-    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.8rem; }}
+    .intro {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0 0 1.5rem; }}
     .cam-card {{ display: block; background: var(--card-bg); padding: 1rem; margin-bottom: 0.75rem; text-decoration: none; color: inherit; }}
     .cam-card:hover {{ opacity: 0.85; }}
     .cam-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); }}
@@ -102,13 +103,14 @@ def render_astro_hub(*, theme_css_js):
     .badge {{ display: inline-block; margin-left: 0.5rem; padding: 0.1rem 0.5rem; font-size: 0.7rem; font-weight: 400; color: var(--text-secondary); background: var(--divider, #2C2C2E); border-radius: 6px; vertical-align: middle; }}
     .footer {{ text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
-    :root[data-theme="light"] .subtitle, :root[data-theme="light"] .cam-desc {{ color: var(--text); }}
+    :root[data-theme="light"] .subtitle, :root[data-theme="light"] .intro, :root[data-theme="light"] .cam-desc {{ color: var(--text); }}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Astro</h1>
-    <div class="subtitle">Long exposure, wide angle, automated astronomy.<br>Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky.</div>
+    <div class="subtitle">Long exposure, wide angle, automated astronomy.</div>
+    <p class="intro">Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky. I should have a bumper sticker saying &ldquo;urban astronomers do it all night every night, and then do it in software.&rdquo;</p>
 {cards}
 {collections}
 {historical}
