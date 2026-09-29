@@ -468,7 +468,7 @@ CAMERA_PHOTOS = {
                    "alt": "The Ecliptic Camera: a Pi in a cardboard box on "
                           "the windowsill, two ribbon cables running to "
                           "cameras at the glass",
-                   "caption": "Two cameras are fitted, but only the v3 Wide "
+                   "caption": "Two cameras are fitted, but only the v3 Wide, on the right, "
                               "(IMX708) is used.  The v1 is not."},
 }
 
