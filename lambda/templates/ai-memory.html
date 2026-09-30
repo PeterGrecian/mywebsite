@@ -125,10 +125,33 @@ Each of these was learned by getting it wrong once.
 
       <section>
         <h2>Real examples from my strands</h2>
-        <p><strong>mywebsite.</strong> This website: the Lambda behind it, the
-          edge rules in front of it, and everything already measured about
-          both.</p>
-        <p>This site is not what a model assumes a website is. There is no Apache,
+        <p>These are real strands, in daily use on one estate:</p>
+        <p><strong>mywebsite.</strong> This website is unusual as it uses API
+          Gateway/Lambda rather than Apache or nginx. There is terraform code
+          for standing it up, but critical Python code with testing to develop
+          and maintain.</p>
+        <p><strong>astro-pipeline.</strong> Turns raw sensor frames into
+          calibrated, catalogued, quality-scored data, across several
+          machines.</p>
+        <p><strong>astro-storage.</strong> The storage lifecycle of every
+          camera stream (squash, ship, retain) held as one system rather than
+          per camera.</p>
+        <p><strong>ansible.</strong> Changes hosts. Applies fleet configuration
+          and fixes the drift that accumulates between applications.</p>
+        <p><strong>pifleet.</strong> Who is in the fleet, and whether each
+          always-on host is up.</p>
+        <p><strong>aifabric-sessions.</strong> The transcript archive and its
+          search index: the other half of the memory, the one nobody
+          curates.</p>
+        <p><strong>towhom.</strong> Owns no code at all. Reads across every
+          other strand and holds the whole-estate picture, and the single
+          ordered backlog.</p>
+        <p>Two things in that list matter more than the names. The strands do
+          not map one-to-one onto repositories. Most span several, and the
+          last owns none. And one person runs all of it, which is the point
+          being made: the method is what makes that possible.</p>
+        <p>Take the first, since you are looking at what it maintains. This
+          site is not what a model assumes a website is. There is no Apache,
           no nginx, no server at all. Every page is assembled on demand by a
           Lambda function behind API Gateway, and the gallery pages are built
           at request time from artifacts sitting in S3: last night's
