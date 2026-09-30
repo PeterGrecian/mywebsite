@@ -100,26 +100,21 @@
           <tr><td class="k">IDEAS.md</td><td>An inbox for short notes, proposals or observations. It can be appended to freely using the idea script by humans or agents and triaged by the strand.</td></tr>
           <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
         </table>
-        <p>Prose, not structure. This is a real entry from the state file of
-          the strand that keeps this website, trimmed to fit:</p>
-<pre><b>## Pending / loose ends</b>
+        <p>This website is developed mainly using a strand called
+          "mywebsite". Here's an example from the STATE.md:</p>
+<pre><b>### Two things left dirty, on purpose</b>
 
-- <b>Half of all mywebsite invocations are one poller.</b>
-  /calendaralarm/api/rules was 1,436 requests in 24h, almost
-  exactly one a minute, against a ~3,000/day total.
-
-  The project is not under active development, but the poller
-  is live. Do not read the silence as "safe to switch off":
-  something deployed is still calling this every minute.
-
-  Agreed when it is picked up: every 10 minutes by day, off
-  at night: a 20x cut. That change belongs to the other
-  project's timer, not to this repo.</pre>
-        <p class="caption">Ten lines carrying a measurement, a correction from
-          a human with the date attached, a warning aimed at whoever opens the
-          strand next, a decision recorded without being acted on, and the
-          name of whoever actually owns the fix. None of that survives in a
-          conversation.</p>
+- <b>deploy zips the working tree, not HEAD.</b> lambda/routes/astro.py
+  had another session's uncommitted calendar subtitle in it
+  (authored 2026-09-19), so it went live with this deploy while
+  the build stamp still records the committed hash. Harmless for
+  a subtitle; the general hazard is not. Nothing here should
+  assume a deploy publishes only what is committed.</pre>
+        <p class="caption">Six lines carrying a trap found by walking into it,
+          the evidence with its date, a judgement of how much it mattered this
+          time, and a rule for whoever opens the strand next. A new session
+          reads it before it deploys anything; in a conversation it would have
+          scrolled away.</p>
         <p>Because the files are in git, the memory is versioned, diffable and
           portable. When it is wrong you fix it with an editor.</p>
       </section>

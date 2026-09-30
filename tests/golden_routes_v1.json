@@ -127,8 +127,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 35727,
-  "sha": "1d7c01fa5d888486",
+  "len": 35601,
+  "sha": "8718021aa743693c",
   "status": 200
  },
  "/ai-memory-suffix": {
@@ -1648,8 +1648,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 35727,
-  "sha": "1d7c01fa5d888486",
+  "len": 35601,
+  "sha": "8718021aa743693c",
   "status": 200
  },
  "/default/ai-memory-suffix": {
