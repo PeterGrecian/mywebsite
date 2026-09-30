@@ -38,6 +38,8 @@
       .aside {{ color: var(--text); opacity: 0.75; font-size: 0.9rem; }}
       pre {{ background: rgba(142,142,147,0.12); border: 1px solid var(--divider); border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.8rem; overflow-x: auto; font-family: monospace; font-size: 0.82rem; line-height: 1.6; color: var(--text); }}
       pre b {{ color: var(--accent); font-weight: 600; }}
+      .shot {{ margin: 0 0 1.5rem; }}
+      .shot img {{ width: 100%; height: auto; display: block; border-radius: 8px; margin-bottom: 0.4rem; }}
       .caption {{ font-size: 0.85rem; opacity: 0.75; margin-bottom: 0.8rem; }}
       .contact-line {{ font-size: 1.05rem; }}
       .contact-line a {{ text-decoration: none; }}
@@ -271,6 +273,13 @@ Each of these was learned by getting it wrong once.
         <p>Being replaced by a script is a success for a keeper. Anything that
           can run deterministically should.</p>
       </section>
+
+      <figure class="shot">
+        <img src="https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/ai-memory/strands-deck.png"
+             alt="The strand deck: a tab bar of live strands (mywebsite, monitoring, astro-capture, ansible, home-automation, aifabric) above a Claude Code prompt"
+             width="938" height="272" loading="lazy">
+        <figcaption class="caption">Experimental: strands in a tmux in an xterm.js in a browser app.</figcaption>
+      </figure>
 
       <section>
         <h2>Running them</h2>
