@@ -387,47 +387,28 @@ Each of these was learned by getting it wrong once.
 
       <section>
         <h2>Putting this to work in a team</h2>
-        <p>Everything above is one person's estate. The method was built
-          there, but the problem it solves is worse in a team: several people
-          teaching the same agent the same codebase, none of them able to see
-          what the others' sessions concluded, and every good decision ending
-          up in a transcript nobody else will ever open. A strand is memory
-          the whole team can read, review and correct, in a pull request,
-          like everything else you already trust.</p>
-        <p>The shape that fits a team is two layers. Each person keeps their
-          own strands, because the work is theirs and the judgement in a state
-          file is personal. Alongside them sits a team strand holding what
-          turned out to be shared: the architecture everyone builds against,
-          the conventions, the decisions nobody should have to rediscover.
-          The shared layer is <em>factored out of</em> the personal ones
-          rather than written first. When the same fact has been stated in
-          three people's state files, it belongs in one place and gets
-          promoted there. That is the prune-and-promote discipline described
-          above, applied one level up.</p>
-        <p>What that buys, beyond not writing the same paragraph three times,
-          is that disagreement becomes visible. Two developers holding
-          different beliefs about the same system is normal, and usually stays
-          invisible until something breaks. Here both beliefs are prose in
-          git, about a named subject, so they can be compared, and a
-          contradiction between a personal strand and the shared one is worth
-          flagging the moment it appears. Either the shared file has gone
-          stale or somebody is working from something that stopped being true,
-          and both are better found on a Tuesday afternoon than during an
-          incident.</p>
-        <p class="aside">The two-layer split is a design rather than something
-          already running: one person's estate has no second layer to factor
-          out of it. It is the first thing I would build with a team that
-          wanted it.</p>
-        <p>I take consultancy work setting this up. In practice that means
-          finding where the strand boundaries in your system actually fall,
-          writing the first state files alongside the people who own each
-          area, putting in the launcher and the commit habit that keep them
-          current, and deciding what an agent is allowed to reach. It is a
-          small amount of tooling and a large amount of judgement about what
-          is worth writing down.</p>
-        <p>If your team is spending real money on agents and getting
-          inconsistent work back, that is the symptom this addresses. Tell me
-          what you are running and I will tell you whether it would help.</p>
+        <p>Everything above is one person's estate, but the problem is worse
+          in a team: several people teaching the same agent the same codebase,
+          and every good decision ending up in a transcript nobody else will
+          open. The shape that fits is a hierarchy of two layers. Each person
+          keeps their own strands, and a team strand holds what turned out to
+          be shared: the architecture, the conventions, the decisions nobody
+          should have to rediscover. The shared layer is <em>factored out
+          of</em> the personal ones rather than written first. When three
+          people's state files say the same thing, it is promoted to one place.
+          Git keeps the layers in sync, and because both are prose in git, a
+          contradiction between them is visible the moment it appears, rather
+          than during an incident. This layer is a design rather than something
+          already running, and the first thing I would build with a team.</p>
+        <p>I take consultancy work setting this up: finding where the strand
+          boundaries in your system fall, writing the first state files
+          alongside the people who own each area, and deciding what an agent
+          is allowed to reach. What this page describes is a sketch of a much
+          more developed "fabric", and there are huge opportunities for
+          developing it further and taming the Silicon/Carbon divide between
+          the agents and the people working with them. If your team is spending
+          real money on agents and getting inconsistent work back, tell me what
+          you are running and I will tell you whether it would help.</p>
         <p>You need nothing from me to start, and I would rather you tried it
           first. Open three terminal windows. Give each one a directory, a
           file saying what that piece of work is and which repositories it
