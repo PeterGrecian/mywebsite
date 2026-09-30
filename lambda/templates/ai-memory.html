@@ -387,15 +387,10 @@ Each of these was learned by getting it wrong once.
 
       <section>
         <h2>Putting this to work in a team</h2>
-        <p>Everything above is one person's estate, but the problem is worse
-          in a team: several people teaching the same agent the same codebase,
-          and every good decision ending up in a transcript nobody else will
-          open. The shape that fits is a hierarchy of two layers. Each person
-          keeps their own strands, and a team strand holds what turned out to
-          be shared: the architecture, the conventions, the decisions nobody
-          should have to rediscover. The shared layer is <em>factored out
-          of</em> the personal ones rather than written first. When three
-          people's state files say the same thing, it is promoted to one place.
+        <p>Strands work fantastically with teams using individual work in
+          progress strand artifacts and a shared layer,
+          <code>STATE-team.md</code> for example, which is factorised out for
+          sharing.
           Git keeps the layers in sync, and because both are prose in git, a
           contradiction between them is visible the moment it appears, rather
           than during an incident. This layer is a design rather than something
