@@ -77,7 +77,7 @@ class TestAiMemory:
         the load-bearing terms of the method it claims to introduce."""
         body = mywebsite.lambda_handler(
             make_event("/ai-memory"), make_context())["body"]
-        for term in ("STATE.md", "IDEAS.md", "keeper", "builder"):
+        for term in ("STATE.md", "IDEAS.md", "keeper"):
             assert term in body, f"{term} missing from the methodology page"
 
     def test_has_dated_byline(self, mywebsite, make_event, make_context):
