@@ -26,6 +26,7 @@
       table {{ width: 100%; border-collapse: collapse; margin-bottom: 0.8rem; }}
       td {{ padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--divider); vertical-align: top; line-height: 1.55; }}
       tr:last-child td {{ border-bottom: none; }}
+      h3 {{ font-size: 1rem; margin: 1.2rem 0 0.4rem; }}
       td.k {{ color: var(--accent); font-family: monospace; white-space: nowrap; width: 1%; }}
       td.g {{ color: var(--text-secondary); font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1.1rem; border-bottom: none; }}
       tr:first-child td.g {{ padding-top: 0; }}
@@ -94,12 +95,10 @@
           the strand, and curated memory.</p>
         <p>Each one is a directory of plain files, itself held in a
           strands repository:</p>
-        <table>
-          <tr><td class="k">CLAUDE.md</td><td>(or the vendor equivalent) The mission. What this strand is, which repos it spans, how a session should open.</td></tr>
-          <tr><td class="k">STATE.md</td><td>The durable memory. What exists, what is pending, what was decided and why. Deliberately <em>not</em> a log: it gets edited down.</td></tr>
-          <tr><td class="k">IDEAS.md</td><td>An inbox for short notes, proposals or observations. It can be appended to freely using the idea script by humans or agents and triaged by the strand.</td></tr>
-          <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
-        </table>
+        <p><strong>CLAUDE.md</strong> (or the vendor equivalent). The mission. What this strand is, which repos it spans, how a session should open.</p>
+        <p><strong>STATE.md.</strong> The durable memory. What exists, what is pending, what was decided and why. Deliberately <em>not</em> a log: it gets edited down.</p>
+        <p><strong>IDEAS.md.</strong> An inbox for short notes, proposals or observations. It can be appended to freely using the idea script by humans or agents and triaged by the strand.</p>
+        <p><strong>dirs.</strong> The working directories this strand needs open.</p>
         <p>This website is developed mainly using a strand called
           "mywebsite". Here's an example from the STATE.md:</p>
 <pre><b>## Rules and traps</b>
@@ -334,35 +333,28 @@ Each of these was learned by getting it wrong once.
         <h2>The tools around it</h2>
         <p>The files are the method. A set of small tools keeps the habit
           cheap enough to actually follow, and most of them do one thing.</p>
-        <table>
-          <tr><td class="g" colspan="2">Running a strand</td></tr>
-          <tr><td class="k">aicli</td><td>Opens a strand: moves into its directory, loads the mission and state, opens its working directories, colours the terminal.</td></tr>
-          <tr><td class="k">strands</td><td>Lists them, marking which are live, and creates new ones from a template.</td></tr>
-          <tr><td class="k">strand-ps</td><td>Which strands are running, and where.</td></tr>
-          <tr><td class="k">panedeck, pane</td><td>The board: every live strand as a labelled pane, and the verbs to drive one from another.</td></tr>
-          <tr><td class="k">forkterm</td><td>Forks a session into a peer in its own window, either warm or briefed cold into another strand.</td></tr>
-
-          <tr><td class="g" colspan="2">Working in one</td></tr>
-          <tr><td class="k">idea</td><td>Spools a thought into a strand's inbox from anywhere, without stopping what you are doing. It commits and pushes itself, so nothing is lost to a closed terminal.</td></tr>
-          <tr><td class="k">dcp</td><td>Document, commit, push. One command at a checkpoint: update the state file, commit, push.</td></tr>
-          <tr><td class="k">resume</td><td>Writes the standing summary at the top of a state file, so a fresh session knows where it came in.</td></tr>
-
-          <tr><td class="g" colspan="2">Talking between them</td></tr>
-          <tr><td class="k">strand-mailbox</td><td>The spool. A message waits here until the recipient next opens, which is the half that survives a closed session.</td></tr>
-          <tr><td class="k">ding</td><td>The doorbell. Wakes a strand that is already running, for when the moment matters more than the durability.</td></tr>
-
-          <tr><td class="g" colspan="2">Remembering</td></tr>
-          <tr><td class="k">sessions</td><td>Every transcript indexed into an OpenSearch database, searchable long after the conversation that produced it is gone.</td></tr>
-          <tr><td class="k">backup</td><td>State lives in git repositories with remotes; the transcript archive is held on a server of its own. The memory outlives any one machine.</td></tr>
-
-          <tr><td class="g" colspan="2">Guarding</td></tr>
-          <tr><td class="k">strand-accounts</td><td>Provisions the per-strand user accounts and zone groups described above.</td></tr>
-          <tr><td class="k">leak scans</td><td>Check transcripts and repositories for anything that should not travel, before it does.</td></tr>
-
-          <tr><td class="g" colspan="2">Across all of them</td></tr>
-          <tr><td class="k">backlog</td><td>One ordered list for the whole estate. Anyone adds to the bottom; one strand does the ranking, being the only one that sees across them all.</td></tr>
-          <tr><td class="k">proposals</td><td>The drawer of arguments about what to build next, with an index that will not let one be quietly forgotten.</td></tr>
-        </table>
+        <h3>Running a strand</h3>
+        <p><strong>aicli.</strong> Opens a strand: moves into its directory, loads the mission and state, opens its working directories, colours the terminal.</p>
+        <p><strong>strands.</strong> Lists them, marking which are live, and creates new ones from a template.</p>
+        <p><strong>strand-ps.</strong> Which strands are running, and where.</p>
+        <p><strong>panedeck, pane.</strong> The board: every live strand as a labelled pane, and the verbs to drive one from another.</p>
+        <p><strong>forkterm.</strong> Forks a session into a peer in its own window, either warm or briefed cold into another strand.</p>
+        <h3>Working in one</h3>
+        <p><strong>idea.</strong> Spools a thought into a strand's inbox from anywhere, without stopping what you are doing. It commits and pushes itself, so nothing is lost to a closed terminal.</p>
+        <p><strong>dcp.</strong> Document, commit, push. One command at a checkpoint: update the state file, commit, push.</p>
+        <p><strong>resume.</strong> Writes the standing summary at the top of a state file, so a fresh session knows where it came in.</p>
+        <h3>Talking between them</h3>
+        <p><strong>strand-mailbox.</strong> The spool. A message waits here until the recipient next opens, which is the half that survives a closed session.</p>
+        <p><strong>ding.</strong> The doorbell. Wakes a strand that is already running, for when the moment matters more than the durability.</p>
+        <h3>Remembering</h3>
+        <p><strong>sessions.</strong> Every transcript indexed into an OpenSearch database, searchable long after the conversation that produced it is gone.</p>
+        <p><strong>backup.</strong> State lives in git repositories with remotes; the transcript archive is held on a server of its own. The memory outlives any one machine.</p>
+        <h3>Guarding</h3>
+        <p><strong>strand-accounts.</strong> Provisions the per-strand user accounts and zone groups described above.</p>
+        <p><strong>leak scans.</strong> Check transcripts and repositories for anything that should not travel, before it does.</p>
+        <h3>Across all of them</h3>
+        <p><strong>backlog.</strong> One ordered list for the whole estate. Anyone adds to the bottom; one strand does the ranking, being the only one that sees across them all.</p>
+        <p><strong>proposals.</strong> The drawer of arguments about what to build next, with an index that will not let one be quietly forgotten.</p>
         <p class="aside">A sketch rather than a manual; each of these deserves
           its own page.</p>
       </section>
