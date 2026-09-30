@@ -162,5 +162,7 @@ def render_contents_page(*, theme_css_js, private=False):
     </div>
     <p class="colophon">This website is powered by API Gateway, Python
       Lambda, DynamoDB and Cloudflare.</p>
+    <p class="colophon">TA07229803/00 ·
+      <a href="tel:+442088653074" style="color: inherit;">+44(0)208 865 3074</a></p>
   </body>
 </html>'''
