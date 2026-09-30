@@ -226,13 +226,13 @@ Each of these was learned by getting it wrong once.
           beginning of a session with system prompts etc is about 35k tokens.
           5k tokens spent briefing the agent on its role and giving it subject
           knowledge are tokens well spent.</p>
-        <p>The dial that does pay is how hard the model is asked to think.
-          These agents expose it, and it moves cost far more than most people
-          realise. Maximum reasoning for planning, where being wrong is
-          expensive and the output is short. Something middling for carrying
-          the plan out, where the thinking has already been done. Same model
-          throughout, so nothing has to be re-explained at the handover and
-          no work comes back.</p>
+        <p>Effort (<code>/effort</code>) is the control to use. When
+          planning, high effort and solution exploration is needed to examine
+          the issues thoroughly. When coding, decisiveness and focus is
+          needed: medium or low effort.</p>
+        <p>By the way, because my strands run sessions in tmux, I can write to
+          the command line in this and other sessions and control switches
+          like this, and <code>/clear</code> too, which is powerful.</p>
         <p>This is where the files pay for themselves a second time. Effort
           is, in the end, the model working out what it has not been told.
           Give it the architecture, the conventions and the last six
