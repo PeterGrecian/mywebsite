@@ -102,19 +102,26 @@
         </table>
         <p>This website is developed mainly using a strand called
           "mywebsite". Here's an example from the STATE.md:</p>
-<pre><b>### Two things left dirty, on purpose</b>
+<pre><b>## Rules and traps</b>
 
-- <b>deploy zips the working tree, not HEAD.</b> lambda/routes/astro.py
-  had another session's uncommitted calendar subtitle in it
-  (authored 2026-09-19), so it went live with this deploy while
-  the build stamp still records the committed hash. Harmless for
-  a subtitle; the general hazard is not. Nothing here should
-  assume a deploy publishes only what is committed.</pre>
-        <p class="caption">Six lines carrying a trap found by walking into it,
-          the evidence with its date, a judgement of how much it mattered this
-          time, and a rule for whoever opens the strand next. A new session
-          reads it before it deploys anything; in a conversation it would have
-          scrolled away.</p>
+Each of these was learned by getting it wrong once.
+
+- <b>deploy zips the working tree, not HEAD.</b> Another session's
+  uncommitted edit goes live while the build stamp records the
+  committed hash. Look at git status before deploying.
+- <b>boto3.client() costs ~0.14 s.</b> Never build one per item or
+  per invocation; use the cached s3_client().
+- <b>Replace an image at a new S3 key, never new bytes at the old
+  one.</b> The S3 host is outside the Cloudflare zone, so the old
+  picture stays cached for 7 days.
+- <b>Check before asserting what a route serves.</b> This strand
+  once claimed / served the CV on the strength of an old line
+  here, and a redirect was nearly built on it.</pre>
+        <p class="caption">Each line is a mistake that was made once and
+          need not be made again. The detective story behind each one has
+          been cut: it is in git history and the session archive if anyone
+          wants it. What is left is short enough for a new session to read
+          before it touches anything.</p>
         <p>Because the files are in git, the memory is versioned, diffable and
           portable. When it is wrong you fix it with an editor.</p>
       </section>
