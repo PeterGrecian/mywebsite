@@ -138,13 +138,20 @@ Each of these was learned by getting it wrong once.
         <p><strong>ansible.</strong> Changes hosts. Applies fleet configuration
           and fixes the drift that accumulates between applications.</p>
         <p><strong>monitoring.</strong> ansible configures hosts (Raspberry
-          Pis, servers etc) so they ship logs to the OpenSearch cluster, and
-          logwatch messages fixes to problems to ansible. Ansible and
+          Pis, servers etc) so they ship logs to the OpenSearch cluster.
+          logwatch raises alerts, and the monitoring strand diagnoses them and
+          messages fixes to ansible. Ansible and
           monitoring work in parallel but have a strict split of
           responsibilities.</p>
-        <p><strong>sessions.</strong> The transcript archive and its
-          search index: the other half of the memory, the one nobody
-          curates.</p>
+        <p><strong>sessions.</strong> Archiving and indexing session
+          transcripts. Also, a tool for searching sessions.</p>
+        <p><strong>super.</strong> The house tooling: small command-line
+          tools every strand shares, such as <code>secrets</code>,
+          <code>resolve-host</code>, <code>trash</code> and
+          <code>idea</code>, and the global context file every session loads,
+          with the conventions they all follow. An agent is told to look for a
+          house tool before writing a new helper, so the estate grows one tool
+          per job rather than a copy in every repo.</p>
         <p><strong>towhom.</strong> Owns no code at all. Reads across every
           other strand and holds the whole-estate picture, and the single
           ordered backlog.</p>
