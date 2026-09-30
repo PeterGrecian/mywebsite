@@ -138,8 +138,13 @@ Each of these was learned by getting it wrong once.
           per camera.</p>
         <p><strong>ansible.</strong> Changes hosts. Applies fleet configuration
           and fixes the drift that accumulates between applications.</p>
-        <p><strong>pifleet.</strong> Who is in the fleet, and whether each
-          always-on host is up.</p>
+        <p><strong>monitoring.</strong> How each host is behaving over time.
+          Every host ships its logs to one index, and logwatch, itself
+          deployed by ansible, sweeps them every 15 minutes and alerts when a
+          service keeps failing. The split is strict: monitoring detects and
+          diagnoses, then mails the fix to the ansible strand, which applies
+          it. A fix counts as done when the failures stop appearing in the
+          logs.</p>
         <p><strong>aifabric-sessions.</strong> The transcript archive and its
           search index: the other half of the memory, the one nobody
           curates.</p>
