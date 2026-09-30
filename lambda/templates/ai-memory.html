@@ -89,15 +89,15 @@
 
       <section>
         <h2>The unit between a repo and a session</h2>
-        <p>A strand is a long-running theme that spans several repositories
-          and gets revisited every week or so. Not a project, not a ticket, and
-          not a chat log: a workstream with a curated memory attached.</p>
+        <p>A strand is an area of concern which specialises an agent. It
+          might span several repos, or part of one. It contains a brief for
+          the strand, and curated memory.</p>
         <p>Each one is a directory of plain files, itself held in a
           strands repository:</p>
         <table>
           <tr><td class="k">CLAUDE.md</td><td>(or the vendor equivalent) The mission. What this strand is, which repos it spans, how a session should open.</td></tr>
           <tr><td class="k">STATE.md</td><td>The durable memory. What exists, what is pending, what was decided and why. Deliberately <em>not</em> a log: it gets edited down.</td></tr>
-          <tr><td class="k">IDEAS.md</td><td>An inbox. Anything can append to it from any machine; it is triaged at the start of the next session.</td></tr>
+          <tr><td class="k">IDEAS.md</td><td>An inbox for short notes, proposals or observations. It can be appended to freely using the idea script by humans or agents and triaged by the strand.</td></tr>
           <tr><td class="k">dirs</td><td>The working directories this strand needs open.</td></tr>
         </table>
         <p>Prose, not structure. This is a real entry from the state file of
