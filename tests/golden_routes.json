@@ -6,8 +6,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/": {
@@ -17,8 +17,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/-suffix": {
@@ -1409,8 +1409,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/contents-suffix": {
@@ -1527,8 +1527,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/default/": {
@@ -1538,8 +1538,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/default/-suffix": {
@@ -2919,8 +2919,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8372,
-  "sha": "c01b7e27a30c3fb2",
+  "len": 8310,
+  "sha": "7bf9b46345a4aee3",
   "status": 200
  },
  "/default/contents-suffix": {
