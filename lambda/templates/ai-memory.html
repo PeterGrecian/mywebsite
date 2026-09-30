@@ -212,9 +212,11 @@ Each of these was learned by getting it wrong once.
         <p>Don't use a weaker model. Savings come from using a strong model
           efficiently. Most of what makes an agent expensive is
           rediscovery: working out what this is, what was decided and why,
-          before it can start on anything. That bill arrives at the top of
-          every fresh conversation. A strand settles it once, from a file,
-          in the first few seconds.</p>
+          before it can start on anything. That cost is incurred at the start
+          of every conversation if you don't use strands. The context at the
+          beginning of a session with system prompts etc is about 35k tokens.
+          5k tokens spent briefing the agent on its role and giving it subject
+          knowledge are tokens well spent.</p>
         <p>The goal is the cheapest thing that can actually do the job, and
           the usual advice about how to get there is wrong. That advice is to
           tier the model down: plan with the expensive one, hand the writing
