@@ -2400,8 +2400,22 @@ def render_ai_memory_page():
     for review rather than treated as ordinary site copy.
     """
     _dir = os.path.join(os.path.dirname(__file__), "templates")
-    with open(os.path.join(_dir, "ai-memory.html")) as f:
-        return f.read().format(theme_css_js=THEME_CSS_JS)
+    path = os.path.join(_dir, "ai-memory.html")
+    with open(path) as f:
+        return f.read().format(theme_css_js=THEME_CSS_JS,
+                               updated=_ai_memory_updated(path))
+
+
+def _ai_memory_updated(path):
+    """The byline date: stamped by ./deploy from the template's git history,
+    so it moves with every edit. Without a deploy (tests, local runs) the
+    file's mtime stands in."""
+    try:
+        from build_info import AI_MEMORY_UPDATED
+        d = datetime.strptime(AI_MEMORY_UPDATED, "%Y-%m-%d")
+    except (ImportError, ValueError):
+        d = datetime.fromtimestamp(os.path.getmtime(path))
+    return f"{d.day} {d.strftime('%B %Y')}"
 
 
 AI_APPS = [

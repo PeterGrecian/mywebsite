@@ -80,6 +80,13 @@ class TestAiMemory:
         for term in ("STATE.md", "IDEAS.md", "keeper", "builder"):
             assert term in body, f"{term} missing from the methodology page"
 
+    def test_has_dated_byline(self, mywebsite, make_event, make_context):
+        """The byline date is derived (deploy stamps it from git), so the
+        page can never carry a stale one by someone forgetting to edit it."""
+        body = mywebsite.lambda_handler(
+            make_event("/ai-memory"), make_context())["body"]
+        assert re.search(r"by Peter Grecian, \d{1,2} [A-Z][a-z]+ \d{4}", body)
+
     def test_is_public(self, contents_items):
         entry = next(i for i in contents_items if i["path"] == "ai-memory")
         assert entry["visible"] is True
