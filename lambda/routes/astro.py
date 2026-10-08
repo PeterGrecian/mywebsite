@@ -208,6 +208,10 @@ def _section(sec):
         ("sweep-colour.mp4", "poster-colour.jpg",
          "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
          "story of the night in 5 seconds"),
+        ("sweep-glow.mp4", "poster-glow.jpg",
+         "glow sweep — 10 min windows with the night's smooth sky glow "
+         "fitted and subtracted from every frame, trees and roof masked; "
+         "star trails wheel round the pole and the Milky Way survives"),
         ("sweep-mono.mp4", "poster-mono.jpg",
          "monochrome sweep — same window, greyscale (science view)"),
         ("sweep-detrans.mp4", "poster-detrans.jpg",
