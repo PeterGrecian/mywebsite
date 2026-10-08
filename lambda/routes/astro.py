@@ -238,10 +238,22 @@ def _section(sec):
             # playing the smaller web encode.
             dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
                   if web_url and full else "")
+            # .vz wrapper: zoom/pan + half-speed default (script in the page);
+            # data-full lets a zoom swap in the full-res file.
+            data_full = f' data-full="{full}"' if web_url and full else ""
             imgs.append(
-                f'<video controls loop preload="metadata" playsinline '
-                f'poster="{poster}"><source src="{url}" type="video/mp4">'
-                f'Your browser cannot play this clip.</video>'
+                f'<div class="vz"><video controls loop preload="metadata" '
+                f'playsinline poster="{poster}"{data_full}>'
+                f'<source src="{url}" type="video/mp4">'
+                f'Your browser cannot play this clip.</video></div>'
+                f'<div class="vzbar"><button data-a="out" title="zoom out">&minus;</button>'
+                f'<span class="vzl">1&times;</span>'
+                f'<button data-a="in" title="zoom in">+</button>'
+                f'<button data-a="reset" title="reset zoom">fit</button>'
+                f'<button data-a="play" title="play / pause">&#9199;</button>'
+                f'<span class="vzs"><button data-r="0.25">&frac14;&times;</button>'
+                f'<button data-r="0.5" class="on">&frac12;&times;</button>'
+                f'<button data-r="1">1&times;</button></span></div>'
                 f'<div class="caption">{cap}{dl}</div>')
     for key, cap in (("derot.jpg", "pole-derotated stack (darkest window)"),
                      ("max.jpg", "max stack — star trails"),
@@ -1393,6 +1405,15 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
     .caption a.dl {{ color: var(--accent); text-decoration: none; white-space: nowrap; }}
     .caption a.dl:hover {{ text-decoration: underline; }}
+    .vz {{ position: relative; overflow: hidden; background: #000; touch-action: pan-y; }}
+    .vz video {{ transform-origin: 0 0; }}
+    .vz.zoomed {{ cursor: grab; touch-action: none; }}
+    .vz.zoomed.drag {{ cursor: grabbing; }}
+    .vzbar {{ display: flex; justify-content: center; align-items: center; gap: 0.35rem; margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); }}
+    .vzbar button {{ background: var(--card-bg); color: var(--accent); border: 0; border-radius: 8px; padding: 0.25rem 0.6rem; font: inherit; cursor: pointer; }}
+    .vzbar button.on {{ color: var(--text); background: var(--divider, #2C2C2E); }}
+    .vzl {{ min-width: 2.5em; text-align: center; }}
+    .vzs {{ margin-left: 0.6rem; display: inline-flex; gap: 0.25rem; }}
     .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
     .stat {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; }}
     .stat-v {{ font-size: 1rem; font-weight: 600; }}
@@ -1411,6 +1432,114 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     {body}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
+  <script>
+  // Sweep videos: loop at half speed by default; zoom (double-click, wheel
+  // once zoomed, pinch, or the +/- buttons) and drag to pan. The first zoom
+  // swaps in the full-res file (data-full), keeping time and play state.
+  // Native controls are hidden while zoomed (they would scale with the
+  // video); the bar's play button and speed buttons stand in.
+  (function () {{
+    document.querySelectorAll('.vz').forEach(function (box) {{
+      var v = box.querySelector('video'), bar = box.nextElementSibling;
+      var lbl = bar.querySelector('.vzl');
+      var z = 1, tx = 0, ty = 0, rate = 0.5, swapped = false;
+      function applyRate() {{ v.defaultPlaybackRate = rate; v.playbackRate = rate; }}
+      v.addEventListener('loadedmetadata', applyRate);
+      v.addEventListener('play', applyRate);
+      applyRate();
+      function clamp() {{
+        var w = box.clientWidth, h = box.clientHeight;
+        tx = Math.min(0, Math.max(w * (1 - z), tx));
+        ty = Math.min(0, Math.max(h * (1 - z), ty));
+      }}
+      function render() {{
+        clamp();
+        v.style.transform = z > 1 ? 'translate(' + tx + 'px,' + ty + 'px) scale(' + z + ')' : '';
+        box.classList.toggle('zoomed', z > 1);
+        v.controls = z <= 1;
+        lbl.textContent = (z < 10 ? z.toFixed(1).replace(/[.]0$/, '') : Math.round(z)) + '×';
+      }}
+      function swapFull() {{
+        if (swapped || !v.dataset.full) return;
+        swapped = true;
+        var t = v.currentTime, playing = !v.paused;
+        v.src = v.dataset.full;
+        v.addEventListener('loadedmetadata', function once() {{
+          v.removeEventListener('loadedmetadata', once);
+          v.currentTime = t; applyRate();
+          if (playing) v.play();
+        }});
+      }}
+      function zoomAt(nz, cx, cy) {{   // cx, cy: point in box coords that stays put
+        nz = Math.max(1, Math.min(12, nz));
+        tx = cx - (cx - tx) * nz / z;
+        ty = cy - (cy - ty) * nz / z;
+        z = nz;
+        if (z > 1) swapFull();
+        render();
+      }}
+      function centre() {{ return [box.clientWidth / 2, box.clientHeight / 2]; }}
+      function local(e) {{ var r = box.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }}
+      bar.addEventListener('click', function (e) {{
+        var b = e.target.closest('button'); if (!b) return;
+        var c = centre();
+        if (b.dataset.a === 'in') zoomAt(z * 2, c[0], c[1]);
+        else if (b.dataset.a === 'out') zoomAt(z / 2, c[0], c[1]);
+        else if (b.dataset.a === 'reset') {{ z = 1; tx = ty = 0; render(); }}
+        else if (b.dataset.a === 'play') {{ v.paused ? v.play() : v.pause(); }}
+        else if (b.dataset.r) {{
+          rate = parseFloat(b.dataset.r); applyRate();
+          bar.querySelectorAll('[data-r]').forEach(function (x) {{ x.classList.toggle('on', x === b); }});
+        }}
+      }});
+      box.addEventListener('dblclick', function (e) {{
+        e.preventDefault(); e.stopPropagation();
+        var p = local(e); zoomAt(z > 1 ? 1 : 3, p[0], p[1]);
+        if (z === 1) {{ tx = ty = 0; render(); }}
+      }}, true);
+      box.addEventListener('wheel', function (e) {{
+        if (z <= 1 && !e.ctrlKey) return;          // plain scroll passes until zoomed
+        e.preventDefault();
+        var p = local(e); zoomAt(z * Math.exp(-e.deltaY * 0.0015), p[0], p[1]);
+      }}, {{ passive: false }});
+      // pointer drag (mouse and one finger) pans; two fingers pinch
+      var pts = {{}}, last = null, pinch = null;
+      box.addEventListener('pointerdown', function (e) {{
+        pts[e.pointerId] = local(e);
+        var ids = Object.keys(pts);
+        if (ids.length === 2) {{
+          var a = pts[ids[0]], b = pts[ids[1]];
+          pinch = {{ d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: z }};
+          box.setPointerCapture(e.pointerId);
+        }} else if (z > 1) {{
+          last = pts[e.pointerId]; box.classList.add('drag');
+          box.setPointerCapture(e.pointerId);
+        }}
+      }});
+      box.addEventListener('pointermove', function (e) {{
+        if (!(e.pointerId in pts)) return;
+        pts[e.pointerId] = local(e);
+        var ids = Object.keys(pts);
+        if (pinch && ids.length === 2) {{
+          var a = pts[ids[0]], b = pts[ids[1]];
+          var d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+          zoomAt(pinch.z * d / pinch.d, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        }} else if (last && z > 1) {{
+          var p = pts[e.pointerId];
+          tx += p[0] - last[0]; ty += p[1] - last[1]; last = p; render();
+        }}
+      }});
+      function up(e) {{
+        delete pts[e.pointerId];
+        if (Object.keys(pts).length < 2) pinch = null;
+        last = null; box.classList.remove('drag');
+      }}
+      box.addEventListener('pointerup', up);
+      box.addEventListener('pointercancel', up);
+      window.addEventListener('resize', render);
+    }});
+  }})();
+  </script>
 </body>
 </html>'''
 
