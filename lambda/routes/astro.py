@@ -211,6 +211,15 @@ def _section(sec):
          "detrans deep — registered frames averaged then background-"
          "subtracted (max SNR); pulls the faintest stars onto a clean "
          "dark sky, per 10 min window through the night"),
+        ("sweep-derot.mp4", "poster-derot.jpg",
+         "derot sweep — each 10 min window mapped onto the sky through a "
+         "fitted camera model and turned about the pole, sky glow "
+         "subtracted, trees masked; the max of the window, so stars stay "
+         "points while the sky wheels round Polaris"),
+        ("sweep-derot-deep.mp4", "poster-derot-deep.jpg",
+         "derot deep — the same registered windows averaged (aircraft "
+         "clipped out): the faintest stars and the Milky Way's dark "
+         "lanes, per 10 min window through the night"),
     ):
         # Serve the -web variant: 1280-wide, denoised, +faststart, ~5MB vs
         # 130-180MB full-res. This is what publish-night-cam builds them FOR
