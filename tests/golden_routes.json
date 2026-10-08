@@ -127,8 +127,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 30017,
-  "sha": "aea8eb87a8d7dacf",
+  "len": 30231,
+  "sha": "0f333c365e34fd2b",
   "status": 200
  },
  "/ai-memory-suffix": {
@@ -186,8 +186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7551,
-  "sha": "ea31a7c0b4da46b2",
+  "len": 7765,
+  "sha": "902cdce207166b96",
   "status": 200
  },
  "/astro-suffix": {
@@ -425,8 +425,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4485,
-  "sha": "f5aa99e6aff1f1ca",
+  "len": 4705,
+  "sha": "2b3986591a40a545",
   "status": 200
  },
  "/astro/astrocam-suffix": {
@@ -448,8 +448,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4485,
-  "sha": "f5aa99e6aff1f1ca",
+  "len": 4705,
+  "sha": "2b3986591a40a545",
   "status": 200
  },
  "/astro/astrocam/child": {
@@ -483,8 +483,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4481,
-  "sha": "8175a055e23b4d5a",
+  "len": 4701,
+  "sha": "b28b8e07e59b44cc",
   "status": 200
  },
  "/astro/canon-suffix": {
@@ -506,8 +506,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4481,
-  "sha": "8175a055e23b4d5a",
+  "len": 4701,
+  "sha": "b28b8e07e59b44cc",
   "status": 200
  },
  "/astro/canon/child": {
@@ -565,8 +565,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10126,
-  "sha": "333728c17f5284c8",
+  "len": 10346,
+  "sha": "40adff95e219d111",
   "status": 200
  },
  "/astro/color-max-test-suffix": {
@@ -624,8 +624,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10126,
-  "sha": "333728c17f5284c8",
+  "len": 10346,
+  "sha": "40adff95e219d111",
   "status": 200
  },
  "/astro/colour-max-test-suffix": {
@@ -683,8 +683,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5394,
-  "sha": "6db3157fb4509154",
+  "len": 5614,
+  "sha": "3671867f849374ae",
   "status": 200
  },
  "/astro/disks-suffix": {
@@ -706,8 +706,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5394,
-  "sha": "6db3157fb4509154",
+  "len": 5614,
+  "sha": "3671867f849374ae",
   "status": 200
  },
  "/astro/disks/?$": {
@@ -801,8 +801,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4491,
-  "sha": "ef2055b8b8ba602a",
+  "len": 4711,
+  "sha": "b4dd462475eb2118",
   "status": 200
  },
  "/astro/eclipticam-suffix": {
@@ -824,8 +824,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4491,
-  "sha": "ef2055b8b8ba602a",
+  "len": 4711,
+  "sha": "b4dd462475eb2118",
   "status": 200
  },
  "/astro/eclipticam/child": {
@@ -859,8 +859,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/astro/photos-suffix": {
@@ -882,8 +882,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/astro/photos/child": {
@@ -916,8 +916,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/astro/showcase-suffix": {
@@ -939,8 +939,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/astro/showcase/child": {
@@ -1032,8 +1032,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11818,
-  "sha": "1d250f7ae86f2b65",
+  "len": 12038,
+  "sha": "95df7b7a0218a1ff",
   "status": 200
  },
  "/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -1115,8 +1115,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11818,
-  "sha": "1d250f7ae86f2b65",
+  "len": 12038,
+  "sha": "95df7b7a0218a1ff",
   "status": 200
  },
  "/astro/storage/2026-01": {
@@ -1126,8 +1126,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11818,
-  "sha": "1d250f7ae86f2b65",
+  "len": 12048,
+  "sha": "102296105d01efa2",
   "status": 200
  },
  "/astro/storage/child": {
@@ -1161,8 +1161,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7279,
-  "sha": "5caf41c06e12e727",
+  "len": 7499,
+  "sha": "f1ed40dc8fa86160",
   "status": 200
  },
  "/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -1244,8 +1244,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7279,
-  "sha": "5caf41c06e12e727",
+  "len": 7499,
+  "sha": "f1ed40dc8fa86160",
   "status": 200
  },
  "/astro/transients/child": {
@@ -1278,8 +1278,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7312,
-  "sha": "e4255c074e3226b9",
+  "len": 7526,
+  "sha": "a14161471bab14e0",
   "status": 200
  },
  "/biog-suffix": {
@@ -1468,8 +1468,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7925,
-  "sha": "6341549570ab2ad0",
+  "len": 8139,
+  "sha": "efca90cd009cad99",
   "status": 200
  },
  "/cv-suffix": {
@@ -1648,8 +1648,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 30017,
-  "sha": "aea8eb87a8d7dacf",
+  "len": 30231,
+  "sha": "0f333c365e34fd2b",
   "status": 200
  },
  "/default/ai-memory-suffix": {
@@ -1707,8 +1707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7551,
-  "sha": "ea31a7c0b4da46b2",
+  "len": 7765,
+  "sha": "902cdce207166b96",
   "status": 200
  },
  "/default/astro-suffix": {
@@ -1946,8 +1946,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4485,
-  "sha": "f5aa99e6aff1f1ca",
+  "len": 4705,
+  "sha": "2b3986591a40a545",
   "status": 200
  },
  "/default/astro/astrocam-suffix": {
@@ -1969,8 +1969,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4485,
-  "sha": "f5aa99e6aff1f1ca",
+  "len": 4705,
+  "sha": "2b3986591a40a545",
   "status": 200
  },
  "/default/astro/astrocam/child": {
@@ -2004,8 +2004,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4481,
-  "sha": "8175a055e23b4d5a",
+  "len": 4701,
+  "sha": "b28b8e07e59b44cc",
   "status": 200
  },
  "/default/astro/canon-suffix": {
@@ -2027,8 +2027,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4481,
-  "sha": "8175a055e23b4d5a",
+  "len": 4701,
+  "sha": "b28b8e07e59b44cc",
   "status": 200
  },
  "/default/astro/canon/child": {
@@ -2086,8 +2086,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10126,
-  "sha": "333728c17f5284c8",
+  "len": 10346,
+  "sha": "40adff95e219d111",
   "status": 200
  },
  "/default/astro/color-max-test-suffix": {
@@ -2145,8 +2145,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10126,
-  "sha": "333728c17f5284c8",
+  "len": 10346,
+  "sha": "40adff95e219d111",
   "status": 200
  },
  "/default/astro/colour-max-test-suffix": {
@@ -2204,8 +2204,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5394,
-  "sha": "6db3157fb4509154",
+  "len": 5614,
+  "sha": "3671867f849374ae",
   "status": 200
  },
  "/default/astro/disks-suffix": {
@@ -2227,8 +2227,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5394,
-  "sha": "6db3157fb4509154",
+  "len": 5614,
+  "sha": "3671867f849374ae",
   "status": 200
  },
  "/default/astro/disks/?$": {
@@ -2322,8 +2322,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4491,
-  "sha": "ef2055b8b8ba602a",
+  "len": 4711,
+  "sha": "b4dd462475eb2118",
   "status": 200
  },
  "/default/astro/eclipticam-suffix": {
@@ -2345,8 +2345,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4491,
-  "sha": "ef2055b8b8ba602a",
+  "len": 4711,
+  "sha": "b4dd462475eb2118",
   "status": 200
  },
  "/default/astro/eclipticam/child": {
@@ -2380,8 +2380,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/default/astro/photos-suffix": {
@@ -2403,8 +2403,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/default/astro/photos/child": {
@@ -2437,8 +2437,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/default/astro/showcase-suffix": {
@@ -2460,8 +2460,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11295,
-  "sha": "dfc77523a8444d76",
+  "len": 11515,
+  "sha": "4d7592eca1546123",
   "status": 200
  },
  "/default/astro/showcase/child": {
@@ -2553,8 +2553,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11818,
-  "sha": "1d250f7ae86f2b65",
+  "len": 12038,
+  "sha": "95df7b7a0218a1ff",
   "status": 200
  },
  "/default/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -2636,8 +2636,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11818,
-  "sha": "1d250f7ae86f2b65",
+  "len": 12038,
+  "sha": "95df7b7a0218a1ff",
   "status": 200
  },
  "/default/astro/storage/child": {
@@ -2671,8 +2671,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7279,
-  "sha": "5caf41c06e12e727",
+  "len": 7499,
+  "sha": "f1ed40dc8fa86160",
   "status": 200
  },
  "/default/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -2754,8 +2754,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7279,
-  "sha": "5caf41c06e12e727",
+  "len": 7499,
+  "sha": "f1ed40dc8fa86160",
   "status": 200
  },
  "/default/astro/transients/child": {
@@ -2788,8 +2788,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7312,
-  "sha": "e4255c074e3226b9",
+  "len": 7526,
+  "sha": "a14161471bab14e0",
   "status": 200
  },
  "/default/biog-suffix": {
@@ -2978,8 +2978,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7925,
-  "sha": "6341549570ab2ad0",
+  "len": 8139,
+  "sha": "efca90cd009cad99",
   "status": 200
  },
  "/default/cv-suffix": {
@@ -3049,8 +3049,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1511,
-  "sha": "c1f02d8e11282096",
+  "len": 1725,
+  "sha": "afb591f893c5f483",
   "status": 200
  },
  "/default/event-suffix": {
@@ -3707,8 +3707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/default/gardencam/stats-suffix": {
@@ -3718,8 +3718,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/default/gardencam/stats/": {
@@ -3729,8 +3729,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/default/gardencam/stats/child": {
@@ -3740,8 +3740,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6051,
+  "sha": "eb57ca624ae790b1",
   "status": 200
  },
  "/default/gardencam/stats/child/grandchild": {
@@ -3751,8 +3751,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6057,
+  "sha": "7629144215c6d321",
   "status": 200
  },
  "/default/gardencam/stats/sample-item.jpg": {
@@ -3762,8 +3762,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6051,
+  "sha": "eb57ca624ae790b1",
   "status": 200
  },
  "/default/gardencam/timing": {
@@ -3773,8 +3773,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/default/gardencam/timing-suffix": {
@@ -3784,8 +3784,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/default/gardencam/timing/": {
@@ -3795,8 +3795,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/default/gardencam/timing/child": {
@@ -3806,8 +3806,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 811,
+  "sha": "32605cec19b61ce6",
   "status": 200
  },
  "/default/gardencam/timing/child/grandchild": {
@@ -3817,8 +3817,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 816,
+  "sha": "16977e56ed88836a",
   "status": 200
  },
  "/default/gardencam/timing/sample-item.jpg": {
@@ -3828,8 +3828,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 811,
+  "sha": "32605cec19b61ce6",
   "status": 200
  },
  "/default/gardencam/videos": {
@@ -3851,8 +3851,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 864,
-  "sha": "cbfa14e9dbb26192",
+  "len": 1078,
+  "sha": "25878fa3b9592290",
   "status": 200
  },
  "/default/gitinfo-suffix": {
@@ -3982,8 +3982,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 52910,
-  "sha": "0b1940aaa7a27e06",
+  "len": 53124,
+  "sha": "cb827958980e9e50",
   "status": 200
  },
  "/default/gotg-suffix": {
@@ -4218,8 +4218,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5805,
-  "sha": "fe4791e08f670f15",
+  "len": 6019,
+  "sha": "c234a37a7cece226",
   "status": 200
  },
  "/default/manim-suffix": {
@@ -4685,8 +4685,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 9655,
-  "sha": "93abe5f0b2555c0c",
+  "len": 9869,
+  "sha": "54d8004879e15c73",
   "status": 200
  },
  "/default/privacy-suffix": {
@@ -4862,8 +4862,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12924,
-  "sha": "71b0b098dce00b23",
+  "len": 13058,
+  "sha": "0ab135ff916aff2d",
   "status": 200
  },
  "/default/site-test-suffix": {
@@ -4921,8 +4921,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8109,
-  "sha": "4044b4728734f30c",
+  "len": 8323,
+  "sha": "ef40cffa24e809a3",
   "status": 200
  },
  "/default/skycam-suffix": {
@@ -5039,8 +5039,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 16043,
-  "sha": "4aa7267d2a9ed4bc",
+  "len": 16265,
+  "sha": "4d4b702afd4754f1",
   "status": 200
  },
  "/default/skycam/clouds-suffix": {
@@ -5098,8 +5098,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/default/skycam/fullres-suffix": {
@@ -5109,8 +5109,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/default/skycam/fullres/": {
@@ -5120,8 +5120,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/default/skycam/fullres/child": {
@@ -5131,8 +5131,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 836,
+  "sha": "96405354adde8256",
   "status": 200
  },
  "/default/skycam/fullres/child/grandchild": {
@@ -5142,8 +5142,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 840,
+  "sha": "55f56674ac0b1c63",
   "status": 200
  },
  "/default/skycam/fullres/sample-item.jpg": {
@@ -5153,8 +5153,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 836,
+  "sha": "96405354adde8256",
   "status": 200
  },
  "/default/skycam/gallery": {
@@ -5164,8 +5164,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/default/skycam/gallery-suffix": {
@@ -5175,8 +5175,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/default/skycam/gallery/": {
@@ -5186,8 +5186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/default/skycam/gallery/child": {
@@ -5197,8 +5197,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3698,
+  "sha": "be55ac65a93082ea",
   "status": 200
  },
  "/default/skycam/gallery/child/grandchild": {
@@ -5208,8 +5208,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3702,
+  "sha": "eccbd725dd9304f1",
   "status": 200
  },
  "/default/skycam/gallery/sample-item.jpg": {
@@ -5219,8 +5219,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3698,
+  "sha": "be55ac65a93082ea",
   "status": 200
  },
  "/default/skycam/play": {
@@ -5230,8 +5230,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/play-suffix": {
@@ -5241,8 +5241,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/play/": {
@@ -5252,8 +5252,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/play/child": {
@@ -5263,8 +5263,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7175,
+  "sha": "6191e6cdac711cab",
   "status": 200
  },
  "/default/skycam/play/child/grandchild": {
@@ -5274,8 +5274,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7182,
+  "sha": "b077cacc4adfbdc9",
   "status": 200
  },
  "/default/skycam/play/sample-item.jpg": {
@@ -5285,8 +5285,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7175,
+  "sha": "6191e6cdac711cab",
   "status": 200
  },
  "/default/skycam/player": {
@@ -5318,8 +5318,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/player-poc/": {
@@ -5329,8 +5329,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/player-poc/child": {
@@ -5340,8 +5340,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7187,
+  "sha": "8759dcbad13a7a6b",
   "status": 200
  },
  "/default/skycam/player-poc/child/grandchild": {
@@ -5351,8 +5351,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7188,
+  "sha": "9f78382593ec602f",
   "status": 200
  },
  "/default/skycam/player-suffix": {
@@ -5362,8 +5362,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/player/": {
@@ -5373,8 +5373,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/default/skycam/player/child": {
@@ -5384,8 +5384,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7179,
+  "sha": "2bdb7a5d0c5d27fe",
   "status": 200
  },
  "/default/skycam/player/child/grandchild": {
@@ -5395,8 +5395,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7184,
+  "sha": "54c4057c12610eed",
   "status": 200
  },
  "/default/skycam/starcam": {
@@ -5406,8 +5406,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3250,
-  "sha": "15ef652d58fe699a",
+  "len": 3472,
+  "sha": "fe173bf4d0f0005c",
   "status": 200
  },
  "/default/skycam/starcam-suffix": {
@@ -5465,8 +5465,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/default/skycam/starcam/night-suffix": {
@@ -5476,8 +5476,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/default/skycam/starcam/night/": {
@@ -5487,8 +5487,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/default/skycam/starcam/night/child": {
@@ -5498,8 +5498,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 878,
+  "sha": "b667b7591dba70c7",
   "status": 200
  },
  "/default/skycam/starcam/night/child/grandchild": {
@@ -5509,8 +5509,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 884,
+  "sha": "7dd8024491229d8a",
   "status": 200
  },
  "/default/skycam/starcam/night/sample-item.jpg": {
@@ -5520,8 +5520,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 878,
+  "sha": "b667b7591dba70c7",
   "status": 200
  },
  "/default/skycam/timelapse": {
@@ -5649,8 +5649,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/default/skycam/videos-suffix": {
@@ -5660,8 +5660,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/default/skycam/videos/": {
@@ -5671,8 +5671,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/default/skycam/videos/child": {
@@ -5682,8 +5682,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4339,
+  "sha": "45551046f2d15a70",
   "status": 200
  },
  "/default/skycam/videos/child/grandchild": {
@@ -5693,8 +5693,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4344,
+  "sha": "8a474aff38216a3f",
   "status": 200
  },
  "/default/skycam/videos/sample-item.jpg": {
@@ -5704,8 +5704,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4339,
+  "sha": "45551046f2d15a70",
   "status": 200
  },
  "/default/springcam": {
@@ -5774,8 +5774,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/default/springcam/fullres-suffix": {
@@ -5785,8 +5785,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/default/springcam/fullres/": {
@@ -5796,8 +5796,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/default/springcam/fullres/child": {
@@ -5807,8 +5807,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 839,
+  "sha": "eac72ea58eb29e35",
   "status": 200
  },
  "/default/springcam/fullres/child/grandchild": {
@@ -5818,8 +5818,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 843,
+  "sha": "d4daf65451130479",
   "status": 200
  },
  "/default/springcam/fullres/sample-item.jpg": {
@@ -5829,8 +5829,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 839,
+  "sha": "eac72ea58eb29e35",
   "status": 200
  },
  "/default/springcam/gallery": {
@@ -5840,8 +5840,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/default/springcam/gallery-suffix": {
@@ -5851,8 +5851,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/default/springcam/gallery/": {
@@ -5862,8 +5862,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/default/springcam/gallery/child": {
@@ -5873,8 +5873,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3677,
+  "sha": "a33c496d18a7a840",
   "status": 200
  },
  "/default/springcam/gallery/child/grandchild": {
@@ -5884,8 +5884,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3681,
+  "sha": "f9edcf539f6d269c",
   "status": 200
  },
  "/default/springcam/gallery/sample-item.jpg": {
@@ -5895,8 +5895,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3677,
+  "sha": "a33c496d18a7a840",
   "status": 200
  },
  "/default/springcam/play": {
@@ -5906,8 +5906,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/default/springcam/play-suffix": {
@@ -5917,8 +5917,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/default/springcam/play/": {
@@ -5928,8 +5928,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/default/springcam/play/child": {
@@ -5939,8 +5939,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "dc6a917d072f7d8d",
   "status": 200
  },
  "/default/springcam/play/child/grandchild": {
@@ -5950,8 +5950,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7151,
+  "sha": "55186dfbe3c8b927",
   "status": 200
  },
  "/default/springcam/play/sample-item.jpg": {
@@ -5961,8 +5961,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "dc6a917d072f7d8d",
   "status": 200
  },
  "/default/springcam/videos": {
@@ -5972,8 +5972,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/default/springcam/videos-suffix": {
@@ -5983,8 +5983,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/default/springcam/videos/": {
@@ -5994,8 +5994,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/default/springcam/videos/child": {
@@ -6005,8 +6005,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4348,
+  "sha": "01c8aa984cf6bfd4",
   "status": 200
  },
  "/default/springcam/videos/child/grandchild": {
@@ -6016,8 +6016,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4353,
+  "sha": "5f5edd97cfe064a0",
   "status": 200
  },
  "/default/springcam/videos/sample-item.jpg": {
@@ -6027,8 +6027,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4348,
+  "sha": "01c8aa984cf6bfd4",
   "status": 200
  },
  "/default/srfcplus": {
@@ -6277,8 +6277,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/default/starcam/fullres-suffix": {
@@ -6288,8 +6288,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/default/starcam/fullres/": {
@@ -6299,8 +6299,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/default/starcam/fullres/child": {
@@ -6310,8 +6310,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 837,
+  "sha": "15b5805b89848365",
   "status": 200
  },
  "/default/starcam/fullres/child/grandchild": {
@@ -6321,8 +6321,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 841,
+  "sha": "d99a6c36f366cb02",
   "status": 200
  },
  "/default/starcam/fullres/sample-item.jpg": {
@@ -6332,8 +6332,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 837,
+  "sha": "15b5805b89848365",
   "status": 200
  },
  "/default/starcam/gallery": {
@@ -6343,8 +6343,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/default/starcam/gallery-suffix": {
@@ -6354,8 +6354,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/default/starcam/gallery/": {
@@ -6365,8 +6365,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/default/starcam/gallery/child": {
@@ -6376,8 +6376,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3671,
+  "sha": "9324ab7aadc158f3",
   "status": 200
  },
  "/default/starcam/gallery/child/grandchild": {
@@ -6387,8 +6387,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3675,
+  "sha": "504361e310e784f8",
   "status": 200
  },
  "/default/starcam/gallery/sample-item.jpg": {
@@ -6398,8 +6398,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3671,
+  "sha": "9324ab7aadc158f3",
   "status": 200
  },
  "/default/starcam/night/": {
@@ -6593,8 +6593,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/default/starcam/play-suffix": {
@@ -6604,8 +6604,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/default/starcam/play/": {
@@ -6615,8 +6615,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/default/starcam/play/child": {
@@ -6626,8 +6626,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7142,
+  "sha": "2644328987b1189a",
   "status": 200
  },
  "/default/starcam/play/child/grandchild": {
@@ -6637,8 +6637,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7149,
+  "sha": "5ad1736aaa3e78de",
   "status": 200
  },
  "/default/starcam/play/sample-item.jpg": {
@@ -6648,8 +6648,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7142,
+  "sha": "2644328987b1189a",
   "status": 200
  },
  "/default/starcam/player": {
@@ -6670,8 +6670,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/default/starcam/player/": {
@@ -6681,8 +6681,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/default/starcam/player/child": {
@@ -6692,8 +6692,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7146,
+  "sha": "4ca99a4a44107cae",
   "status": 200
  },
  "/default/starcam/player/child/grandchild": {
@@ -6703,8 +6703,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7151,
+  "sha": "dc3f932c23cf6d7f",
   "status": 200
  },
  "/default/starcam/timelapse": {
@@ -6832,8 +6832,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/default/starcam/videos-suffix": {
@@ -6843,8 +6843,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/default/starcam/videos/": {
@@ -6854,8 +6854,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/default/starcam/videos/child": {
@@ -6865,8 +6865,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4342,
+  "sha": "b43d3df0195cfd51",
   "status": 200
  },
  "/default/starcam/videos/child/grandchild": {
@@ -6876,8 +6876,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4347,
+  "sha": "c320b3321ce2e796",
   "status": 200
  },
  "/default/starcam/videos/sample-item.jpg": {
@@ -6887,8 +6887,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4342,
+  "sha": "b43d3df0195cfd51",
   "status": 200
  },
  "/default/stereo": {
@@ -6898,8 +6898,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5408,
-  "sha": "1dd0e6210fe4966e",
+  "len": 5622,
+  "sha": "cd46b75697c9eede",
   "status": 200
  },
  "/default/stereo-nav": {
@@ -7207,8 +7207,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1495,
-  "sha": "305052c0a3e27a62",
+  "len": 1709,
+  "sha": "a66408d14eb9fe9f",
   "status": 200
  },
  "/event-suffix": {
@@ -7877,8 +7877,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/gardencam/stats-suffix": {
@@ -7888,8 +7888,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/gardencam/stats/": {
@@ -7899,8 +7899,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6049,
+  "sha": "4105f10d3ffe01a8",
   "status": 200
  },
  "/gardencam/stats/child": {
@@ -7910,8 +7910,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6051,
+  "sha": "eb57ca624ae790b1",
   "status": 200
  },
  "/gardencam/stats/child/grandchild": {
@@ -7921,8 +7921,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6057,
+  "sha": "7629144215c6d321",
   "status": 200
  },
  "/gardencam/stats/sample-item.jpg": {
@@ -7932,8 +7932,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5821,
-  "sha": "5d25b3653363e8cf",
+  "len": 6051,
+  "sha": "eb57ca624ae790b1",
   "status": 200
  },
  "/gardencam/timelapse": {
@@ -7955,8 +7955,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/gardencam/timing-suffix": {
@@ -7966,8 +7966,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/gardencam/timing/": {
@@ -7977,8 +7977,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 807,
+  "sha": "9d58cf3f88a9d4a5",
   "status": 200
  },
  "/gardencam/timing/child": {
@@ -7988,8 +7988,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 811,
+  "sha": "32605cec19b61ce6",
   "status": 200
  },
  "/gardencam/timing/child/grandchild": {
@@ -7999,8 +7999,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 816,
+  "sha": "16977e56ed88836a",
   "status": 200
  },
  "/gardencam/timing/sample-item.jpg": {
@@ -8010,8 +8010,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 579,
-  "sha": "7f539cc8991f9fdc",
+  "len": 811,
+  "sha": "32605cec19b61ce6",
   "status": 200
  },
  "/gardencam/videos": {
@@ -8033,8 +8033,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 864,
-  "sha": "cbfa14e9dbb26192",
+  "len": 1078,
+  "sha": "25878fa3b9592290",
   "status": 200
  },
  "/gitinfo-suffix": {
@@ -8164,8 +8164,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 52910,
-  "sha": "0b1940aaa7a27e06",
+  "len": 53124,
+  "sha": "cb827958980e9e50",
   "status": 200
  },
  "/gotg-suffix": {
@@ -8400,8 +8400,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5805,
-  "sha": "fe4791e08f670f15",
+  "len": 6019,
+  "sha": "c234a37a7cece226",
   "status": 200
  },
  "/manim-suffix": {
@@ -8867,8 +8867,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 9655,
-  "sha": "93abe5f0b2555c0c",
+  "len": 9869,
+  "sha": "54d8004879e15c73",
   "status": 200
  },
  "/privacy-suffix": {
@@ -9044,8 +9044,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12924,
-  "sha": "71b0b098dce00b23",
+  "len": 13058,
+  "sha": "0ab135ff916aff2d",
   "status": 200
  },
  "/site-test-suffix": {
@@ -9103,8 +9103,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 8109,
-  "sha": "4044b4728734f30c",
+  "len": 8323,
+  "sha": "ef40cffa24e809a3",
   "status": 200
  },
  "/skycam-suffix": {
@@ -9221,8 +9221,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 16043,
-  "sha": "4aa7267d2a9ed4bc",
+  "len": 16265,
+  "sha": "4d4b702afd4754f1",
   "status": 200
  },
  "/skycam/clouds-suffix": {
@@ -9280,8 +9280,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/skycam/fullres-suffix": {
@@ -9291,8 +9291,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/skycam/fullres/": {
@@ -9302,8 +9302,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 827,
+  "sha": "749d3c0a9439cd20",
   "status": 200
  },
  "/skycam/fullres/child": {
@@ -9313,8 +9313,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 836,
+  "sha": "96405354adde8256",
   "status": 200
  },
  "/skycam/fullres/child/grandchild": {
@@ -9324,8 +9324,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 840,
+  "sha": "55f56674ac0b1c63",
   "status": 200
  },
  "/skycam/fullres/sample-item.jpg": {
@@ -9335,8 +9335,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 836,
+  "sha": "96405354adde8256",
   "status": 200
  },
  "/skycam/gallery": {
@@ -9346,8 +9346,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/skycam/gallery-suffix": {
@@ -9357,8 +9357,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/skycam/gallery/": {
@@ -9368,8 +9368,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3689,
+  "sha": "b3798e22fb954d6e",
   "status": 200
  },
  "/skycam/gallery/2026-01-01": {
@@ -9379,8 +9379,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3698,
+  "sha": "be55ac65a93082ea",
   "status": 200
  },
  "/skycam/gallery/child": {
@@ -9390,8 +9390,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3698,
+  "sha": "be55ac65a93082ea",
   "status": 200
  },
  "/skycam/gallery/child/grandchild": {
@@ -9401,8 +9401,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3702,
+  "sha": "eccbd725dd9304f1",
   "status": 200
  },
  "/skycam/gallery/sample-item.jpg": {
@@ -9412,8 +9412,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3467,
-  "sha": "12c8e36625dd340d",
+  "len": 3698,
+  "sha": "be55ac65a93082ea",
   "status": 200
  },
  "/skycam/play": {
@@ -9423,8 +9423,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/play-suffix": {
@@ -9434,8 +9434,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/play/": {
@@ -9445,8 +9445,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/play/child": {
@@ -9456,8 +9456,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7175,
+  "sha": "6191e6cdac711cab",
   "status": 200
  },
  "/skycam/play/child/grandchild": {
@@ -9467,8 +9467,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7182,
+  "sha": "b077cacc4adfbdc9",
   "status": 200
  },
  "/skycam/play/sample-item.jpg": {
@@ -9478,8 +9478,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7175,
+  "sha": "6191e6cdac711cab",
   "status": 200
  },
  "/skycam/player": {
@@ -9511,8 +9511,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/player-poc/": {
@@ -9522,8 +9522,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/player-poc/child": {
@@ -9533,8 +9533,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7187,
+  "sha": "8759dcbad13a7a6b",
   "status": 200
  },
  "/skycam/player-poc/child/grandchild": {
@@ -9544,8 +9544,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7188,
+  "sha": "9f78382593ec602f",
   "status": 200
  },
  "/skycam/player-suffix": {
@@ -9555,8 +9555,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/player/": {
@@ -9566,8 +9566,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7172,
+  "sha": "6946088e607fa82d",
   "status": 200
  },
  "/skycam/player/child": {
@@ -9577,8 +9577,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7179,
+  "sha": "2bdb7a5d0c5d27fe",
   "status": 200
  },
  "/skycam/player/child/grandchild": {
@@ -9588,8 +9588,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6950,
-  "sha": "4229826e838d8689",
+  "len": 7184,
+  "sha": "54c4057c12610eed",
   "status": 200
  },
  "/skycam/starcam": {
@@ -9599,8 +9599,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3250,
-  "sha": "15ef652d58fe699a",
+  "len": 3472,
+  "sha": "fe173bf4d0f0005c",
   "status": 200
  },
  "/skycam/starcam-suffix": {
@@ -9658,8 +9658,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/skycam/starcam/night-suffix": {
@@ -9669,8 +9669,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/skycam/starcam/night/": {
@@ -9680,8 +9680,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 874,
+  "sha": "0b412d7c41d0d628",
   "status": 200
  },
  "/skycam/starcam/night/child": {
@@ -9691,8 +9691,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 878,
+  "sha": "b667b7591dba70c7",
   "status": 200
  },
  "/skycam/starcam/night/child/grandchild": {
@@ -9702,8 +9702,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 884,
+  "sha": "7dd8024491229d8a",
   "status": 200
  },
  "/skycam/starcam/night/sample-item.jpg": {
@@ -9713,8 +9713,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 643,
-  "sha": "a942b347f69c87cf",
+  "len": 878,
+  "sha": "b667b7591dba70c7",
   "status": 200
  },
  "/skycam/timelapse": {
@@ -9842,8 +9842,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/skycam/videos-suffix": {
@@ -9853,8 +9853,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/skycam/videos/": {
@@ -9864,8 +9864,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4332,
+  "sha": "6466e03078cdd47e",
   "status": 200
  },
  "/skycam/videos/child": {
@@ -9875,8 +9875,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4339,
+  "sha": "45551046f2d15a70",
   "status": 200
  },
  "/skycam/videos/child/grandchild": {
@@ -9886,8 +9886,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4344,
+  "sha": "8a474aff38216a3f",
   "status": 200
  },
  "/skycam/videos/sample-item.jpg": {
@@ -9897,8 +9897,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4110,
-  "sha": "d6ca7d0f595c28cf",
+  "len": 4339,
+  "sha": "45551046f2d15a70",
   "status": 200
  },
  "/springcam": {
@@ -9967,8 +9967,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/springcam/fullres-suffix": {
@@ -9978,8 +9978,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/springcam/fullres/": {
@@ -9989,8 +9989,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 833,
+  "sha": "b670e0cebe3a6bb7",
   "status": 200
  },
  "/springcam/fullres/child": {
@@ -10000,8 +10000,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 839,
+  "sha": "eac72ea58eb29e35",
   "status": 200
  },
  "/springcam/fullres/child/grandchild": {
@@ -10011,8 +10011,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 843,
+  "sha": "d4daf65451130479",
   "status": 200
  },
  "/springcam/fullres/sample-item.jpg": {
@@ -10022,8 +10022,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 839,
+  "sha": "eac72ea58eb29e35",
   "status": 200
  },
  "/springcam/gallery": {
@@ -10033,8 +10033,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/springcam/gallery-suffix": {
@@ -10044,8 +10044,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/springcam/gallery/": {
@@ -10055,8 +10055,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3671,
+  "sha": "0690da87cc4591c9",
   "status": 200
  },
  "/springcam/gallery/child": {
@@ -10066,8 +10066,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3677,
+  "sha": "a33c496d18a7a840",
   "status": 200
  },
  "/springcam/gallery/child/grandchild": {
@@ -10077,8 +10077,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3681,
+  "sha": "f9edcf539f6d269c",
   "status": 200
  },
  "/springcam/gallery/sample-item.jpg": {
@@ -10088,8 +10088,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3443,
-  "sha": "5dc648a5b01b436e",
+  "len": 3677,
+  "sha": "a33c496d18a7a840",
   "status": 200
  },
  "/springcam/play": {
@@ -10099,8 +10099,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/springcam/play-suffix": {
@@ -10110,8 +10110,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/springcam/play/": {
@@ -10121,8 +10121,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "223c718fdbaa489b",
   "status": 200
  },
  "/springcam/play/child": {
@@ -10132,8 +10132,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "dc6a917d072f7d8d",
   "status": 200
  },
  "/springcam/play/child/grandchild": {
@@ -10143,8 +10143,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7151,
+  "sha": "55186dfbe3c8b927",
   "status": 200
  },
  "/springcam/play/sample-item.jpg": {
@@ -10154,8 +10154,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7144,
+  "sha": "dc6a917d072f7d8d",
   "status": 200
  },
  "/springcam/videos": {
@@ -10165,8 +10165,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/springcam/videos-suffix": {
@@ -10176,8 +10176,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/springcam/videos/": {
@@ -10187,8 +10187,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4344,
+  "sha": "3b756f59d9a8d249",
   "status": 200
  },
  "/springcam/videos/child": {
@@ -10198,8 +10198,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4348,
+  "sha": "01c8aa984cf6bfd4",
   "status": 200
  },
  "/springcam/videos/child/grandchild": {
@@ -10209,8 +10209,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4353,
+  "sha": "5f5edd97cfe064a0",
   "status": 200
  },
  "/springcam/videos/sample-item.jpg": {
@@ -10220,8 +10220,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4116,
-  "sha": "8ca6aaee03bffe3b",
+  "len": 4348,
+  "sha": "01c8aa984cf6bfd4",
   "status": 200
  },
  "/srfcplus": {
@@ -10470,8 +10470,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/starcam/fullres-suffix": {
@@ -10481,8 +10481,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/starcam/fullres/": {
@@ -10492,8 +10492,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 829,
+  "sha": "37bfc7a19b9bc208",
   "status": 200
  },
  "/starcam/fullres/child": {
@@ -10503,8 +10503,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 837,
+  "sha": "15b5805b89848365",
   "status": 200
  },
  "/starcam/fullres/child/grandchild": {
@@ -10514,8 +10514,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 841,
+  "sha": "d99a6c36f366cb02",
   "status": 200
  },
  "/starcam/fullres/sample-item.jpg": {
@@ -10525,8 +10525,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 605,
-  "sha": "f6287aa60775622a",
+  "len": 837,
+  "sha": "15b5805b89848365",
   "status": 200
  },
  "/starcam/gallery": {
@@ -10536,8 +10536,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/starcam/gallery-suffix": {
@@ -10547,8 +10547,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/starcam/gallery/": {
@@ -10558,8 +10558,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3663,
+  "sha": "badf388d1ffcd98b",
   "status": 200
  },
  "/starcam/gallery/child": {
@@ -10569,8 +10569,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3671,
+  "sha": "9324ab7aadc158f3",
   "status": 200
  },
  "/starcam/gallery/child/grandchild": {
@@ -10580,8 +10580,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3675,
+  "sha": "504361e310e784f8",
   "status": 200
  },
  "/starcam/gallery/sample-item.jpg": {
@@ -10591,8 +10591,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3439,
-  "sha": "2db0f15cdbe5a13d",
+  "len": 3671,
+  "sha": "9324ab7aadc158f3",
   "status": 200
  },
  "/starcam/night/": {
@@ -10786,8 +10786,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/starcam/play-suffix": {
@@ -10797,8 +10797,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/starcam/play/": {
@@ -10808,8 +10808,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/starcam/play/child": {
@@ -10819,8 +10819,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7142,
+  "sha": "2644328987b1189a",
   "status": 200
  },
  "/starcam/play/child/grandchild": {
@@ -10830,8 +10830,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7149,
+  "sha": "5ad1736aaa3e78de",
   "status": 200
  },
  "/starcam/play/sample-item.jpg": {
@@ -10841,8 +10841,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7142,
+  "sha": "2644328987b1189a",
   "status": 200
  },
  "/starcam/player": {
@@ -10863,8 +10863,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/starcam/player/": {
@@ -10874,8 +10874,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7140,
+  "sha": "4579bffdef4c59e9",
   "status": 200
  },
  "/starcam/player/child": {
@@ -10885,8 +10885,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7146,
+  "sha": "4ca99a4a44107cae",
   "status": 200
  },
  "/starcam/player/child/grandchild": {
@@ -10896,8 +10896,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6916,
-  "sha": "d61630f2a6974546",
+  "len": 7151,
+  "sha": "dc3f932c23cf6d7f",
   "status": 200
  },
  "/starcam/timelapse": {
@@ -11025,8 +11025,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/starcam/videos-suffix": {
@@ -11036,8 +11036,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/starcam/videos/": {
@@ -11047,8 +11047,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4336,
+  "sha": "f605a62f47829c17",
   "status": 200
  },
  "/starcam/videos/child": {
@@ -11058,8 +11058,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4342,
+  "sha": "b43d3df0195cfd51",
   "status": 200
  },
  "/starcam/videos/child/grandchild": {
@@ -11069,8 +11069,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4347,
+  "sha": "c320b3321ce2e796",
   "status": 200
  },
  "/starcam/videos/sample-item.jpg": {
@@ -11080,8 +11080,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4112,
-  "sha": "d69b91e995003460",
+  "len": 4342,
+  "sha": "b43d3df0195cfd51",
   "status": 200
  },
  "/stereo": {
@@ -11091,8 +11091,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5408,
-  "sha": "1dd0e6210fe4966e",
+  "len": 5622,
+  "sha": "cd46b75697c9eede",
   "status": 200
  },
  "/stereo-nav": {

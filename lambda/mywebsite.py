@@ -6211,6 +6211,94 @@ def _resolve_route(route):
     return None
 
 
+# Every page except home carries a backlink to its parent at the top. It is
+# injected here, once, rather than written into ~60 page renderers: those
+# grew one at a time, and most put the link only in a footer under a long
+# grid of thumbnails, or forgot it. A page that already draws its own top
+# backlink is left alone.
+_HOME_ROUTES = frozenset({'', '/', '/contents'})
+_BACKLINK_LABELS = {'/': 'Home', '/astro': 'Astro'}
+_BACKLINK_HTML = ('<nav class="site-back" style="font-family:var(--font,sans-serif);'
+                  'font-size:0.85rem;padding:0.6rem 1rem 0;text-align:left;">'
+                  '<a href="{href}" style="color:var(--accent,#007AFF);'
+                  'text-decoration:none;">&larr; {label}</a></nav>')
+_BODY_OPEN = re.compile(r'<body\b[^>]*>', re.I)
+# Fragment pages are wrapped as <html><head>...</body></html> with neither
+# <body> nor </head>; the browser opens the body at the first element that
+# cannot live in a head, so that is where the link goes.
+_HEAD_ONLY = re.compile(
+    r'\s+|<!--.*?-->|<!doctype[^>]*>|</?(?:html|head)\b[^>]*>'
+    r'|<(?:link|meta|base)\b[^>]*>'
+    r'|<(script|style|title|noscript)\b.*?</\1\s*>', re.I | re.S)
+
+
+def _body_start(body):
+    m = _BODY_OPEN.search(body)
+    if m:
+        return m.end()
+    pos = 0
+    while (m := _HEAD_ONLY.match(body, pos)) and m.end() > pos:
+        pos = m.end()
+    return pos if pos < len(body) else None
+_FIRST_LINK_TEXT = re.compile(r'<a\b[^>]*>\s*([^<]{0,12})', re.I)
+
+
+def _parent_route(route):
+    """The nearest ancestor path that is itself a page; '/' at the top.
+
+    Walking up segment by segment skips path levels that are not pages,
+    e.g. /astro/astrocam/night/2026-10-07 -> /astro/astrocam, since
+    /astro/astrocam/night is not a route.
+    """
+    parts = route.rstrip('/').split('/')
+    while len(parts) > 2:
+        parts.pop()
+        candidate = '/'.join(parts)
+        if _resolve_route(candidate) is not None:
+            return candidate
+    return '/'
+
+
+def _with_backlink(route, response):
+    """Insert the parent backlink at the top of an HTML 200 response's body."""
+    if route in _HOME_ROUTES or response.get('statusCode') != 200:
+        return response
+    if response.get('isBase64Encoded'):
+        return response
+    hdrs = response.get('headers') or {}
+    ctype = hdrs.get('Content-Type') or hdrs.get('content-type') or ''
+    body = response.get('body')
+    if 'text/html' not in ctype or not isinstance(body, str):
+        return response
+    at = _body_start(body)
+    if at is None:
+        return response
+    # A renderer's own top nav counts only if it sits above the heading: on
+    # a page with an empty grid the footer backlink is the first link.
+    first = _FIRST_LINK_TEXT.search(body, at)
+    h1 = body.find('<h1', at)
+    if first and first.group(1).lstrip().startswith(('&larr;', '←')) \
+            and (h1 < 0 or first.start() < h1):
+        return response
+    parent = _parent_route(route)
+    label = _BACKLINK_LABELS.get(parent) or \
+        parent.rsplit('/', 1)[-1].replace('-', ' ').capitalize()
+    link = _BACKLINK_HTML.format(href=parent, label=label)
+    return {**response, 'body': body[:at] + link + body[at:]}
+
+
+def _route_of(event):
+    """The stage-stripped route, as _dispatch computes it."""
+    path = event.get('rawPath') or event.get('path') or ''
+    stage = (event.get('requestContext') or {}).get('stage') or ''
+    if stage:
+        if path in (f'/{stage}', f'/{stage}/'):
+            return '/'
+        if path.startswith(f'/{stage}/'):
+            return path[len(stage) + 1:]
+    return path
+
+
 def lambda_handler(event, context):
     """Thin wrapper: time the dispatch, then emit the access log line.
 
@@ -6224,6 +6312,8 @@ def lambda_handler(event, context):
     except Exception as e:
         _access_log(event, context, None, (time.time() - wrapper_start) * 1000, error=e)
         raise
+    if isinstance(response, dict):
+        response = _with_backlink(_route_of(event), response)
     _access_log(event, context, response, (time.time() - wrapper_start) * 1000)
     return response
 
