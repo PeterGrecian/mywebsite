@@ -192,16 +192,24 @@ def _section(sec):
     # back to the shared thumb.jpg, then max.jpg, for older nights that
     # predate per-video posters.
     shared_poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
+    # derot deep first (astrocam's best, Peter 2026-10-08: "so it does not get
+    # missed"); the difference sweep is dropped from the page (same day).
     for key, poster_key, cap in (
+        ("sweep-derot-deep.mp4", "poster-derot-deep.jpg",
+         "derot deep — the same registered windows averaged (aircraft "
+         "clipped out): the faintest stars and the Milky Way's dark "
+         "lanes, per 10 min window through the night"),
+        ("sweep-derot.mp4", "poster-derot.jpg",
+         "derot sweep — each 10 min window mapped onto the sky through a "
+         "fitted camera model and turned about the pole, sky glow "
+         "subtracted, trees masked; the brightest of the window's frames "
+         "once aircraft are clipped out, so stars stay points while the "
+         "sky wheels round Polaris"),
         ("sweep-colour.mp4", "poster-colour.jpg",
          "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
          "story of the night in 5 seconds"),
         ("sweep-mono.mp4", "poster-mono.jpg",
          "monochrome sweep — same window, greyscale (science view)"),
-        ("sweep-diff.mp4", "poster-diff.jpg",
-         "difference sweep — max(frame) − window mean; the sky floor, "
-         "hot pixels, and cloud-glow cancel, leaving only trails and "
-         "transients"),
         ("sweep-detrans.mp4", "poster-detrans.jpg",
          "detrans sweep — each 10 min window undistorted (k1,k2) and "
          "de-translated by the sky velocity, registering the 60 s "
@@ -211,15 +219,6 @@ def _section(sec):
          "detrans deep — registered frames averaged then background-"
          "subtracted (max SNR); pulls the faintest stars onto a clean "
          "dark sky, per 10 min window through the night"),
-        ("sweep-derot.mp4", "poster-derot.jpg",
-         "derot sweep — each 10 min window mapped onto the sky through a "
-         "fitted camera model and turned about the pole, sky glow "
-         "subtracted, trees masked; the max of the window, so stars stay "
-         "points while the sky wheels round Polaris"),
-        ("sweep-derot-deep.mp4", "poster-derot-deep.jpg",
-         "derot deep — the same registered windows averaged (aircraft "
-         "clipped out): the faintest stars and the Milky Way's dark "
-         "lanes, per 10 min window through the night"),
     ):
         # Serve the -web variant: 1280-wide, denoised, +faststart, ~5MB vs
         # 130-180MB full-res. This is what publish-night-cam builds them FOR
