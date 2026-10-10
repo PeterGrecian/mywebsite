@@ -2367,10 +2367,12 @@ def note_instrument_counts(items):
     return [(s, _note_label(s), counts[s]) for s in ordered]
 
 
-def _paras(text, cls):
-    """Blank-line-separated paragraphs of a manifest text field."""
+def _paras(text, cls, inline=None):
+    """Blank-line-separated paragraphs of a manifest text field. Pass
+    inline=_md_inline to render **bold**, *italic*, `code` and links."""
     out = [p.strip() for p in str(text or "").split("\n\n") if p.strip()]
-    return "".join(f'<p class="{cls}">{_esc(p)}</p>' for p in out)
+    fmt = inline or _esc
+    return "".join(f'<p class="{cls}">{fmt(p)}</p>' for p in out)
 
 
 NOTES_CSS = '''
@@ -2459,7 +2461,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
                 f'<figcaption class="n-body">'
                 f'<div class="n-title">{title_html}</div>'
                 f'<div class="n-meta">{meta}</div>'
-                f'{_paras(e.get("summary"), "n-sum")}'
+                f'{_paras(e.get("summary"), "n-sum", _md_inline)}'
                 f'{tags_html}'
                 f'<div class="n-links">{night_html}'
                 f'<a class="n-read" href="{href}">Read the note &rarr;</a>'
@@ -2498,7 +2500,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
 # plain paragraphs turned those into rows of pipe characters, so the site
 # renders the subset a logbook actually uses and nothing else: h3/h4 headings,
 # pipe tables, bullet and numbered lists, 4-space indented blocks (a formula,
-# usually), **bold** and `code`. Everything is escaped FIRST and the inline
+# usually), **bold**, *italic* and `code`. Everything is escaped FIRST and the inline
 # pass only ever re-introduces tags we wrote ourselves, so a card cannot
 # inject markup.
 #
@@ -2520,6 +2522,7 @@ _MD_LINK = re.compile(r"\[([^\]]+)\]\((/(?!/)[A-Za-z0-9/_.\-]*)\)")
 def _md_inline(text):
     out = _esc(text)
     out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out)
+    out = re.sub(r"(?<![\w*])\*(?=\S)(.+?)(?<=\S)\*(?![\w*])", r"<em>\1</em>", out)
     out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
     out = _MD_LINK.sub(r'<a href="\2">\1</a>', out)
     return out
@@ -2733,7 +2736,7 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
     {f'<div class="d-subtitle">{_esc(item["subtitle"])}</div>' if item.get("subtitle") else ""}
     <div class="d-meta">{" &middot; ".join(meta)}</div>
     {"".join(figs)}
-    {_paras(item.get("summary"), "d-sum")}
+    {_paras(item.get("summary"), "d-sum", _md_inline)}
     {body_section}
     {nums_html}
     {tags_html}
