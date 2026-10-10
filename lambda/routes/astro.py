@@ -232,7 +232,8 @@ _STEPS = (
 NIGHT_NOTES = {
     ("astrocam", "2026-10-09"):
         "A deliberate focus-test night: the lens stepped 1.10 to 1.40 and back "
-        "all night to find the sharpest setting, so the stacks are soft by design.",
+        "all night to find the sharpest setting. Star sharpness barely changed "
+        "across that range (about 1%); the lens is set to 1.25 from 10-10.",
 }
 
 # Darkest-sky stops (above black, as shown) below which a night reads clear.
