@@ -228,6 +228,13 @@ _STEPS = (
 )
 
 
+# One-off notes on a night, added to the lede: (camera, night) -> sentence.
+NIGHT_NOTES = {
+    ("astrocam", "2026-10-09"):
+        "A deliberate focus-test night: the lens stepped 1.10 to 1.40 and back "
+        "all night to find the sharpest setting, so the stacks are soft by design.",
+}
+
 # Darkest-sky stops (above black, as shown) below which a night reads clear.
 CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 
@@ -302,6 +309,9 @@ def _section(sec):
         v = ("" if lim is None else
              ", so clear" if stops < lim else ", so cloudy")
         lede.append(f'Darkest sky {stops:.2f} stops above black{v}.')
+    note = NIGHT_NOTES.get((s.get("camera"), s.get("night")))
+    if note:
+        lede.append(note)
     stats = []
     if s.get("n_frames") is not None:
         stacked = s.get("n_stacked")
