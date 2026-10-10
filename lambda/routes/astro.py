@@ -178,108 +178,136 @@ def _hhmm(iso):
         return "?"
 
 
+def _london_hhmm(iso):
+    """HH:MM Europe/London from an ISO UTC timestamp, or '?'."""
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+    try:
+        t = _dt.datetime.fromisoformat(iso)
+        return t.astimezone(ZoneInfo("Europe/London")).strftime("%H:%M")
+    except (TypeError, ValueError):
+        return "?"
+
+
+# The night page as a story (Peter 2026-10-10: "make the page tell a
+# story", and box each deliverable with a title so a caption cannot be read
+# as belonging to the neighbouring video). The best result leads ("so it
+# does not get missed", 2026-10-08); then the night in the order it was
+# processed: how dark it was, what the camera saw, glow removed, sky held
+# still, the whole night in one frame.
+# (key, poster, title, caption). Order within each group is page order.
+_HERO = (
+    ("sweep-derot-deep.mp4", "poster-derot-deep.jpg", "The deep sky",
+     "Every 10 minutes of the night, registered on the stars and averaged "
+     "with aircraft clipped out: the faintest stars and the Milky Way's dark "
+     "lanes. The steps below show how it was made."),
+    ("sweep-detrans-deep.mp4", "poster-detrans-deep.jpg", "The deep sky",
+     "Each 10 minute window's frames registered on the drifting stars and "
+     "averaged, then the static scene's background removed: the faintest "
+     "stars on a clean dark sky."),
+)
+_STEPS = (
+    ("sweep-colour.mp4", "poster-colour.jpg", "What the camera saw",
+     "The raw night: a 10 minute stack sliding on 1 minute per video frame. "
+     "Dusk, cloud, aircraft and dawn all show here, five seconds for the "
+     "whole night."),
+    ("sweep-mono.mp4", "poster-mono.jpg", "What the camera saw, in grey",
+     "The same windows in greyscale (the science view)."),
+    ("sweep-glow.mp4", "poster-glow.jpg", "Sky glow removed",
+     "The night's smooth glow from streetlights is fitted and subtracted "
+     "from every frame, and the trees and roof are masked. Star trails "
+     "wheel round the pole and the Milky Way survives."),
+    ("sweep-detrans.mp4", "poster-detrans.jpg", "Stars held still",
+     "Each 10 minute window undistorted and shifted with the sky's drift, "
+     "so the 60 s streaks stack into one sharp, bright streak."),
+    ("sweep-derot.mp4", "poster-derot.jpg", "Sky held still",
+     "Each frame mapped onto the sky through a fitted model of the lens and "
+     "turned back about the pole, so stars stay points. This shows the "
+     "brightest of each window's frames once aircraft are clipped out; the "
+     "average of the same frames is the deep sky above."),
+)
+
+
+def _card(n, title, inner, cap):
+    num = f'<span class="cn">{n}</span>' if n else ""
+    return (f'<section class="card"><h3>{num}{title}</h3>{inner}'
+            f'<div class="caption">{cap}</div></section>')
+
+
+def _video(url, poster, full):
+    """Sweep player: .vz (zoom/pan, half speed; script in the page) + bar.
+    data-full lets the first zoom swap in the full-res file."""
+    data_full = f' data-full="{full}"' if full else ""
+    return (f'<div class="vz"><video controls loop preload="metadata" '
+            f'playsinline poster="{poster}"{data_full}>'
+            f'<source src="{url}" type="video/mp4">'
+            f'Your browser cannot play this clip.</video></div>'
+            f'<div class="vzbar"><button data-a="out" title="zoom out">&minus;</button>'
+            f'<span class="vzl">1&times;</span>'
+            f'<button data-a="in" title="zoom in">+</button>'
+            f'<button data-a="reset" title="reset zoom">fit</button>'
+            f'<button data-a="play" title="play / pause">&#9199;</button>'
+            f'<span class="vzs"><button data-r="0.25">&frac14;&times;</button>'
+            f'<button data-r="0.5" class="on">&frac12;&times;</button>'
+            f'<button data-r="1">1&times;</button></span></div>')
+
+
 def _section(sec):
-    """One subcam section: hero image(s) + stats strip."""
+    """One subcam section: the night's story as titled cards."""
     s = sec.get("summary") or {}
     urls = sec.get("urls") or {}
     label = sec.get("label")
-
     heading = f'<h2>{label}</h2>' if label else ""
-
-    imgs = []
-    # Each sweep gets its OWN poster (poster-<name>.jpg, the mid-frame of
-    # that clip) so the preview is a frame from the video itself. Fall
-    # back to the shared thumb.jpg, then max.jpg, for older nights that
-    # predate per-video posters.
+    # Each sweep has its own poster (its mid frame); older nights fall back
+    # to the shared thumb.jpg, then max.jpg.
     shared_poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
-    # derot deep first (astrocam's best, Peter 2026-10-08: "so it does not get
-    # missed"); the difference sweep is dropped from the page (same day).
-    for key, poster_key, cap in (
-        ("sweep-derot-deep.mp4", "poster-derot-deep.jpg",
-         "derot deep — the same registered windows averaged (aircraft "
-         "clipped out): the faintest stars and the Milky Way's dark "
-         "lanes, per 10 min window through the night"),
-        ("sweep-derot.mp4", "poster-derot.jpg",
-         "derot sweep — each 10 min window mapped onto the sky through a "
-         "fitted camera model and turned about the pole, sky glow "
-         "subtracted, trees masked; the brightest of the window's frames "
-         "once aircraft are clipped out, so stars stay points while the "
-         "sky wheels round Polaris"),
-        ("sweep-colour.mp4", "poster-colour.jpg",
-         "colour sweep — 10 min stack sliding 1 min per frame, 60 fps; "
-         "story of the night in 5 seconds"),
-        ("sweep-glow.mp4", "poster-glow.jpg",
-         "glow sweep — 10 min windows with the night's smooth sky glow "
-         "fitted and subtracted from every frame, trees and roof masked; "
-         "star trails wheel round the pole and the Milky Way survives"),
-        ("sweep-mono.mp4", "poster-mono.jpg",
-         "monochrome sweep — same window, greyscale (science view)"),
-        ("sweep-detrans.mp4", "poster-detrans.jpg",
-         "detrans sweep — each 10 min window undistorted (k1,k2) and "
-         "de-translated by the sky velocity, registering the 60 s "
-         "streaks into one sharp high-SNR streak; stars stay tight as "
-         "the night drifts past"),
-        ("sweep-detrans-deep.mp4", "poster-detrans-deep.jpg",
-         "detrans deep — registered frames averaged then background-"
-         "subtracted (max SNR); pulls the faintest stars onto a clean "
-         "dark sky, per 10 min window through the night"),
-    ):
-        # Serve the -web variant: 1280-wide, denoised, +faststart, ~5MB vs
-        # 130-180MB full-res. This is what publish-night-cam builds them FOR
-        # ("the website serves sweep-<name>-web.mp4; the full-res mp4 stays as
-        # the high-quality/download copy") — the site had never used them, so
-        # visitors pulled the full-res file, whose moov atom is at the END,
-        # meaning playback could not start until the whole clip downloaded.
-        # Fall back to full-res for older nights that predate the web encode.
-        web_key = key.replace(".mp4", "-web.mp4")
-        web_url = urls.get(web_key)
-        url = web_url or urls.get(key)
-        if url:
-            poster = urls.get(poster_key) or shared_poster
-            full = urls.get(key)
-            # Offer the full-res as a download only when we're actually
-            # playing the smaller web encode.
-            dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
-                  if web_url and full else "")
-            # .vz wrapper: zoom/pan + half-speed default (script in the page);
-            # data-full lets a zoom swap in the full-res file.
-            data_full = f' data-full="{full}"' if web_url and full else ""
-            imgs.append(
-                f'<div class="vz"><video controls loop preload="metadata" '
-                f'playsinline poster="{poster}"{data_full}>'
-                f'<source src="{url}" type="video/mp4">'
-                f'Your browser cannot play this clip.</video></div>'
-                f'<div class="vzbar"><button data-a="out" title="zoom out">&minus;</button>'
-                f'<span class="vzl">1&times;</span>'
-                f'<button data-a="in" title="zoom in">+</button>'
-                f'<button data-a="reset" title="reset zoom">fit</button>'
-                f'<button data-a="play" title="play / pause">&#9199;</button>'
-                f'<span class="vzs"><button data-r="0.25">&frac14;&times;</button>'
-                f'<button data-r="0.5" class="on">&frac12;&times;</button>'
-                f'<button data-r="1">1&times;</button></span></div>'
-                f'<div class="caption">{cap}{dl}</div>')
-    for key, cap in (("derot.jpg", "pole-derotated stack (darkest window)"),
-                     ("max.jpg", "max stack — star trails"),
-                     ("brightness.png", "per-frame brightness (log&#8322;)")):
-        url = urls.get(key)
-        if url:
-            imgs.append(f'<a href="{url}"><img src="{url}" alt="{cap}"></a>'
-                        f'<div class="caption">{cap}</div>')
 
+    def video_card(n, key, poster_key, title, cap):
+        # Serve the -web encode (1280 wide, faststart, ~5 MB against 130-180
+        # MB); offer the full-res as a download and as the zoom source.
+        # Older nights without a web encode play the full-res directly.
+        web_url = urls.get(key.replace(".mp4", "-web.mp4"))
+        full = urls.get(key)
+        url = web_url or full
+        if not url:
+            return None
+        dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
+              if web_url and full else "")
+        return _card(n, title, _video(url, urls.get(poster_key) or shared_poster,
+                                      full if web_url else None), cap + dl)
+
+    # --- the numbers, told as a sentence plus a stats strip
+    anchor = s.get("anchor") if isinstance(s.get("anchor"), dict) else {}
+    stops = s.get("stops")
+    if stops is None:
+        stops = anchor.get("stops")
+    exptime = anchor.get("exptime")
+    ref_exp = anchor.get("stops_ref_exptime")
+    lede = []
+    if s.get("n_frames"):
+        e = f" of {exptime:g} s" if isinstance(exptime, (int, float)) else ""
+        lede.append(f'{s["n_frames"]} frames{e}, '
+                    f'{_london_hhmm(s.get("first_frame_utc"))} to '
+                    f'{_london_hhmm(s.get("last_frame_utc"))} (London time).')
+    if isinstance(stops, (int, float)):
+        verdict = anchor.get("verdict")
+        v = {"clear": "clear", "cloudy": "cloudy"}.get(verdict, "")
+        lede.append(f'Darkest sky {stops:.2f} stops above black'
+                    + (f', so {v}' if v else "") + ".")
     stats = []
     if s.get("n_frames") is not None:
         stacked = s.get("n_stacked")
         v = (f'{stacked} / {s["n_frames"]}' if stacked is not None
              else f'{s["n_frames"]}')
-        stats.append(_stat("frames stacked / captured", v))
+        stats.append(_stat("frames in star trails / captured", v))
     # The route re-bases stops into s["stops"] (black level), so it wins
     # over the anchor's raw pipeline value.
-    anchor = s.get("anchor") or {}
-    stops = s.get("stops")
-    if stops is None and isinstance(anchor, dict):
-        stops = anchor.get("stops")
     if stops is not None:
-        stats.append(_stat("brightness index", f'{stops:.2f} stops' if isinstance(stops, (int, float)) else f'{stops} stops'))
+        sv = f'{stops:.2f}' if isinstance(stops, (int, float)) else f'{stops}'
+        ref = (f' ({ref_exp:g} s equiv.)' if isinstance(ref_exp, (int, float))
+               and isinstance(exptime, (int, float))
+               and abs(ref_exp - exptime) > 0.5 else "")
+        stats.append(_stat(f"darkest sky, stops above black{ref}", sv))
     derot = s.get("derot")
     if derot:
         w = derot.get("window_utc") or [None, None]
@@ -289,11 +317,53 @@ def _section(sec):
         stats.append(_stat("pole (px)", f'({p[0]:.0f}, {p[1]:.0f})'))
     badpix = s.get("badpix")
     if badpix:
-        stats.append(_stat("bad pixels",
-                           f'{badpix.get("bad_pct", 0):.3f}%'))
+        # A count, not a percentage: the sensor corrects its own defects, so
+        # this is ~1 in 2 million and the percentage always read 0.000%.
+        nb = int(badpix.get("n_hot", 0)) + int(badpix.get("n_cold", 0))
+        stats.append(_stat("bad pixels", f'{nb}'))
     stats_html = f'<div class="stats">{"".join(stats)}</div>' if stats else ""
 
-    return f'{heading}{stats_html}{"".join(imgs)}'
+    cards = []
+    n = 0
+    for key, poster_key, title, cap in _HERO:
+        c = video_card(None, key, poster_key, title, cap)
+        if c:
+            cards.append(c)
+            break
+
+    bright = urls.get("brightness.png")
+    if bright or stats_html or lede:
+        n += 1
+        img = (f'<a href="{bright}"><img src="{bright}" '
+               f'alt="per-frame sky brightness"></a>' if bright else "")
+        cards.append(_card(
+            n, "How dark the night was",
+            (f'<p class="lede">{" ".join(lede)}</p>' if lede else "")
+            + stats_html + img,
+            "Sky brightness of every frame (log&#8322;: one stop is twice "
+            "the light). Dusk and dawn are the slopes at each end; cloud "
+            "shows as a bump. The star-trail stack uses only frames within "
+            "30% of the darkest 10 minutes, so twilight and cloud are left "
+            "out of it. Left out is not thrown away: those frames still go "
+            "into the videos."))
+    for key, poster_key, title, cap in _STEPS:
+        c = video_card(n + 1, key, poster_key, title, cap)
+        if c:
+            n += 1
+            cards.append(c)
+    for key, title, cap in (
+            ("derot.jpg", "Pole-derotated stack",
+             "The darkest window's frames turned about the pole and stacked."),
+            ("max.jpg", "The whole night in one frame",
+             "The brightest value each pixel reached all night: every star "
+             "draws its trail across the night.")):
+        url = urls.get(key)
+        if url:
+            n += 1
+            cards.append(_card(n, title,
+                               f'<a href="{url}"><img src="{url}" alt="{title}"></a>',
+                               cap))
+    return f'{heading}{"".join(cards)}'
 
 
 def _short_date(d):
@@ -1417,8 +1487,15 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .vzbar button.on {{ color: var(--text); background: var(--divider, #2C2C2E); }}
     .vzl {{ min-width: 2.5em; text-align: center; }}
     .vzs {{ margin-left: 0.6rem; display: inline-flex; gap: 0.25rem; }}
-    .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }}
-    .stat {{ background: var(--card-bg); border-radius: 12px; padding: 0.5rem 0.9rem; text-align: center; }}
+    .stats {{ display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 0.75rem; }}
+    .stat {{ background: var(--bg); border-radius: 10px; padding: 0.5rem 0.9rem; text-align: center; }}
+    .card {{ background: var(--card-bg); border-radius: 12px; padding: 0.9rem; margin: 0 0 1.25rem; }}
+    .card h3 {{ font-size: 1.05rem; font-weight: 600; margin: 0 0 0.7rem; display: flex; align-items: center; gap: 0.5rem; }}
+    .card .cn {{ display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--bg); color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; }}
+    .card .caption {{ text-align: left; margin: 0.6rem 0 0; line-height: 1.4; }}
+    .card .vzbar button {{ background: var(--bg); }}
+    .card .vzbar button.on {{ background: var(--divider, #2C2C2E); }}
+    .lede {{ margin: 0 0 0.75rem; line-height: 1.45; }}
     .stat-v {{ font-size: 1rem; font-weight: 600; }}
     .stat-l {{ font-size: 0.7rem; color: var(--text-secondary); }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
