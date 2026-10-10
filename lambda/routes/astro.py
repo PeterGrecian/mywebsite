@@ -228,6 +228,10 @@ _STEPS = (
 )
 
 
+# Darkest-sky stops (above black, as shown) below which a night reads clear.
+CLEAR_BELOW_STOPS = {"astrocam": 6.0}
+
+
 def _card(n, title, inner, cap):
     num = f'<span class="cn">{n}</span>' if n else ""
     return (f'<section class="card"><h3>{num}{title}</h3>{inner}'
@@ -290,10 +294,14 @@ def _section(sec):
                     f'{_london_hhmm(s.get("first_frame_utc"))} to '
                     f'{_london_hhmm(s.get("last_frame_utc"))} (London time).')
     if isinstance(stops, (int, float)):
-        verdict = anchor.get("verdict")
-        v = {"clear": "clear", "cloudy": "cloudy"}.get(verdict, "")
-        lede.append(f'Darkest sky {stops:.2f} stops above black'
-                    + (f', so {v}' if v else "") + ".")
+        # Judged here from the number shown, not the pipeline's verdict: its
+        # sky_clear_max_stops is 8, which called overcast 10-08 (7.07)
+        # "clear". Peter 2026-10-10: clear is below 6. Cameras without a
+        # threshold get no verdict.
+        lim = CLEAR_BELOW_STOPS.get(sec.get("camera") or s.get("camera"))
+        v = ("" if lim is None else
+             ", so clear" if stops < lim else ", so cloudy")
+        lede.append(f'Darkest sky {stops:.2f} stops above black{v}.')
     stats = []
     if s.get("n_frames") is not None:
         stacked = s.get("n_stacked")
