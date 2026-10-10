@@ -255,7 +255,7 @@ def sky_mag(camera, night, stops):
 CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 
 
-def _card(n, title, inner, cap):
+def _story_card(n, title, inner, cap):
     num = f'<span class="cn">{n}</span>' if n else ""
     return (f'<section class="card"><h3>{num}{title}</h3>{inner}'
             f'<div class="caption">{cap}</div></section>')
@@ -300,7 +300,7 @@ def _section(sec):
             return None
         dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
               if web_url and full else "")
-        return _card(n, title, _video(url, urls.get(poster_key) or shared_poster,
+        return _story_card(n, title, _video(url, urls.get(poster_key) or shared_poster,
                                       full if web_url else None), cap + dl)
 
     # --- the numbers, told as a sentence plus a stats strip
@@ -376,7 +376,7 @@ def _section(sec):
         n += 1
         img = (f'<a href="{bright}"><img src="{bright}" '
                f'alt="per-frame sky brightness"></a>' if bright else "")
-        cards.append(_card(
+        cards.append(_story_card(
             n, "How dark the night was",
             (f'<p class="lede">{" ".join(lede)}</p>' if lede else "")
             + stats_html + img,
@@ -400,7 +400,7 @@ def _section(sec):
         url = urls.get(key)
         if url:
             n += 1
-            cards.append(_card(n, title,
+            cards.append(_story_card(n, title,
                                f'<a href="{url}"><img src="{url}" alt="{title}"></a>',
                                cap))
     return f'{heading}{"".join(cards)}'
