@@ -236,6 +236,21 @@ NIGHT_NOTES = {
         "across that range (about 1%); the lens is set to 1.25 from 10-10.",
 }
 
+# Sky surface brightness from darkest-sky stops (black 64, 60 s equivalent):
+# astro-science's Gaia G calibration of 2026-09-21, 4.15 stops = 18.1
+# mag/arcsec^2, one stop = 0.753 mag. Valid from the glass-window epoch
+# (POSINDEX 3, 2026-08-20) at gain 1. camera -> (first night, mag, at stops).
+SKY_MAG = {"astrocam": ("2026-08-20", 18.1, 4.15)}
+
+
+def sky_mag(camera, night, stops):
+    """mag/arcsec^2 (Gaia G, about visual) or None when uncalibrated."""
+    cal = SKY_MAG.get(camera)
+    if not cal or not isinstance(stops, (int, float)) or (night or "") < cal[0]:
+        return None
+    return cal[1] - 0.753 * (stops - cal[2])
+
+
 # Darkest-sky stops (above black, as shown) below which a night reads clear.
 CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 
@@ -309,7 +324,9 @@ def _section(sec):
         lim = CLEAR_BELOW_STOPS.get(sec.get("camera") or s.get("camera"))
         v = ("" if lim is None else
              ", so clear" if stops < lim else ", so cloudy")
-        lede.append(f'Darkest sky {stops:.2f} stops above black{v}.')
+        m = sky_mag(s.get("camera"), s.get("night"), stops)
+        ms = f' ({m:.1f} mag/arcsec&sup2;)' if m is not None else ""
+        lede.append(f'Darkest sky {stops:.2f} stops above black{ms}{v}.')
     note = NIGHT_NOTES.get((s.get("camera"), s.get("night")))
     if note:
         lede.append(note)
@@ -327,6 +344,10 @@ def _section(sec):
                and isinstance(exptime, (int, float))
                and abs(ref_exp - exptime) > 0.5 else "")
         stats.append(_stat(f"darkest sky, stops above black{ref}", sv))
+        m = sky_mag(s.get("camera"), s.get("night"), stops)
+        if m is not None:
+            stats.append(_stat("darkest sky, mag/arcsec&sup2; (Gaia G)",
+                               f'{m:.2f}'))
     derot = s.get("derot")
     if derot:
         w = derot.get("window_utc") or [None, None]
