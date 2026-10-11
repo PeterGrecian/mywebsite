@@ -5072,7 +5072,9 @@ def _route_x55(rq):
                         names[base], bucket=ASTRO_BUCKET)
             if summary or urls:
                 sections.append({'label': label,
-                                 'summary': summary, 'urls': urls})
+                                 'summary': summary, 'urls': urls,
+                                 'stamp_camera': s3_cam,
+                                 'stamp_night': night})
     except Exception as e:
         return {'statusCode': 500,
                 'body': f'<p>error: {e}</p>',

@@ -255,10 +255,10 @@ def sky_mag(camera, night, stops):
 CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 
 
-def _story_card(n, title, inner, cap):
+def _story_card(n, title, inner, cap, prov=""):
     num = f'<span class="cn">{n}</span>' if n else ""
     return (f'<section class="card"><h3>{num}{title}</h3>{inner}'
-            f'<div class="caption">{cap}</div></section>')
+            f'<div class="caption">{prov}{cap}</div></section>')
 
 
 def _video(url, poster, full):
@@ -285,6 +285,8 @@ def _section(sec):
     urls = sec.get("urls") or {}
     label = sec.get("label")
     heading = f'<h2>{label}</h2>' if label else ""
+    prov = provenance(sec.get("stamp_camera"), sec.get("stamp_night"),
+                      night=True)
     # Each sweep has its own poster (its mid frame); older nights fall back
     # to the shared thumb.jpg, then max.jpg.
     shared_poster = urls.get("thumb.jpg") or urls.get("max.jpg", "")
@@ -301,7 +303,7 @@ def _section(sec):
         dl = (f' &middot; <a class="dl" href="{full}">full-res</a>'
               if web_url and full else "")
         return _story_card(n, title, _video(url, urls.get(poster_key) or shared_poster,
-                                      full if web_url else None), cap + dl)
+                                      full if web_url else None), cap + dl, prov)
 
     # --- the numbers, told as a sentence plus a stats strip
     anchor = s.get("anchor") if isinstance(s.get("anchor"), dict) else {}
@@ -385,7 +387,7 @@ def _section(sec):
             "shows as a bump. The star-trail stack uses only frames within "
             "30% of the darkest 10 minutes, so twilight and cloud are left "
             "out of it. Left out is not thrown away: those frames still go "
-            "into the videos."))
+            "into the videos.", prov))
     for key, poster_key, title, cap in _STEPS:
         c = video_card(n + 1, key, poster_key, title, cap)
         if c:
@@ -402,7 +404,7 @@ def _section(sec):
             n += 1
             cards.append(_story_card(n, title,
                                f'<a href="{url}"><img src="{url}" alt="{title}"></a>',
-                               cap))
+                               cap, prov))
     return f'{heading}{"".join(cards)}'
 
 
@@ -638,13 +640,16 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
         photo_html = (f'<figure class="rig"><img src="{photo_url}" '
                       f'alt="{_esc(photo["alt"])}">{cap}</figure>')
 
+    # Accumulated across nights the page does not list, so camera only: a
+    # guessed span would be wrong.
+    cam_prov = provenance(camera)
     combined_html = ""
     if combined_brightness_url:
         combined_html = (
             f'<a href="{combined_brightness_url}">'
             f'<img class="combined" src="{combined_brightness_url}" '
             f'alt="per-night brightness curves overlaid"></a>'
-            f'<div class="caption">'
+            f'<div class="caption">{cam_prov}'
             f'{BRIGHTNESS_CAPTIONS.get(camera, DEFAULT_BRIGHTNESS_CAPTION)}'
             f'</div>')
 
@@ -654,7 +659,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'<a href="{moon_net_url}">'
             f'<img class="moon-net" src="{moon_net_url}" '
             f'alt="accumulated moon tracks across the fixed field"></a>'
-            f'<div class="caption">moon net &mdash; each clear night the '
+            f'<div class="caption">{cam_prov}moon net &mdash; each clear night the '
             f'moon traces a different known-position track across the fixed '
             f'sensor; the threads accumulate into a self-scanning '
             f'astrometric net</div>')
@@ -665,7 +670,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'<a href="{sun_net_url}">'
             f'<img class="sun-net" src="{sun_net_url}" '
             f'alt="accumulated sun tracks across the fixed field"></a>'
-            f'<div class="caption">sun net &mdash; daytime solar tracks '
+            f'<div class="caption">{cam_prov}sun net &mdash; daytime solar tracks '
             f'(ND-filtered) across the same fixed sensor; a wide-baseline '
             f'companion to the moon net for pinning pointing &amp; '
             f'distortion</div>')
@@ -729,6 +734,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
+    {PROV_CSS}
+    .caption .prov {{ margin-bottom: 0.25rem; }}
     .empty {{ text-align: center; color: var(--text-secondary); }}
     .calendar-bar {{ display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin: 0.8rem 0 0.6rem; font-size: 0.85rem; }}
     .window-label {{ color: var(--text-secondary); }}
@@ -1518,6 +1525,8 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0.4rem 0 1.25rem; text-align: center; }}
     .caption a.dl {{ color: var(--accent); text-decoration: none; white-space: nowrap; }}
     .caption a.dl:hover {{ text-decoration: underline; }}
+    {PROV_CSS}
+    .caption .prov {{ margin-bottom: 0.25rem; }}
     .vz {{ position: relative; overflow: hidden; background: #000; touch-action: pan-y; }}
     .vz video {{ transform-origin: 0 0; }}
     .vz.zoomed {{ cursor: grab; touch-action: none; }}
@@ -1684,6 +1693,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
     .card img {{ width: 100%; height: auto; display: block; }}
     .card .caption {{ padding: 0.75rem 1rem; }}
     .card .title {{ font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem; }}
+    {PROV_CSS}
     .card .desc {{ font-size: 0.8rem; color: var(--text-secondary, #aaa); line-height: 1.4; }}
     a {{ color: var(--accent, #4a9eff); text-decoration: none; }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 3rem 0 1rem; color: var(--text-secondary, #888); }}
@@ -1703,6 +1713,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('eclipticam-v3w_2026-08-22_2_ratio_mean.jpg', '')}" alt="Eclipticam Ratio to Mean">
         </a>
         <div class="caption">
+          {provenance('eclipticam-v3w', '2026-08-22', night=True)}
           <div class="title">Frame-Average Normalised Max (L / mean) &mdash; Best!</div>
           <div class="desc">Pixel must be outstanding relative to the frame average. Star trails extend right across the sky without being washed out by dawn/dusk sky brightness! Garden colours preserved.</div>
         </div>
@@ -1712,6 +1723,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('eclipticam-v3w_2026-08-22_1_raw_lum.jpg', '')}" alt="Eclipticam Raw Lum">
         </a>
         <div class="caption">
+          {provenance('eclipticam-v3w', '2026-08-22', night=True)}
           <div class="title">Raw Luminance Max (Dominated by Dawn/Dusk)</div>
           <div class="desc">Faint and mid-sky stars are overwritten by bright twilight sky diffuse glow.</div>
         </div>
@@ -1721,6 +1733,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('eclipticam-v3w_2026-08-22_per_channel.jpg', '')}" alt="Eclipticam Per Channel">
         </a>
         <div class="caption">
+          {provenance('eclipticam-v3w', '2026-08-22', night=True)}
           <div class="title">Per-Channel Independent Max</div>
           <div class="desc">Maxes R, G, B independently per pixel across all frames.</div>
         </div>
@@ -1734,6 +1747,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('astrocam_2026-08-22_2_ratio_mean.jpg', '')}" alt="Astrocam Ratio to Mean">
         </a>
         <div class="caption">
+          {provenance('astrocam', '2026-08-22', night=True)}
           <div class="title">Frame-Average Normalised Max (L / mean)</div>
           <div class="desc">Trails around Polaris are dense, sharp, and continuous. Distinct star colors (amber giants vs blue-white stars) are preserved.</div>
         </div>
@@ -1743,6 +1757,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('astrocam_2026-08-22_1_raw_lum.jpg', '')}" alt="Astrocam Raw Lum">
         </a>
         <div class="caption">
+          {provenance('astrocam', '2026-08-22', night=True)}
           <div class="title">Raw Luminance Max (Dawn/Dusk Dominated)</div>
           <div class="desc">Washed out by morning twilight.</div>
         </div>
@@ -1752,6 +1767,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('astrocam_2026-08-22_per_channel.jpg', '')}" alt="Astrocam Per Channel">
         </a>
         <div class="caption">
+          {provenance('astrocam', '2026-08-22', night=True)}
           <div class="title">Per-Channel Independent Max</div>
           <div class="desc">Midnight window independent channel max.</div>
         </div>
@@ -1765,6 +1781,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('canon_2026-08-10_lum_keyed.jpg', '')}" alt="Canon Luminance Keyed">
         </a>
         <div class="caption">
+          {provenance('canon', '2026-08-10', night=True)}
           <div class="title">Luminance-Keyed RGB (Proposed)</div>
           <div class="desc">Pinpoint 30s star trails with rich stellar spectral colors.</div>
         </div>
@@ -1774,6 +1791,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('canon_2026-08-10_per_channel.jpg', '')}" alt="Canon Per Channel">
         </a>
         <div class="caption">
+          {provenance('canon', '2026-08-10', night=True)}
           <div class="title">Per-Channel Independent Max</div>
           <div class="desc">Independent channel maxing across the 14-bit DSLR raws.</div>
         </div>
@@ -1783,6 +1801,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
           <img src="{urls.get('canon_2026-08-10_mono.jpg', '')}" alt="Canon Monochrome Reference">
         </a>
         <div class="caption">
+          {provenance('canon', '2026-08-10', night=True)}
           <div class="title">Monochrome Max (Reference)</div>
           <div class="desc">Standard 2x2 binned mono max stack.</div>
         </div>
@@ -1887,7 +1906,7 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
             if e.get("time"):
                 meta.append(e["time"])
             if e.get("camera"):
-                meta.append(e["camera"])
+                meta.append(_esc(camera_label(e["camera"])))
             meta_html = " &middot; ".join(x for x in meta if x)
             caption = e.get("caption") or ""
             cap_paras = [p.strip() for p in caption.split("\n\n") if p.strip()] if caption else []
@@ -2021,7 +2040,7 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
     if item.get("time"):
         meta.append(item["time"])
     if item.get("camera"):
-        meta.append(item["camera"])
+        meta.append(_esc(camera_label(item["camera"])))
     meta_str = " &middot; ".join(x for x in meta if x)
 
     caption = item.get("caption") or ""
@@ -2347,6 +2366,8 @@ def _esc(s):
 
 
 def _note_label(slug):
+    if slug in CAMERA_LABELS:
+        return camera_label(slug)
     for s, label in NOTE_INSTRUMENTS:
         if s == slug:
             return label
@@ -2451,6 +2472,13 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
             if e.get("night") and inst in NIGHT_PAGE_CAMERAS:
                 night_html = (f'<a href="/astro/{inst}/night/{e["night"]}">'
                               f'night page &rarr;</a>')
+            # The thumbnail is figure 1, so it is stamped with figure 1's
+            # camera and dates (the entry's date is when it was written).
+            f0 = (e.get("figures") or [{}])[0]
+            shot_prov = provenance(
+                f0.get("camera") or (inst if inst in CAMERA_LABELS else None),
+                f0.get("taken_start"), f0.get("taken_end"), f0.get("nights"),
+                night=True) if thumb else ""
             shot = (f'<a class="n-shot" href="{href}">'
                     f'<img src="{thumb}" alt="{_esc(e.get("title"))}" '
                     f'loading="lazy"></a>' if thumb else "")
@@ -2460,7 +2488,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
                 f'<figure class="n-card">{shot}'
                 f'<figcaption class="n-body">'
                 f'<div class="n-title">{title_html}</div>'
-                f'<div class="n-meta">{meta}</div>'
+                f'<div class="n-meta">{meta}</div>{shot_prov}'
                 f'{_paras(e.get("summary"), "n-sum", _md_inline)}'
                 f'{tags_html}'
                 f'<div class="n-links">{night_html}'
@@ -2477,7 +2505,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Field Notes</title>
   {theme_css_js}
-  <style>{NOTES_CSS}</style>
+  <style>{NOTES_CSS}{PROV_CSS} .n-body .prov {{ margin: 0.15rem 0 0.4rem; }}</style>
 </head>
 <body>
   <div class="container">
@@ -2685,8 +2713,15 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
         url = f.get("url") or ""
         if not url:
             continue
-        cap = (f'<figcaption>{_esc(f.get("caption"))}</figcaption>'
-               if f.get("caption") else "")
+        # Which camera and when: the figure's own (add-note's camera/taken),
+        # else the entry's instrument with no date, since an entry's night
+        # is often not the span its figures were stacked from.
+        prov = provenance(f.get("camera") or
+                          (inst if inst in CAMERA_LABELS else None),
+                          f.get("taken_start"), f.get("taken_end"),
+                          f.get("nights"), night=True)
+        cap = (f'<figcaption>{prov}{_esc(f.get("caption") or "")}</figcaption>'
+               if f.get("caption") or prov else "")
         # A figure with a video_key is an animation: the still is its
         # poster, so the page has a picture before the clip loads.
         if f.get("video_url"):
@@ -2738,7 +2773,7 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title}</title>
   {theme_css_js}
-  <style>{NOTE_DETAIL_CSS}</style>
+  <style>{NOTE_DETAIL_CSS}{PROV_CSS} .d-fig .prov {{ margin-bottom: 0.2rem; }}</style>
   {_KATEX_HEAD if _has_math(item) else ""}
 </head>
 <body>
@@ -2769,6 +2804,72 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
 # Everything here is measured or read off the hardware; the figures for a
 # night live in the Field Notes entries, which this page links to rather than
 # duplicates.
+
+
+# --- which camera, and when: the stamp under every astro image -------------
+#
+# Peter 2026-10-11: every image says which camera took it and the date or
+# range, by the camera's real name ("eclipticam v3w", not "eclipticam").
+# One table, so the chips, captions and stamps cannot drift apart. Keys are
+# the instrument slugs AND the S3 sub-camera prefixes, since a night page
+# knows "eclipticam-v3w" while a field note knows "eclipticam".
+CAMERA_LABELS = {
+    "astrocam": "astrocam v3",
+    "eclipticam": "eclipticam v3w",
+    "eclipticam-v3w": "eclipticam v3w",
+    "eclipticam-v1": "eclipticam v1",
+    "firstscope": "firstscope v1",
+    "canon": "canon 2000D",
+    "starcam": "starcam v1",
+}
+
+
+def camera_label(cam):
+    """'eclipticam' -> 'eclipticam v3w'; an unknown name passes through."""
+    cam = str(cam or "").strip()
+    return CAMERA_LABELS.get(cam.lower(), cam)
+
+
+def _day(d):
+    """'2026-10-09' -> (date, '9 Oct 2026'), or (None, d) if not a date."""
+    from datetime import date
+    try:
+        dd = date.fromisoformat(str(d)[:10])
+    except ValueError:
+        return None, str(d)
+    return dd, f'{dd.day} {dd.strftime("%b")} {dd.year}'
+
+
+def date_span(start, end=None, nights=None, night=False):
+    """'night of 9 Oct 2026', '17 Sep to 9 Oct 2026 (9 nights)'.
+
+    night=True marks a single date as the evening it began, the house
+    convention for a night label."""
+    a, a_txt = _day(start)
+    if not end or str(end)[:10] == str(start)[:10]:
+        return f'night of {a_txt}' if night else a_txt
+    b, b_txt = _day(end)
+    if a and b and a.year == b.year:
+        a_txt = a_txt.rsplit(" ", 1)[0]
+        if a.month == b.month:
+            a_txt = str(a.day)
+    n = f' ({nights} nights)' if nights else ""
+    return f'{a_txt} to {b_txt}{n}'
+
+
+def provenance(camera, start=None, end=None, nights=None, night=False):
+    """The stamp line: 'eclipticam v3w &middot; night of 9 Oct 2026'.
+    Empty when there is nothing to say, so callers can always append it."""
+    parts = [_esc(camera_label(camera))] if camera else []
+    if start:
+        parts.append(_esc(date_span(start, end, nights, night)))
+    if not parts:
+        return ""
+    return f'<div class="prov">{" &middot; ".join(parts)}</div>'
+
+
+PROV_CSS = ".prov { color: var(--text-secondary); font-size: 0.75rem; letter-spacing: 0.02em; }"
+
 
 INSTRUMENT_SPECS = {
     "firstscope": {
@@ -3242,7 +3343,8 @@ def render_astro_instrument(*, theme_css_js, slug, notes=(), photo_url=None,
             results_photo_html = (
                 f'<figure class="i-rphoto"><img src="data:image/png;base64,'
                 f'{data}" alt="{_esc(rp["alt"])}">'
-                f'<figcaption>{rp["caption"]}</figcaption></figure>')
+                f'<figcaption>{provenance(rp.get("camera", slug))}'
+                f'{rp["caption"]}</figcaption></figure>')
         except OSError:
             pass
 

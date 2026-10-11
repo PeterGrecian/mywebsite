@@ -1442,11 +1442,15 @@ def render_starcam_night_results(night_str, summary, urls):
     hours = sorted(summary.get("hours", []) or [],
                    key=lambda h: (int(h["hh"]) + 24) % 36)
 
+    from routes.astro import provenance
+    prov = provenance("starcam", night_str, night=True).replace(
+        'class="prov"',
+        'class="prov" style="color:#8E8E93;font-size:0.75rem;margin:0.3rem 0 1rem;"')
     brightness_img = ""
     if urls.get("brightness.png"):
         brightness_img = (
             f'<img src="{urls["brightness.png"]}" '
-            f'alt="brightness vs time" style="width:100%;max-width:960px;">')
+            f'alt="brightness vs time" style="width:100%;max-width:960px;">{prov}')
 
     # Hero image: the darkest hour's per-hour derotation (derot_HH.jpg),
     # falling back to all-night-derot.jpg for nights without per-hour derots.
@@ -1461,13 +1465,13 @@ def render_starcam_night_results(night_str, summary, urls):
         derot_img = (
             f'<h2>Darkest hour — {dark_hh}:00 UTC{mean_str}</h2>'
             f'<img src="{dark_url}" alt="darkest hour stack" '
-            f'style="width:100%;max-width:960px;background:#000;">')
+            f'style="width:100%;max-width:960px;background:#000;">{prov}')
     elif urls.get("all-night-derot.jpg"):
         derot_img = (
             f'<h2>All-night derotation</h2>'
             f'<img src="{urls["all-night-derot.jpg"]}" '
             f'alt="all-night derot" style="width:100%;max-width:960px;'
-            f'background:#000;">')
+            f'background:#000;">{prov}')
 
     hour_cards = []
     for h in hours:
@@ -2150,7 +2154,7 @@ def render_starcam_night(evening_date, images, brightness_data=None):
                     <img src="{img['url']}" alt="Stacked {img['timestamp']}"
                          style="width: 100%; max-width: 800px; border-radius: 8px;">
                 </a>
-                <div class="ts">{img['timestamp']}{stack_info}</div>
+                <div class="ts">starcam v1 · {img['timestamp']}{stack_info}</div>
             </div>'''
 
     return f'''{_GALLERY_STYLE}

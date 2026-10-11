@@ -565,8 +565,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10346,
-  "sha": "40adff95e219d111",
+  "len": 11127,
+  "sha": "1af31c18488264d2",
   "status": 200
  },
  "/astro/color-max-test-suffix": {
@@ -624,8 +624,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10346,
-  "sha": "40adff95e219d111",
+  "len": 11127,
+  "sha": "1af31c18488264d2",
   "status": 200
  },
  "/astro/colour-max-test-suffix": {
@@ -2086,8 +2086,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10346,
-  "sha": "40adff95e219d111",
+  "len": 11127,
+  "sha": "1af31c18488264d2",
   "status": 200
  },
  "/default/astro/color-max-test-suffix": {
@@ -2145,8 +2145,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 10346,
-  "sha": "40adff95e219d111",
+  "len": 11127,
+  "sha": "1af31c18488264d2",
   "status": 200
  },
  "/default/astro/colour-max-test-suffix": {
