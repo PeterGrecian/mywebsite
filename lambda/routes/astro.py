@@ -2625,7 +2625,7 @@ NOTE_DETAIL_CSS = '''
     .d-meta { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; }
     .d-meta a { color: var(--accent); text-decoration: none; }
     .d-fig { margin: 0 0 1.4rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; }
-    .d-fig img { width: 100%; height: auto; display: block; background: #000; }
+    .d-fig img, .d-fig video { width: 100%; height: auto; display: block; background: #000; }
     .d-fig figcaption { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; padding: 0.6rem 0.85rem 0.75rem; }
     .d-sum { font-size: 1rem; line-height: 1.65; margin: 0 0 0.8rem; }
     .d-body { font-size: 0.95rem; line-height: 1.7; margin: 0 0 0.8rem; }
@@ -2685,6 +2685,15 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
             continue
         cap = (f'<figcaption>{_esc(f.get("caption"))}</figcaption>'
                if f.get("caption") else "")
+        # A figure with a video_key is an animation: the still is its
+        # poster, so the page has a picture before the clip loads.
+        if f.get("video_url"):
+            figs.append(f'<figure class="d-fig"><video controls loop muted '
+                        f'autoplay playsinline preload="metadata" '
+                        f'poster="{url}"><source src="{f["video_url"]}" '
+                        f'type="video/mp4"><img src="{url}" '
+                        f'alt="{_esc(f.get("caption"))}"></video>{cap}</figure>')
+            continue
         figs.append(f'<figure class="d-fig"><a href="{url}">'
                     f'<img src="{url}" alt="{_esc(f.get("caption"))}">'
                     f'</a>{cap}</figure>')

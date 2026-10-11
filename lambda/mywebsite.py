@@ -4553,7 +4553,10 @@ def _route_x56(rq):
         idx, item = by_id[selected]
         item = dict(item)
         item['figures'] = [
-            dict(f, url=get_presigned_url(f['key'], bucket=ASTRO_BUCKET))
+            dict(f, url=get_presigned_url(f['key'], bucket=ASTRO_BUCKET),
+                 **({'video_url': get_presigned_url(f['video_key'],
+                                                    bucket=ASTRO_BUCKET)}
+                    if f.get('video_key') else {}))
             for f in (item.get('figures') or []) if f.get('key')]
         return {
             'statusCode': 200,
