@@ -2478,7 +2478,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
             shot_prov = provenance(
                 f0.get("camera") or (inst if inst in CAMERA_LABELS else None),
                 f0.get("taken_start"), f0.get("taken_end"), f0.get("nights"),
-                night=True) if thumb else ""
+                night=True, field=f0.get("field")) if thumb else ""
             shot = (f'<a class="n-shot" href="{href}">'
                     f'<img src="{thumb}" alt="{_esc(e.get("title"))}" '
                     f'loading="lazy"></a>' if thumb else "")
@@ -2719,7 +2719,8 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
         prov = provenance(f.get("camera") or
                           (inst if inst in CAMERA_LABELS else None),
                           f.get("taken_start"), f.get("taken_end"),
-                          f.get("nights"), night=True)
+                          f.get("nights"), night=True,
+                          field=f.get("field"))
         cap = (f'<figcaption>{prov}{_esc(f.get("caption") or "")}</figcaption>'
                if f.get("caption") or prov else "")
         # A figure with a video_key is an animation: the still is its
@@ -2857,12 +2858,17 @@ def date_span(start, end=None, nights=None, night=False):
     return f'{a_txt} to {b_txt}{n}'
 
 
-def provenance(camera, start=None, end=None, nights=None, night=False):
-    """The stamp line: 'eclipticam v3w &middot; night of 9 Oct 2026'.
-    Empty when there is nothing to say, so callers can always append it."""
+def provenance(camera, start=None, end=None, nights=None, night=False,
+               field=None):
+    """The stamp line: 'eclipticam v3w &middot; night of 9 Oct 2026
+    &middot; 4.2° × 2.6°'. field is the field of view as a statement (Peter:
+    "just a statement will do", no scale bars). Empty when there is nothing
+    to say, so callers can always append it."""
     parts = [_esc(camera_label(camera))] if camera else []
     if start:
         parts.append(_esc(date_span(start, end, nights, night)))
+    if field:
+        parts.append(_esc(field))
     if not parts:
         return ""
     return f'<div class="prov">{" &middot; ".join(parts)}</div>'

@@ -44,3 +44,10 @@ def test_hub_renders():
     # 2026-10-10: a second _card in this module shadowed the hub's and /astro
     # 500'd on every request.
     assert "Field Notes" in _astro().render_astro_hub(theme_css_js="")
+
+
+def test_field_of_view_follows_the_date():
+    assert (_astro().provenance("eclipticam", "2026-08-06", "2026-10-09", 27,
+                                field="4.2° × 2.6°")
+            == '<div class="prov">eclipticam v3w &middot; 6 Aug to 9 Oct 2026'
+               ' (27 nights) &middot; 4.2° × 2.6°</div>')
