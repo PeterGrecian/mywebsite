@@ -2607,7 +2607,7 @@ def _md(text):
         # Sub-heading inside a section.
         m_h = re.match(r"^(#+)\s+(.*)$", line)
         if m_h:
-            level = min(3 + len(m_h.group(1)), 6)
+            level = max(3, min(len(m_h.group(1)), 6))  # ### -> h3, #### -> h4
             html.append(f'<h{level}>{_md_inline(m_h.group(2))}</h{level}>')
             i += 1
             continue
@@ -2630,6 +2630,8 @@ NOTE_DETAIL_CSS = '''
     .d-sum { font-size: 1rem; line-height: 1.65; margin: 0 0 0.8rem; }
     .d-body { font-size: 0.95rem; line-height: 1.7; margin: 0 0 0.8rem; }
     h2 { font-size: 1rem; margin: 1.6rem 0 0.5rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    h3 { font-size: 1rem; margin: 1.2rem 0 0.4rem; font-weight: 600; }
+    h4 { font-size: 0.95rem; margin: 1rem 0 0.3rem; font-weight: 600; color: var(--text-secondary); }
     .d-nums { font-size: 0.9rem; line-height: 1.6; padding-left: 1.2rem; margin: 0; }
     .md-l { font-size: 0.93rem; line-height: 1.65; padding-left: 1.2rem; margin: 0 0 0.8rem; }
     .md-l li { margin-bottom: 0.25rem; }
