@@ -609,6 +609,28 @@ CAMERA_PHOTOS = {
 }
 
 
+NO_STACK_REASON = {
+    "twilight-only": "twilight only",
+    "cloudy": "cloudy",
+}
+
+
+def _no_thumb_text(s):
+    """What a night card without a preview says: the capture window and why
+    nothing was stacked, so a short capture reads as a gap and not as the
+    pipeline failing."""
+    n_frames = s.get("n_frames")
+    if not n_frames:
+        return "no preview"
+    fu = s.get("frames_utc") or []
+    span = ""
+    if len(fu) == 2 and all(fu):
+        span = f"capture {_london_hhmm(fu[0])}-{_london_hhmm(fu[1])}<br>"
+    why = NO_STACK_REASON.get((s.get("verdict") or "").lower())
+    return (f"{span}{n_frames} frames, not stacked"
+            + (f" ({why})" if why else ""))
+
+
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
                                  combined_brightness_url=None,
@@ -697,9 +719,10 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             if stops is not None:
                 stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
             stats = " &middot; ".join(stats_parts)
-            poster = (f'<img src="{thumb}" alt="{night}" loading="lazy">'
-                      if thumb else
-                      '<div class="no-thumb">no preview</div>')
+            if thumb:
+                poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
+            else:
+                poster = f'<div class="no-thumb">{_no_thumb_text(s)}</div>'
             cards.append(
                 f'<a class="night-card" href="/astro/{camera}/night/{night}">'
                 f'<div class="night-thumb">{poster}</div>'

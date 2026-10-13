@@ -681,6 +681,7 @@ VERDICT_GLYPH = {
     "clear":   ("☀",  "#34C759", "Clear"),
     "cloudy":  ("☁",  "#8E8E93", "Cloudy"),
     "rain":    ("🌧",  "#007AFF", "Rain"),
+    "twilight-only": ("◐", "#8E8E93", "Twilight only"),
     "no-data": ("·",   "#8E8E93", "No data"),
 }
 

@@ -4876,6 +4876,24 @@ def _route_x55(rq):
                         tk = tk[:-9] + 'max.jpg'
                     thumb_url = (get_presigned_url(tk, bucket=ASTRO_BUCKET)
                                  if tk else None)
+                    # A night with frames but no preview (twilight only,
+                    # cloud) shows its capture window instead, so a short
+                    # capture reads as a gap, not a pipeline failure. The
+                    # index lacks the times; these nights are rare, so one
+                    # summary read each.
+                    frames_utc = None
+                    if not tk and entry.get('n_frames'):
+                        try:
+                            sm = _json.loads(s3_client().get_object(
+                                Bucket=ASTRO_BUCKET,
+                                Key=f'{camera}/nights/{n}/summary.json'
+                            )['Body'].read())
+                            frames_utc = ((sm.get('anchor') or {})
+                                          .get('frames_utc')
+                                          or [sm.get('first_frame_utc'),
+                                              sm.get('last_frame_utc')])
+                        except Exception:
+                            pass
                     nights_meta.append({
                         'night': n,
                         'thumb_url': thumb_url,
@@ -4885,6 +4903,7 @@ def _route_x55(rq):
                             'stops': _rebase_stops(camera, entry.get('stops'),
                                                    entry),
                             'verdict': entry.get('verdict'),
+                            'frames_utc': frames_utc,
                         }})
 
             if manifest is None:
