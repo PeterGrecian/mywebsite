@@ -4981,7 +4981,14 @@ def _route_x55(rq):
             moon_net_url = None
             sun_net_url = None
             from routes.astro import (render_astro_camera_calendar,
-                                      CAMERA_PHOTOS)
+                                      CAMERA_PHOTOS, CAMERA_VIEWS)
+            view_urls = []
+            for v in CAMERA_VIEWS.get(camera, []):
+                try:
+                    view_urls.append(get_presigned_url(
+                        v['key'], bucket=ASTRO_BUCKET))
+                except Exception:
+                    view_urls.append(None)
             rig_url = None
             if camera in CAMERA_PHOTOS:
                 try:
@@ -4998,7 +5005,8 @@ def _route_x55(rq):
                     moon_net_url=moon_net_url,
                     sun_net_url=sun_net_url,
                     window_label=window_label, weeks=weeks,
-                    months=months, photo_url=rig_url),
+                    months=months, photo_url=rig_url,
+                    view_urls=view_urls),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
         # Nights nav strip (nights[:14]). Prefer the precomputed manifest

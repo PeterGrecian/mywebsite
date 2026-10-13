@@ -613,6 +613,26 @@ CAMERA_PHOTOS = {
 }
 
 
+# Extra stills on a camera's page, below the rig photo, each in its own
+# titled card. Keys are in the astro bucket.
+CAMERA_VIEWS = {
+    "eclipticam": [
+        {"key": "site/eclipticam-v3w-hq16.jpg",
+         "title": "The two cameras",
+         "alt": "The v3 Wide view of the southern sky with the HQ16's much "
+                "narrower field outlined in yellow, and the HQ16 frame beside it",
+         "caption": "Left: the v3 Wide sees about 100&deg; of sky. The yellow "
+                    "outline is where the HQ camera with its 16 mm lens points: "
+                    "22 &times; 17&deg; around Aquarius and Capricornus, low in "
+                    "the south. Right: the HQ16's own frame, taken at the same "
+                    "moment. Both are single 60 s exposures from 13 Oct 2026, "
+                    "22:30 London time; the outline comes from star-matching "
+                    "both frames, and looks tilted because the wide lens bends "
+                    "the edges of its view."},
+    ],
+}
+
+
 NO_STACK_REASON = {
     "twilight-only": "twilight only",
     "cloudy": "cloudy",
@@ -641,7 +661,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  moon_net_url=None,
                                  sun_net_url=None,
                                  window_label='', weeks=(), months=(),
-                                 subtitle=None, photo_url=None):
+                                 subtitle=None, photo_url=None,
+                                 view_urls=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -665,6 +686,13 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
                if photo.get("caption") else '')
         photo_html = (f'<figure class="rig"><img src="{photo_url}" '
                       f'alt="{_esc(photo["alt"])}">{cap}</figure>')
+
+    views_html = "".join(
+        f'<section class="card view"><h3>{v["title"]}</h3>'
+        f'<a href="{url}"><img src="{url}" alt="{_esc(v["alt"])}"></a>'
+        f'<div class="caption">{v["caption"]}</div></section>'
+        for v, url in zip(CAMERA_VIEWS.get(camera, []), view_urls or [])
+        if url)
 
     # Accumulated across nights the page does not list, so camera only: a
     # guessed span would be wrong.
@@ -757,7 +785,11 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
     .rig {{ max-width: 480px; margin: 0 auto 1.5rem; }}
     .rig img {{ display: block; width: 100%; height: auto; border-radius: 12px; }}
-    .rig figcaption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
+.card.view {{ background: var(--card-bg); border-radius: 12px; padding: 0.9rem; margin: 0 0 1.5rem; }}
+    .card.view h3 {{ font-size: 1.05rem; font-weight: 600; margin: 0 0 0.7rem; }}
+    .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
+    .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
+        .rig figcaption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
     .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
@@ -777,6 +809,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     <h1>{title}</h1>
     <div class="subtitle">{subtitle}</div>
     {photo_html}
+    {views_html}
     {combined_html}
     {moon_net_html}
     {sun_net_html}
