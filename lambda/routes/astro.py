@@ -329,6 +329,10 @@ def _section(sec):
         m = sky_mag(s.get("camera"), s.get("night"), stops)
         ms = f' ({m:.1f} mag/arcsec&sup2;)' if m is not None else ""
         lede.append(f'Darkest sky {stops:.2f} stops above black{ms}{v}.')
+    if (s.get("verdict") or "").lower() == "twilight-only":
+        cut = (s.get("anchor") or {}).get("sun_cut_deg", -18)
+        lede.append(f'All of it in twilight (sun above {cut:g}&deg;), '
+                    f'so nothing was stacked.')
     note = NIGHT_NOTES.get((s.get("camera"), s.get("night")))
     if note:
         lede.append(note)
