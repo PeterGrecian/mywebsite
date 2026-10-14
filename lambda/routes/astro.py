@@ -610,13 +610,13 @@ CAMERA_PHOTOS = {
                             "cover driven by the Pi with an SG90 servo (not visible, "
                             "far outside of box).  The "
                             "lens is covered with a phone protector glass."},
-    "eclipticam": {"key": "site/eclipticam-rig.jpg",
+    "eclipticam": {"key": "site/eclipticam-rig-20261014.jpg",
                    "alt": "The Ecliptic Camera: a Pi in a cardboard box on "
                           "the windowsill, two ribbon cables running to "
                           "cameras at the glass",
-                   "caption": "Two cameras are mounted: the v3 Wide (IMX708) on "
-                              "the right, and on the left an HQ camera with a "
-                              "16 mm lens, which has replaced the v1 and is "
+                   "caption": "Two cameras are mounted: the v3 Wide (IMX708) "
+                              "taped at the glass above, and on the lower mount an HQ camera with a "
+                              "16 mm C-mount lens, which has replaced the v1 and is "
                               "being commissioned."},
 }
 
@@ -1080,7 +1080,7 @@ def render_eclipticam_history_page(*, theme_css_js, title, rig_photo_url=None):
         rig_html = f'''<section class="card view">
       <h3>The Windowsill Rig</h3>
       <a href="{rig_photo_url}"><img src="{rig_photo_url}" alt="Ecliptic camera dual-mount rig"></a>
-      <div class="caption">The dual-camera ecliptic rig on the windowsill: a Raspberry Pi in a cardboard chassis with two ribbon cables leading to sensors taped against the window glass, backed by a dedicated SSD.</div>
+      <div class="caption">The dual-camera ecliptic rig on the windowsill: the Raspberry Pi HQ Camera with its 16 mm C-mount lens (blue accent ring) on the lower mount, the v3 Wide module taped at the glass above it, and dual ribbon cables leading into the cardboard chassis.</div>
     </section>'''
 
     return f'''<!DOCTYPE html>

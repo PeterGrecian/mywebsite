@@ -5207,7 +5207,7 @@ def _route_eclipticam_subpage(rq):
         rig_url = None
         try:
             rig_url = get_presigned_url(
-                'site/eclipticam-rig.jpg', bucket=ASTRO_BUCKET)
+                'site/eclipticam-rig-20261014.jpg', bucket=ASTRO_BUCKET)
         except Exception:
             pass
 
