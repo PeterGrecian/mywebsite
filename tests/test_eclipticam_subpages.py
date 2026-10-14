@@ -65,7 +65,8 @@ class TestEclipticamSubpages:
         assert "Era 3: Dual-Camera Rig with the HQ 16 mm" in body
         assert "IMX477" in body
         assert "Hardware Comparison" in body
-        assert "The Windowsill Rig" in body
+        assert "The Old Rig: with the v1 Camera" in body
+        assert "The New Rig: with the 16 mm Big Lens" in body
         assert "blue accent ring" in body
         # Subnav links to sibling pages
         assert 'href="/astro/eclipticam"' in body
@@ -78,6 +79,12 @@ class TestEclipticamSubpages:
         from routes.astro import CAMERA_PHOTOS, render_eclipticam_history_page
         assert CAMERA_PHOTOS["eclipticam"]["key"] == "site/eclipticam-rig-20261014.jpg"
         html = render_eclipticam_history_page(
-            theme_css_js="", title="Test", rig_photo_url="https://example.com/rig.jpg")
-        assert 'src="https://example.com/rig.jpg"' in html
+            theme_css_js="", title="Test",
+            rig_old_url="https://example.com/old.jpg",
+            rig_new_url="https://example.com/new.jpg")
+        assert 'src="https://example.com/old.jpg"' in html
+        assert 'src="https://example.com/new.jpg"' in html
+        assert "The Old Rig: with the v1 Camera" in html
+        assert "The New Rig: with the 16 mm Big Lens" in html
+        assert "rig-grid" in html
         assert "blue accent ring" in html

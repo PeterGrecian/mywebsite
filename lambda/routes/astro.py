@@ -1070,18 +1070,38 @@ def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
 </html>'''
 
 
-def render_eclipticam_history_page(*, theme_css_js, title, rig_photo_url=None):
+def render_eclipticam_history_page(*, theme_css_js, title, rig_photo_url=None,
+                                   rig_old_url=None, rig_new_url=None):
     """Dedicated page for the history of the ecliptic cameras."""
     subnav_html = render_eclipticam_subnav("history")
     subtitle = "Evolution of the south-facing windowsill rig &middot; from v1 to dual wide/narrow cameras"
 
-    rig_html = ""
-    if rig_photo_url:
-        rig_html = f'''<section class="card view">
-      <h3>The Windowsill Rig</h3>
-      <a href="{rig_photo_url}"><img src="{rig_photo_url}" alt="Ecliptic camera dual-mount rig"></a>
-      <div class="caption">The dual-camera ecliptic rig on the windowsill: the Raspberry Pi HQ Camera with its 16 mm C-mount lens (blue accent ring) on the lower mount, the v3 Wide module taped at the glass above it, and dual ribbon cables leading into the cardboard chassis.</div>
-    </section>'''
+    # Support rig_photo_url for backwards compatibility
+    rig_new_url = rig_new_url or rig_photo_url
+
+    rig_cards = []
+    if rig_old_url:
+        rig_cards.append(f'''<section class="card view">
+      <h3>The Old Rig: with the v1 Camera</h3>
+      <a href="{rig_old_url}"><img src="{rig_old_url}" alt="Earlier ecliptic rig with v1 camera and v3 Wide"></a>
+      <div class="caption">The earlier rig on the windowsill: the original v1 camera module (left) and v3 Wide module (right) taped directly to the window glass, with twin ribbon cables running to the Raspberry Pi in the cardboard box.</div>
+    </section>''')
+    if rig_new_url:
+        rig_cards.append(f'''<section class="card view">
+      <h3>The New Rig: with the 16 mm Big Lens</h3>
+      <a href="{rig_new_url}"><img src="{rig_new_url}" alt="New ecliptic rig with 16 mm big lens and v3 Wide"></a>
+      <div class="caption">The new dual-camera rig on the windowsill: the Raspberry Pi HQ Camera with its 16 mm C-mount lens (blue accent ring) on the lower mount, the v3 Wide module taped at the glass above it, and dual ribbon cables leading into the cardboard chassis.</div>
+    </section>''')
+
+    if len(rig_cards) > 1:
+        cards_joined = "\n      ".join(rig_cards)
+        rig_html = f'''<div class="rig-grid">
+      {cards_joined}
+    </div>'''
+    elif len(rig_cards) == 1:
+        rig_html = rig_cards[0]
+    else:
+        rig_html = ""
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1099,6 +1119,8 @@ def render_eclipticam_history_page(*, theme_css_js, title, rig_photo_url=None):
     .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
     .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
     .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
+    .rig-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }}
+    .rig-grid .card {{ margin-bottom: 0; }}
     .card {{ background: var(--card-bg, #161616); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem; }}
     .card h2, .card h3 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 0.8rem; display: flex; align-items: center; justify-content: space-between; }}
     .card p {{ color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; margin: 0 0 0.8rem; }}

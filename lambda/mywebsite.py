@@ -5204,17 +5204,24 @@ def _route_eclipticam_subpage(rq):
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
     elif subpage == 'history':
-        rig_url = None
+        rig_new_url = None
+        rig_old_url = None
         try:
-            rig_url = get_presigned_url(
+            rig_new_url = get_presigned_url(
                 'site/eclipticam-rig-20261014.jpg', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
+        try:
+            rig_old_url = get_presigned_url(
+                'site/eclipticam-rig.jpg', bucket=ASTRO_BUCKET)
         except Exception:
             pass
 
         html = render_eclipticam_history_page(
             theme_css_js=THEME_CSS_JS,
             title='Ecliptic Camera: History of the Cameras — Peter Grecian',
-            rig_photo_url=rig_url)
+            rig_new_url=rig_new_url,
+            rig_old_url=rig_old_url)
         return {'statusCode': 200,
                 'body': html,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
