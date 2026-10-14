@@ -26,7 +26,7 @@ CAMERAS = [
     {
         "path": "/astro/eclipticam",
         "title": "Ecliptic Camera",
-        "desc": "Pi with a Camera Module 3 Wide (IMX708 Wide), day and night astro along the ecliptic. A v1 camera (OV5647) is fitted but not used.",
+        "desc": "Pi with a Camera Module 3 Wide (IMX708 Wide) and an HQ Camera (16 mm lens) along the ecliptic: wide-field monitoring and narrow-field deep views.",
         "status": "live",
     },
 ]
@@ -123,12 +123,13 @@ def render_astro_hub(*, theme_css_js):
 </html>'''
 
 
-def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None):
+def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None, subnav_html=None):
     image_html = ""
     if image_url:
         cap = f'<div class="caption">{caption}</div>' if caption else ""
         image_html = f'<a href="{image_url}"><img class="sample" src="{image_url}" alt="{title} sample"></a>{cap}'
 
+    subnav_part = f"{subnav_html}\n    " if subnav_html else ""
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,6 +141,11 @@ def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None):
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
     .container {{ max-width: 900px; margin: 2rem auto; text-align: center; }}
     h1 {{ font-size: 1.6rem; margin-bottom: 0.25rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1.5rem; max-width: 760px; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
+    .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
     .tag {{ color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1.5rem; }}
     .sample {{ width: 100%; height: auto; background: #000; display: block; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem; }}
@@ -151,7 +157,7 @@ def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None):
   <div class="container">
     <h1>{title}</h1>
     <div class="tag">coming soon — sample frame</div>
-    {image_html}
+    {subnav_part}{image_html}
     <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
@@ -657,6 +663,27 @@ def _no_thumb_text(s):
             + (f" ({why})" if why else ""))
 
 
+def render_eclipticam_subnav(active_slug):
+    """Subnav bar for Eclipticam pages.
+    Links:
+      - Overview: /astro/eclipticam
+      - v3w Wide View: /astro/eclipticam/v3w
+      - HQ16 Narrow View: /astro/eclipticam/hq16
+      - History of the Cameras: /astro/eclipticam/history
+    """
+    tabs = [
+        ("overview", "/astro/eclipticam", "Overview"),
+        ("v3w", "/astro/eclipticam/v3w", "v3w Wide View"),
+        ("hq16", "/astro/eclipticam/hq16", "HQ16 Narrow View"),
+        ("history", "/astro/eclipticam/history", "History of the Cameras"),
+    ]
+    items = []
+    for slug, url, label in tabs:
+        active_cls = " active" if slug == active_slug else ""
+        items.append(f'<a href="{url}" class="subnav-link{active_cls}">{label}</a>')
+    return f'<nav class="subnav">{"".join(items)}</nav>'
+
+
 def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  nights_with_meta,
                                  combined_brightness_url=None,
@@ -664,7 +691,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
                                  sun_net_url=None,
                                  window_label='', weeks=(), months=(),
                                  subtitle=None, photo_url=None,
-                                 view_urls=None):
+                                 view_urls=None, subnav_html=None):
     """Calendar of nights for a camera, newest first.
 
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
@@ -680,6 +707,11 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     """
     if subtitle is None:
         subtitle = CAMERA_SUBTITLES.get(camera, DEFAULT_CAMERA_SUBTITLE)
+
+    if camera == "eclipticam" and subnav_html is None:
+        subnav_html = render_eclipticam_subnav("overview")
+    else:
+        subnav_html = subnav_html or ""
 
     photo = CAMERA_PHOTOS.get(camera)
     photo_html = ''
@@ -776,6 +808,10 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .container {{ max-width: 1100px; margin: 0 auto; }}
     h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
     .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1.5rem; max-width: 760px; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
+    .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
     .night-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }}
     .night-card {{ display: block; background: var(--card-bg); overflow: hidden; text-decoration: none; color: inherit; }}
     .night-card:hover {{ opacity: 0.85; }}
@@ -787,11 +823,11 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
     .rig {{ max-width: 480px; margin: 0 auto 1.5rem; }}
     .rig img {{ display: block; width: 100%; height: auto; border-radius: 12px; }}
-.card.view {{ background: var(--card-bg); border-radius: 12px; padding: 0.9rem; margin: 0 0 1.5rem; }}
+    .card.view {{ background: var(--card-bg); border-radius: 12px; padding: 0.9rem; margin: 0 0 1.5rem; }}
     .card.view h3 {{ font-size: 1.05rem; font-weight: 600; margin: 0 0 0.7rem; }}
     .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
     .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
-        .rig figcaption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
+    .rig figcaption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; }}
     .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; }}
     .moon-net, .sun-net {{ width: 100%; height: auto; background: #000; display: block; margin-bottom: 0.3rem; }}
     .caption {{ color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 1.5rem; text-align: center; }}
@@ -810,6 +846,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
   <div class="container">
     <h1>{title}</h1>
     <div class="subtitle">{subtitle}</div>
+    {subnav_html}
     {photo_html}
     {views_html}
     {combined_html}
@@ -818,6 +855,342 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     {bar_html}
     {cards_html}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_eclipticam_v3w_page(*, theme_css_js, title,
+                               nights_with_meta=None,
+                               comparison_url=None,
+                               combined_brightness_url=None,
+                               window_label='', weeks=(), months=()):
+    """Dedicated page for the v3w wide view on the ecliptic camera."""
+    subnav_html = render_eclipticam_subnav("v3w")
+    subtitle = "Pi Camera Module 3 Wide (IMX708) &middot; 100&deg; field of view along the ecliptic"
+
+    comparison_html = ""
+    if comparison_url:
+        comparison_html = f'''<section class="card view">
+      <h3>Wide Field and Embedded Narrow Field</h3>
+      <a href="{comparison_url}"><img src="{comparison_url}" alt="v3 Wide and HQ16 simultaneous exposures"></a>
+      <div class="caption">Left: the v3 Wide field of view spans about 100&deg; of sky. The yellow outline marks where the narrow HQ16 camera points (22 &times; 17&deg; around Aquarius and Capricornus). Right: the HQ16 exposure taken at the exact same moment (13 Oct 2026, 22:30 London time).</div>
+    </section>'''
+
+    combined_html = ""
+    if combined_brightness_url:
+        combined_html = f'''<section class="card">
+      <h3>Sky Brightness History</h3>
+      <a href="{combined_brightness_url}"><img class="combined" src="{combined_brightness_url}" alt="per-night brightness curves overlaid"></a>
+      <div class="caption">Multi-night overlay of sky brightness curves for the v3 Wide camera.</div>
+    </section>'''
+
+    bar_html = _render_calendar_bar("eclipticam", window_label, list(weeks), list(months))
+
+    if not nights_with_meta:
+        cards_html = ('<p class="empty">No nights in this window.</p>'
+                      if weeks or months
+                      else '<p class="empty">No nights published yet.</p>')
+    else:
+        cards = []
+        for n in nights_with_meta:
+            night = n["night"]
+            thumb = n.get("thumb_url") or ""
+            s = n.get("summary") or {}
+            n_stacked = s.get("n_stacked")
+            n_frames = s.get("n_frames")
+            stops = s.get("stops")
+            stats_parts = []
+            if n_stacked is not None and n_frames is not None:
+                stats_parts.append(f'{n_stacked}/{n_frames}')
+            if stops is not None:
+                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
+            stats = " &middot; ".join(stats_parts)
+            if thumb:
+                poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
+            else:
+                poster = f'<div class="no-thumb">{_no_thumb_text(s)}</div>'
+            cards.append(
+                f'<a class="night-card" href="/astro/eclipticam/night/{night}">'
+                f'<div class="night-thumb">{poster}</div>'
+                f'<div class="night-meta"><span class="night-date">{night}</span>'
+                f'<span class="night-stats">{stats}</span></div></a>')
+        cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1100px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1.5rem; max-width: 760px; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
+    .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
+    .card {{ background: var(--card-bg, #161616); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem; }}
+    .card h2, .card h3 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 0.8rem; }}
+    .card p {{ color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; margin: 0 0 0.8rem; }}
+    .card p:last-child {{ margin-bottom: 0; }}
+    .specs-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin-top: 0.8rem; }}
+    .spec-item {{ display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.03); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--divider, #2C2C2E); }}
+    .spec-label {{ font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #8E8E93); margin-bottom: 0.25rem; }}
+    .spec-value {{ font-size: 0.9rem; font-weight: 500; color: var(--text, #E0E0E0); }}
+    .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
+    .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.6rem; }}
+    .combined {{ width: 100%; height: auto; background: #fff; display: block; margin-bottom: 0.3rem; border-radius: 8px; }}
+    .night-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }}
+    .night-card {{ display: block; background: var(--card-bg); overflow: hidden; text-decoration: none; color: inherit; }}
+    .night-card:hover {{ opacity: 0.85; }}
+    .night-thumb {{ aspect-ratio: 2304 / 1064; background: #000; overflow: hidden; }}
+    .night-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+    .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
+    .night-meta {{ display: flex; justify-content: space-between; align-items: baseline; padding: 0.45rem 0.65rem; }}
+    .night-date {{ font-weight: 600; font-size: 0.85rem; }}
+    .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .empty {{ text-align: center; color: var(--text-secondary); padding: 2rem; }}
+    .calendar-bar {{ display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin: 1.5rem 0 0.8rem; font-size: 0.85rem; }}
+    .window-label {{ color: var(--text-secondary); }}
+    .more-link {{ color: var(--accent); text-decoration: none; white-space: nowrap; }}
+    .more-link:hover {{ opacity: 0.8; }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+    {subnav_html}
+
+    <section class="card">
+      <h2>Camera and Optical Specifications</h2>
+      <p>The v3 Wide camera provides continuous wide-angle surveillance of the southern sky along the celestial equator and ecliptic plane, monitoring planetary tracks, meteors, and seasonal constellations.</p>
+      <div class="specs-grid">
+        <div class="spec-item"><span class="spec-label">Sensor</span><span class="spec-value">Sony IMX708 (Camera Module 3 Wide)</span></div>
+        <div class="spec-item"><span class="spec-label">Resolution</span><span class="spec-value">4608 &times; 2592 native (binned 2304 &times; 1296), 10-bit RGGB</span></div>
+        <div class="spec-item"><span class="spec-label">Optics</span><span class="spec-value">Fixed focus at 3.30 dioptres (infinity), 120&deg; diagonal (99.3&deg; horizontal FOV)</span></div>
+        <div class="spec-item"><span class="spec-label">Plate Scale</span><span class="spec-value">105.4 arcsec/photosite at centre (about 1.8 arcmin), ~1 arcmin near edges</span></div>
+        <div class="spec-item"><span class="spec-label">Exposure</span><span class="spec-value">60 s continuous streaming subs, electronic black level 64 ADU</span></div>
+        <div class="spec-item"><span class="spec-label">Target Field</span><span class="spec-value">South-facing window looking across the ecliptic path</span></div>
+      </div>
+    </section>
+
+    {comparison_html}
+    {combined_html}
+
+    <h2 style="font-size: 1.2rem; margin: 1.8rem 0 0.5rem;">Nightly Archives</h2>
+    {bar_html}
+    {cards_html}
+
+    <div class="footer"><a href="/astro/eclipticam">&larr; Eclipticam Overview</a> &middot; <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
+    """Dedicated page for the HQ16 narrow view on the ecliptic camera."""
+    subnav_html = render_eclipticam_subnav("hq16")
+    subtitle = "Raspberry Pi HQ Camera (IMX477) + 16 mm lens &middot; 22&deg; &times; 17&deg; narrow view"
+
+    first_light_html = ""
+    if first_light_url:
+        first_light_html = f'''<section class="card view">
+      <h3>First Light Comparison (13 October 2026)</h3>
+      <a href="{first_light_url}"><img src="{first_light_url}" alt="HQ16 and v3w simultaneous exposures"></a>
+      <div class="caption">Single 60 s exposures from 13 Oct 2026, 22:30 London time. Left: the v3 Wide view showing the 100&deg; field with the HQ16 field outlined in yellow. Right: the HQ16 frame, resolving the 22.4&deg; &times; 16.9&deg; region with 19.9 arcsec/photosite resolution.</div>
+    </section>'''
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1000px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1.5rem; max-width: 760px; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
+    .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
+    .card {{ background: var(--card-bg, #161616); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem; }}
+    .card h2, .card h3 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 0.8rem; display: flex; align-items: center; }}
+    .card p {{ color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; margin: 0 0 0.8rem; }}
+    .card p:last-child {{ margin-bottom: 0; }}
+    .badge {{ display: inline-block; margin-left: 0.6rem; padding: 0.15rem 0.55rem; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; background: var(--accent, #007AFF); color: #fff; border-radius: 6px; }}
+    .specs-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin-top: 0.8rem; }}
+    .spec-item {{ display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.03); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--divider, #2C2C2E); }}
+    .spec-label {{ font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #8E8E93); margin-bottom: 0.25rem; }}
+    .spec-value {{ font-size: 0.9rem; font-weight: 500; color: var(--text, #E0E0E0); }}
+    .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
+    .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.6rem; }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+    {subnav_html}
+
+    <section class="card">
+      <h2>Commissioning Status <span class="badge">Commissioning</span></h2>
+      <p>The HQ16 camera was mounted on 13 October 2026, replacing the retired v1 camera on the windowsill rig. Fitted with a manual 16 mm C-mount lens, it looks directly into the southern sky around Aquarius and Capricornus, providing a narrow high-resolution view embedded within the wider ecliptic field.</p>
+      <p>Night capture streams 60 s FITS frames directly to local SSD storage on the Pi. Frames are then shipped across the network to bigstore on muppet where nightly calibration, star alignment, and stacking take place. Dedicated nightly galleries will be published once commissioning calibrations finish.</p>
+    </section>
+
+    {first_light_html}
+
+    <section class="card">
+      <h2>Solved Optical and Sensor Specifications</h2>
+      <div class="specs-grid">
+        <div class="spec-item"><span class="spec-label">Sensor</span><span class="spec-value">Sony IMX477 (12.3 MP, 1.55 &micro;m photosite pitch, 4056 &times; 3040 resolution), 12-bit RGGB Bayer</span></div>
+        <div class="spec-item"><span class="spec-label">Optics</span><span class="spec-value">16 mm C-mount lens, manual focus, fixed aperture</span></div>
+        <div class="spec-item"><span class="spec-label">Solved Plate Scale</span><span class="spec-value">19.9 arcsec per photosite (39.8 arcsec per 2&times;2 binned pixel)</span></div>
+        <div class="spec-item"><span class="spec-label">Field of View</span><span class="spec-value">22.41&deg; horizontal &times; 16.85&deg; vertical (centre RA 332.5&deg;, Dec -10.0&deg; at transit)</span></div>
+        <div class="spec-item"><span class="spec-label">Resolution Gain</span><span class="spec-value">More than 5&times; sharper than the v3 Wide field (19.9&Prime;/px vs 105.4&Prime;/px)</span></div>
+        <div class="spec-item"><span class="spec-label">Buffer and Storage</span><span class="spec-value">Buffered to local SSD (/mnt/ssd/eclipticam-buffer/hq16), processed on muppet</span></div>
+      </div>
+    </section>
+
+    <div class="footer"><a href="/astro/eclipticam">&larr; Eclipticam Overview</a> &middot; <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
+  </div>
+</body>
+</html>'''
+
+
+def render_eclipticam_history_page(*, theme_css_js, title, rig_photo_url=None):
+    """Dedicated page for the history of the ecliptic cameras."""
+    subnav_html = render_eclipticam_subnav("history")
+    subtitle = "Evolution of the south-facing windowsill rig &middot; from v1 to dual wide/narrow cameras"
+
+    rig_html = ""
+    if rig_photo_url:
+        rig_html = f'''<section class="card view">
+      <h3>The Windowsill Rig</h3>
+      <a href="{rig_photo_url}"><img src="{rig_photo_url}" alt="Ecliptic camera dual-mount rig"></a>
+      <div class="caption">The dual-camera ecliptic rig on the windowsill: a Raspberry Pi in a cardboard chassis with two ribbon cables leading to sensors taped against the window glass, backed by a dedicated SSD.</div>
+    </section>'''
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1000px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1.5rem; max-width: 760px; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg, #161616); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease; }}
+    .subnav-link:hover {{ border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
+    .card {{ background: var(--card-bg, #161616); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem; }}
+    .card h2, .card h3 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 0.8rem; display: flex; align-items: center; justify-content: space-between; }}
+    .card p {{ color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; margin: 0 0 0.8rem; }}
+    .card p:last-child {{ margin-bottom: 0; }}
+    .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
+    .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.6rem; }}
+    .badge {{ display: inline-block; padding: 0.15rem 0.55rem; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; border-radius: 6px; }}
+    .badge.active {{ background: #28cd41; color: #000; }}
+    .badge.commissioning {{ background: var(--accent, #007AFF); color: #fff; }}
+    .badge.retired {{ background: var(--divider, #2C2C2E); color: var(--text-secondary, #8E8E93); }}
+    .era-date {{ font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; }}
+    .history-table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; margin-top: 0.8rem; }}
+    .history-table th, .history-table td {{ padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
+    .history-table th {{ color: var(--text-secondary); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
+    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
+    .footer a {{ color: var(--accent); text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+    {subnav_html}
+
+    {rig_html}
+
+    <section class="card">
+      <h2>Era 1: The Original v1 Camera (OV5647) <span class="badge retired">Retired</span></h2>
+      <div class="era-date">2024 to October 2026</div>
+      <p style="margin-top: 0.6rem;">The original ecliptic camera used an OmniVision OV5647 sensor (Raspberry Pi Camera Module v1) with a stock 53.5&deg; lens. It operated in coadded mode, summing 10 frames per exposure with an electronic black level of 15.9 ADU per frame.</p>
+      <p>It captured daytime stills and night exposures along the ecliptic, providing initial measurements of southern sky brightness and establishing continuous monitoring routines. When the v3 Wide arrived, the v1 was kept mounted on the chassis but left dormant until its retirement in October 2026.</p>
+    </section>
+
+    <section class="card">
+      <h2>Era 2: The v3 Wide Camera (IMX708 Wide) <span class="badge active">Active</span></h2>
+      <div class="era-date">June 2026 to Present</div>
+      <p style="margin-top: 0.6rem;">In June 2026, the rig was upgraded with a Sony IMX708 sensor (Raspberry Pi Camera Module 3 Wide), opening up a massive 100&deg; slice of the southern sky.</p>
+      <p>The v3 Wide captures continuous 60 s streaming integrations in Rice-compressed FITS. Astrometric plate solves confirmed a rectilinear gnomonic projection, and focus was calibrated to 3.30 dioptres for sharp star profiles across the full field. Over months of observation, it has tracked the retrograde loops of Saturn and Neptune across the zodiac and recorded meteor and satellite transients across the celestial equator.</p>
+    </section>
+
+    <section class="card">
+      <h2>Era 3: Dual-Camera Rig with the HQ 16 mm <span class="badge commissioning">Commissioning</span></h2>
+      <div class="era-date">13 October 2026 to Present</div>
+      <p style="margin-top: 0.6rem;">In mid-October 2026, the dormant v1 module was unmounted from the windowsill rig. In its place, a Raspberry Pi High Quality Camera (Sony IMX477) paired with a 16 mm C-mount lens was fitted beside the v3 Wide.</p>
+      <p>This transforms the installation into a true dual-camera instrument: the v3 Wide provides context and whole-sky monitoring across 100&deg;, while the HQ16 delivers a high-resolution narrow view (22&deg; &times; 17&deg;) with 19.9 arcsec/photosite resolution into the heart of the ecliptic. Both cameras buffer to a local solid-state drive to ensure continuous recording regardless of network conditions.</p>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-bottom: 0.6rem;">Hardware Comparison</h2>
+      <div style="overflow-x: auto;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Camera</th>
+              <th>Sensor</th>
+              <th>Lens / FOV</th>
+              <th>Resolution</th>
+              <th>Plate Scale</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Eclipticam v1</strong></td>
+              <td>OmniVision OV5647</td>
+              <td>Stock 3.6 mm (53.5&deg;)</td>
+              <td>2592 &times; 1944</td>
+              <td>~74&Prime;/px</td>
+              <td><span class="badge retired">Retired</span></td>
+            </tr>
+            <tr>
+              <td><strong>Eclipticam v3w</strong></td>
+              <td>Sony IMX708</td>
+              <td>Wide-angle (99.3&deg;)</td>
+              <td>4608 &times; 2592</td>
+              <td>105.4&Prime;/px</td>
+              <td><span class="badge active">Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>Eclipticam HQ16</strong></td>
+              <td>Sony IMX477</td>
+              <td>16 mm C-mount (22.4&deg;)</td>
+              <td>4056 &times; 3040</td>
+              <td>19.9&Prime;/px</td>
+              <td><span class="badge commissioning">Commissioning</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer"><a href="/astro/eclipticam">&larr; Eclipticam Overview</a> &middot; <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
 </html>'''

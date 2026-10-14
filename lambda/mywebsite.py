@@ -4892,12 +4892,14 @@ def _route_x55(rq):
             if manifest is None:
                 nights = list_all_nights()
                 if not nights:
-                    from routes.astro import render_astro_stub
+                    from routes.astro import render_astro_stub, render_eclipticam_subnav
+                    subnav = render_eclipticam_subnav("overview") if camera == "eclipticam" else None
                     return {
                         'statusCode': 200,
                         'body': render_astro_stub(
                             theme_css_js=THEME_CSS_JS,
-                            title=titles[camera]),
+                            title=titles[camera],
+                            subnav_html=subnav),
                         'headers': {
                             'Content-Type': 'text/html; charset=utf-8'}}
                 # Slow fallback (pre-manifest): build calendar cards from
@@ -5097,6 +5099,128 @@ def _route_x55(rq):
             camera=camera, night=night, sections=sections,
             nights=nights, is_dashboard=False),
         'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+
+def _route_eclipticam_subpage(rq):
+    """Subpages under /astro/eclipticam:
+    - /astro/eclipticam/v3w (wide view)
+    - /astro/eclipticam/hq16 (narrow view)
+    - /astro/eclipticam/history (history of the cameras)
+    """
+    event, context, path, route = rq.event, rq.context, rq.path, rq.route
+    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
+    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
+    import json as _json
+    m = re.search(r'/astro/eclipticam/(v3w|hq16|history)/?$', path)
+    if not m:
+        return {'statusCode': 404, 'body': 'Not Found',
+                'headers': {'Content-Type': 'text/plain'}}
+    subpage = m.group(1)
+
+    from routes.astro import (render_eclipticam_v3w_page,
+                              render_eclipticam_hq16_page,
+                              render_eclipticam_history_page,
+                              astro_calendar_window)
+
+    s3 = s3_client()
+
+    if subpage == 'v3w':
+        comparison_url = None
+        try:
+            comparison_url = get_presigned_url(
+                'site/eclipticam-v3w-hq16.jpg', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
+
+        combined_url = None
+        try:
+            combined_url = get_presigned_url(
+                'eclipticam/combined_brightness.png', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
+
+        nights_meta = []
+        window_label, weeks, months = '', (), ()
+        try:
+            manifest_obj = s3.get_object(
+                Bucket=ASTRO_BUCKET, Key='eclipticam/index.json')
+            manifest = _json.loads(
+                manifest_obj['Body'].read().decode('utf-8'))
+            all_nights = manifest.get('nights', [])
+            night_names = [e.get('night') for e in all_nights if e.get('night')]
+            selected, window_label, weeks, months = astro_calendar_window(
+                night_names, show_all=False)
+            by_night = {e.get('night'): e for e in all_nights}
+            for n in selected:
+                entry = by_night.get(n) or {}
+                thumb_url = None
+                tk = entry.get('thumb_key')
+                if tk:
+                    try:
+                        thumb_url = get_presigned_url(tk, bucket=ASTRO_BUCKET)
+                    except Exception:
+                        pass
+                nights_meta.append({
+                    'night': n,
+                    'thumb_url': thumb_url,
+                    'summary': {
+                        'n_frames': entry.get('n_frames'),
+                        'n_stacked': entry.get('n_stacked'),
+                        'stops': _rebase_stops('eclipticam', entry.get('stops'), entry),
+                        'verdict': entry.get('verdict'),
+                        'frames_utc': entry.get('frames_utc'),
+                    }
+                })
+        except Exception as e:
+            print(f"eclipticam/v3w: error loading manifest: {e}")
+
+        html = render_eclipticam_v3w_page(
+            theme_css_js=THEME_CSS_JS,
+            title='Ecliptic Camera: v3w Wide View — Peter Grecian',
+            nights_with_meta=nights_meta,
+            comparison_url=comparison_url,
+            combined_brightness_url=combined_url,
+            window_label=window_label,
+            weeks=weeks,
+            months=months)
+        return {'statusCode': 200,
+                'body': html,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif subpage == 'hq16':
+        first_light_url = None
+        try:
+            first_light_url = get_presigned_url(
+                'site/eclipticam-v3w-hq16.jpg', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
+
+        html = render_eclipticam_hq16_page(
+            theme_css_js=THEME_CSS_JS,
+            title='Ecliptic Camera: HQ16 Narrow View — Peter Grecian',
+            first_light_url=first_light_url)
+        return {'statusCode': 200,
+                'body': html,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    elif subpage == 'history':
+        rig_url = None
+        try:
+            rig_url = get_presigned_url(
+                'site/eclipticam-rig.jpg', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
+
+        html = render_eclipticam_history_page(
+            theme_css_js=THEME_CSS_JS,
+            title='Ecliptic Camera: History of the Cameras — Peter Grecian',
+            rig_photo_url=rig_url)
+        return {'statusCode': 200,
+                'body': html,
+                'headers': {'Content-Type': 'text/html; charset=utf-8'}}
+
+    return {'statusCode': 404, 'body': 'Not Found',
+            'headers': {'Content-Type': 'text/plain'}}
 
 
 def _route_starcam(rq):
@@ -6182,6 +6306,7 @@ _ROUTES_PATTERN = [
     (_PRED, lambda route: re.search(r'/astro/(firstscope)/?$', route), _route_x57),
     (_PRED, lambda route: re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route), _route_x51),
     (_PRED, lambda route: re.search(r'/astro/disks/?$', route), _route_x52),
+    (_PRED, lambda route: re.search(r'/astro/eclipticam/(v3w|hq16|history)/?$', route), _route_eclipticam_subpage),
     (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
     (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/month/\d{4}-\d{2}|/all|/nights)?/?$', route), _route_x55),
     (_PREFIX, '/starcam/night/', _route_starcam_night),
@@ -6235,7 +6360,7 @@ def _resolve_route(route):
 # grid of thumbnails, or forgot it. A page that already draws its own top
 # backlink is left alone.
 _HOME_ROUTES = frozenset({'', '/', '/contents'})
-_BACKLINK_LABELS = {'/': 'Home', '/astro': 'Astro'}
+_BACKLINK_LABELS = {'/': 'Home', '/astro': 'Astro', '/astro/eclipticam': 'Eclipticam'}
 _BACKLINK_HTML = ('<nav class="site-back" style="font-family:var(--font,sans-serif);'
                   'font-size:0.85rem;padding:0.6rem 1rem 0;text-align:left;">'
                   '<a href="{href}" style="color:var(--accent,#007AFF);'

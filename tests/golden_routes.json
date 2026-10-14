@@ -186,8 +186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7765,
-  "sha": "902cdce207166b96",
+  "len": 7780,
+  "sha": "4e62160d453fe118",
   "status": 200
  },
  "/astro-suffix": {
@@ -425,8 +425,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4705,
-  "sha": "2b3986591a40a545",
+  "len": 5461,
+  "sha": "82e13143f2edc9cb",
   "status": 200
  },
  "/astro/astrocam-suffix": {
@@ -448,8 +448,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4705,
-  "sha": "2b3986591a40a545",
+  "len": 5461,
+  "sha": "82e13143f2edc9cb",
   "status": 200
  },
  "/astro/astrocam/child": {
@@ -483,8 +483,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4701,
-  "sha": "b28b8e07e59b44cc",
+  "len": 5457,
+  "sha": "65bb2497d0695dae",
   "status": 200
  },
  "/astro/canon-suffix": {
@@ -506,8 +506,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4701,
-  "sha": "b28b8e07e59b44cc",
+  "len": 5457,
+  "sha": "65bb2497d0695dae",
   "status": 200
  },
  "/astro/canon/child": {
@@ -801,8 +801,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4711,
-  "sha": "b4dd462475eb2118",
+  "len": 5789,
+  "sha": "66a4bdda90300ded",
   "status": 200
  },
  "/astro/eclipticam-suffix": {
@@ -824,8 +824,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4711,
-  "sha": "b4dd462475eb2118",
+  "len": 5789,
+  "sha": "66a4bdda90300ded",
   "status": 200
  },
  "/astro/eclipticam/child": {
@@ -1707,8 +1707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7765,
-  "sha": "902cdce207166b96",
+  "len": 7780,
+  "sha": "4e62160d453fe118",
   "status": 200
  },
  "/default/astro-suffix": {
@@ -1946,8 +1946,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4705,
-  "sha": "2b3986591a40a545",
+  "len": 5461,
+  "sha": "82e13143f2edc9cb",
   "status": 200
  },
  "/default/astro/astrocam-suffix": {
@@ -1969,8 +1969,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4705,
-  "sha": "2b3986591a40a545",
+  "len": 5461,
+  "sha": "82e13143f2edc9cb",
   "status": 200
  },
  "/default/astro/astrocam/child": {
@@ -2004,8 +2004,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4701,
-  "sha": "b28b8e07e59b44cc",
+  "len": 5457,
+  "sha": "65bb2497d0695dae",
   "status": 200
  },
  "/default/astro/canon-suffix": {
@@ -2027,8 +2027,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4701,
-  "sha": "b28b8e07e59b44cc",
+  "len": 5457,
+  "sha": "65bb2497d0695dae",
   "status": 200
  },
  "/default/astro/canon/child": {
@@ -2322,8 +2322,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4711,
-  "sha": "b4dd462475eb2118",
+  "len": 5789,
+  "sha": "66a4bdda90300ded",
   "status": 200
  },
  "/default/astro/eclipticam-suffix": {
@@ -2345,8 +2345,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 4711,
-  "sha": "b4dd462475eb2118",
+  "len": 5789,
+  "sha": "66a4bdda90300ded",
   "status": 200
  },
  "/default/astro/eclipticam/child": {
@@ -6218,8 +6218,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6560,
-  "sha": "808f8ff2b7595553",
+  "len": 6614,
+  "sha": "ddcc06f2edc0de25",
   "status": 200
  },
  "/default/starcam-suffix": {
@@ -6475,8 +6475,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6560,
-  "sha": "808f8ff2b7595553",
+  "len": 6614,
+  "sha": "ddcc06f2edc0de25",
   "status": 200
  },
  "/default/starcam/nights-suffix": {
@@ -6510,8 +6510,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3582,
-  "sha": "748e4a249a5d6332",
+  "len": 3636,
+  "sha": "e4952835838a823b",
   "status": 200
  },
  "/default/starcam/nights/all-suffix": {
@@ -10411,8 +10411,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6560,
-  "sha": "808f8ff2b7595553",
+  "len": 6614,
+  "sha": "ddcc06f2edc0de25",
   "status": 200
  },
  "/starcam-suffix": {
@@ -10668,8 +10668,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 6560,
-  "sha": "808f8ff2b7595553",
+  "len": 6614,
+  "sha": "ddcc06f2edc0de25",
   "status": 200
  },
  "/starcam/nights-suffix": {
@@ -10703,8 +10703,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 3582,
-  "sha": "748e4a249a5d6332",
+  "len": 3636,
+  "sha": "e4952835838a823b",
   "status": 200
  },
  "/starcam/nights/all-suffix": {
