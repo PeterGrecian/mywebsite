@@ -608,8 +608,10 @@ CAMERA_PHOTOS = {
                    "alt": "The Ecliptic Camera: a Pi in a cardboard box on "
                           "the windowsill, two ribbon cables running to "
                           "cameras at the glass",
-                   "caption": "Two cameras are mounted, but only the v3 Wide (IMX708), "
-                              "on the right, is used.  The v1 is not."},
+                   "caption": "Two cameras are mounted: the v3 Wide (IMX708) on "
+                              "the right, and on the left an HQ camera with a "
+                              "16 mm lens, which has replaced the v1 and is "
+                              "being commissioned."},
 }
 
 
