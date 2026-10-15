@@ -5134,8 +5134,11 @@ def _route_eclipticam_subpage(rq):
 
         combined_url = None
         try:
+            # same chart the calendar shows, refreshed daily by combined-brightness
+            s3.head_object(Bucket=ASTRO_BUCKET,
+                           Key='eclipticam-v3w/brightness-combined.png')
             combined_url = get_presigned_url(
-                'eclipticam/combined_brightness.png', bucket=ASTRO_BUCKET)
+                'eclipticam-v3w/brightness-combined.png', bucket=ASTRO_BUCKET)
         except Exception:
             pass
 
