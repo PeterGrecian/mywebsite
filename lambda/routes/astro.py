@@ -290,7 +290,8 @@ def _section(sec):
     s = sec.get("summary") or {}
     urls = sec.get("urls") or {}
     label = sec.get("label")
-    heading = f'<h2>{label}</h2>' if label else ""
+    anchor = f' id="{sec["anchor"]}"' if sec.get("anchor") else ""
+    heading = f'<h2{anchor}>{label}</h2>' if label else ""
     prov = provenance(sec.get("stamp_camera"), sec.get("stamp_night"),
                       night=True)
     # Each sweep has its own poster (its mid frame); older nights fall back
@@ -860,6 +861,41 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
 </html>'''
 
 
+def _eclipticam_night_cards(nights_with_meta, windowed=False, anchor=""):
+    """Night cards for an eclipticam sensor subpage; each links to the
+    shared night page, at `anchor` when the sensor has its own section."""
+    if not nights_with_meta:
+        cards_html = ('<p class="empty">No nights in this window.</p>'
+                      if windowed
+                      else '<p class="empty">No nights published yet.</p>')
+    else:
+        cards = []
+        for n in nights_with_meta:
+            night = n["night"]
+            thumb = n.get("thumb_url") or ""
+            s = n.get("summary") or {}
+            n_stacked = s.get("n_stacked")
+            n_frames = s.get("n_frames")
+            stops = s.get("stops")
+            stats_parts = []
+            if n_stacked is not None and n_frames is not None:
+                stats_parts.append(f'{n_stacked}/{n_frames}')
+            if stops is not None:
+                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
+            stats = " &middot; ".join(stats_parts)
+            if thumb:
+                poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
+            else:
+                poster = f'<div class="no-thumb">{_no_thumb_text(s)}</div>'
+            cards.append(
+                f'<a class="night-card" href="/astro/eclipticam/night/{night}{anchor}">'
+                f'<div class="night-thumb">{poster}</div>'
+                f'<div class="night-meta"><span class="night-date">{night}</span>'
+                f'<span class="night-stats">{stats}</span></div></a>')
+        cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
+    return cards_html
+
+
 def render_eclipticam_v3w_page(*, theme_css_js, title,
                                nights_with_meta=None,
                                comparison_url=None,
@@ -887,35 +923,7 @@ def render_eclipticam_v3w_page(*, theme_css_js, title,
 
     bar_html = _render_calendar_bar("eclipticam", window_label, list(weeks), list(months))
 
-    if not nights_with_meta:
-        cards_html = ('<p class="empty">No nights in this window.</p>'
-                      if weeks or months
-                      else '<p class="empty">No nights published yet.</p>')
-    else:
-        cards = []
-        for n in nights_with_meta:
-            night = n["night"]
-            thumb = n.get("thumb_url") or ""
-            s = n.get("summary") or {}
-            n_stacked = s.get("n_stacked")
-            n_frames = s.get("n_frames")
-            stops = s.get("stops")
-            stats_parts = []
-            if n_stacked is not None and n_frames is not None:
-                stats_parts.append(f'{n_stacked}/{n_frames}')
-            if stops is not None:
-                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
-            stats = " &middot; ".join(stats_parts)
-            if thumb:
-                poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
-            else:
-                poster = f'<div class="no-thumb">{_no_thumb_text(s)}</div>'
-            cards.append(
-                f'<a class="night-card" href="/astro/eclipticam/night/{night}">'
-                f'<div class="night-thumb">{poster}</div>'
-                f'<div class="night-meta"><span class="night-date">{night}</span>'
-                f'<span class="night-stats">{stats}</span></div></a>')
-        cards_html = f'<div class="night-grid">{"".join(cards)}</div>'
+    cards_html = _eclipticam_night_cards(nights_with_meta, bool(weeks or months))
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -994,7 +1002,8 @@ def render_eclipticam_v3w_page(*, theme_css_js, title,
 </html>'''
 
 
-def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
+def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None,
+                                nights_with_meta=None):
     """Dedicated page for the HQ16 narrow view on the ecliptic camera."""
     subnav_html = render_eclipticam_subnav("hq16")
     subtitle = "Raspberry Pi HQ Camera (IMX477) + 16 mm lens &middot; 22&deg; &times; 17&deg; narrow view"
@@ -1006,6 +1015,8 @@ def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
       <a href="{first_light_url}"><img src="{first_light_url}" alt="HQ16 and v3w simultaneous exposures"></a>
       <div class="caption">Single 60 s exposures from 13 Oct 2026, 22:30 London time. Left: the v3 Wide view showing the 100&deg; field with the HQ16 field outlined in yellow. Right: the HQ16 frame, resolving the 22.4&deg; &times; 16.9&deg; region with 19.9 arcsec/photosite resolution.</div>
     </section>'''
+
+    cards_html = _eclipticam_night_cards(nights_with_meta, anchor="#hq16")
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1034,6 +1045,16 @@ def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
     .spec-value {{ font-size: 0.9rem; font-weight: 500; color: var(--text, #E0E0E0); }}
     .card.view img {{ display: block; width: 100%; height: auto; border-radius: 8px; }}
     .card.view .caption {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-top: 0.6rem; }}
+    .night-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }}
+    .night-card {{ display: block; background: var(--card-bg); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; }}
+    .night-card:hover {{ opacity: 0.85; }}
+    .night-thumb {{ aspect-ratio: 4 / 3; background: #000; overflow: hidden; }}
+    .night-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+    .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
+    .night-meta {{ display: flex; justify-content: space-between; align-items: baseline; padding: 0.45rem 0.65rem; }}
+    .night-date {{ font-weight: 600; font-size: 0.85rem; }}
+    .night-stats {{ color: var(--text-secondary); font-size: 0.8rem; }}
+    .empty {{ color: var(--text-secondary); }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
   </style>
@@ -1047,7 +1068,12 @@ def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None):
     <section class="card">
       <h2>Commissioning Status <span class="badge">Commissioning</span></h2>
       <p>The HQ16 camera was mounted on 13 October 2026, replacing the retired v1 camera on the windowsill rig. Fitted with a manual 16 mm C-mount lens, it looks directly into the southern sky around Aquarius and Capricornus, providing a narrow high-resolution view embedded within the wider ecliptic field.</p>
-      <p>Night capture streams 60 s FITS frames directly to local SSD storage on the Pi. Frames are then shipped across the network to bigstore on muppet where nightly calibration, star alignment, and stacking take place. Dedicated nightly galleries will be published once commissioning calibrations finish.</p>
+      <p>Night capture streams 60 s FITS frames directly to local SSD storage on the Pi. Frames are then shipped across the network to bigstore on muppet where nightly calibration, star alignment, and stacking take place. Nights are published from 13 October 2026, while focus and the lens mount are still being commissioned.</p>
+    </section>
+
+    <section class="card">
+      <h2>Nights</h2>
+      {cards_html}
     </section>
 
     {first_light_html}

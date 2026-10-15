@@ -26,8 +26,10 @@ ASTRO_BUCKET = "astro-berrylands-eu-west-1"
 # they are re-based here: stops50 = log2(mean - 50) -> log2(mean - 64). A
 # manifest entry that carries its own "black_level" is trusted as is, so this
 # switches itself off once the pipeline re-bases at source.
-ASTRO_BLACK = {"astrocam": 64.0, "eclipticam": 64.0}
+ASTRO_BLACK = {"astrocam": 64.0, "eclipticam": 64.0, "eclipticam-hq16": 256.0}
 PIPELINE_PEDESTAL = 50.0
+# hq16 is 12-bit: the pipeline's chart floor is 200, not 50 (camera.json pedestal)
+PIPELINE_PEDESTAL_BY = {"eclipticam-hq16": 200.0}
 
 
 def _rebase_stops(camera, stops, entry=None):
@@ -35,7 +37,7 @@ def _rebase_stops(camera, stops, entry=None):
     if black is None or stops is None or (entry or {}).get("black_level"):
         return stops
     import math as _m
-    above = 2.0 ** float(stops) + PIPELINE_PEDESTAL - black
+    above = 2.0 ** float(stops) + PIPELINE_PEDESTAL_BY.get(camera, PIPELINE_PEDESTAL) - black
     return round(_m.log2(max(above, 0.5)), 2)
 GARDENCAM_PARAMETER_NAME = "/berrylands/gardencam/password"
 GARDENCAM_PASSWORD = None
@@ -4794,6 +4796,7 @@ def _route_x55(rq):
         'astrocam': [('astrocam', None)],
         'canon': [('canon', None)],
         'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
+                       ('eclipticam-hq16', 'IMX477 + 16 mm (HQ16)'),
                        ('eclipticam-v1', 'OV5647 (v1)')],
     }[camera]
     # The camera whose nights drive the calendar + thumbnails (the
@@ -5039,8 +5042,9 @@ def _route_x55(rq):
                 if summary:
                     anchor = summary.get('anchor') or {}
                     if 'stops' in anchor and anchor['stops'] is not None:
-                        summary['stops'] = _rebase_stops(camera, anchor['stops'],
-                                                         anchor)
+                        summary['stops'] = _rebase_stops(
+                            s3_cam if s3_cam in ASTRO_BLACK else camera,
+                            anchor['stops'], anchor)
                     elif 'per_s' in anchor:
                         import math as _math
                         per_s = anchor['per_s']
@@ -5084,6 +5088,7 @@ def _route_x55(rq):
                         names[base], bucket=ASTRO_BUCKET)
             if summary or urls:
                 sections.append({'label': label,
+                                 'anchor': s3_cam.split('-', 1)[1] if '-' in s3_cam else None,
                                  'summary': summary, 'urls': urls,
                                  'stamp_camera': s3_cam,
                                  'stamp_night': night})
@@ -5198,10 +5203,42 @@ def _route_eclipticam_subpage(rq):
         except Exception:
             pass
 
+        nights_meta = []
+        try:
+            manifest_obj = s3.get_object(
+                Bucket=ASTRO_BUCKET, Key='eclipticam-hq16/index.json')
+            manifest = _json.loads(
+                manifest_obj['Body'].read().decode('utf-8'))
+            for entry in manifest.get('nights', []):
+                if not entry.get('night'):
+                    continue
+                thumb_url = None
+                if entry.get('thumb_key'):
+                    try:
+                        thumb_url = get_presigned_url(
+                            entry['thumb_key'], bucket=ASTRO_BUCKET)
+                    except Exception:
+                        pass
+                nights_meta.append({
+                    'night': entry['night'],
+                    'thumb_url': thumb_url,
+                    'summary': {
+                        'n_frames': entry.get('n_frames'),
+                        'n_stacked': entry.get('n_stacked'),
+                        'stops': _rebase_stops('eclipticam-hq16', entry.get('stops'), entry),
+                        'verdict': entry.get('verdict'),
+                        'frames_utc': entry.get('frames_utc'),
+                    }
+                })
+            nights_meta.sort(key=lambda n: n['night'], reverse=True)
+        except Exception as e:
+            print(f"eclipticam/hq16: error loading manifest: {e}")
+
         html = render_eclipticam_hq16_page(
             theme_css_js=THEME_CSS_JS,
             title='Ecliptic Camera: HQ16 Narrow View — Peter Grecian',
-            first_light_url=first_light_url)
+            first_light_url=first_light_url,
+            nights_with_meta=nights_meta)
         return {'statusCode': 200,
                 'body': html,
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
