@@ -181,5 +181,14 @@
     "sort_order": 19,
     "visible": true,
     "auth_required": true
+  },
+  {
+    "path": "groceries",
+    "title": "Groceries",
+    "description": "the weekly Sainsbury's shop: what runs out next, savings, Nectar",
+    "color": "pastel-green",
+    "sort_order": 20,
+    "visible": true,
+    "auth_required": true
   }
 ]

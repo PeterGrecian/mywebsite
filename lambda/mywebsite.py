@@ -1684,6 +1684,8 @@ def categorize_path(path):
         return 'lambda-stats'
     elif 'memspeed' in path:
         return 'memspeed'
+    elif 'groceries' in path:
+        return 'groceries'
     elif 'contents' in path:
         return 'contents'
     elif 'gitinfo' in path:
@@ -2843,6 +2845,7 @@ def _route_robots_txt(rq):
             'Disallow: /lambda-stats\n'
             'Disallow: /gardencam\n'
             'Disallow: /memspeed\n'
+            'Disallow: /groceries\n'
             'Disallow: /pi-fleet\n'
             'Disallow: /t3\n'
             'Disallow: /rcr\n'
@@ -2925,6 +2928,35 @@ def _route_my_contents(rq):
     return {
         'statusCode': 200,
         'body': render_contents_page(private=True),
+        'headers': {'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store'}
+    }
+
+
+def _route_groceries(rq):
+    """Household grocery shop, from the groceries strand's published summary.
+
+    Same guard and no-store as /my-contents: it lists what the house buys.
+    """
+    if not check_basic_auth(rq.event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html',
+                        'Cache-Control': 'no-store',
+                        'WWW-Authenticate': 'Basic realm="groceries"'}
+        }
+    data = None
+    if BOTO3_AVAILABLE:
+        try:
+            obj = s3_client().get_object(Bucket=GARDENCAM_BUCKET, Key='groceries/latest.json')
+            data = json.loads(obj['Body'].read().decode('utf-8'))
+        except Exception as e:
+            print(f"groceries: could not read summary: {e}")
+    from routes.groceries import render_groceries_page
+    return {
+        'statusCode': 200,
+        'body': render_groceries_page(data, theme_css_js=THEME_CSS_JS),
         'headers': {'Content-Type': 'text/html; charset=utf-8',
                     'Cache-Control': 'no-store'}
     }
@@ -6324,6 +6356,7 @@ _ROUTES_EXACT = {
     '/cv': _route_cv,
     '/contents': _route_contents,
     '/my-contents': _route_my_contents,
+    '/groceries': _route_groceries,
     '/ytpods': _route_ytpods,
     '/biog': _route_biog,
     '/ai-memory': _route_ai_memory,
