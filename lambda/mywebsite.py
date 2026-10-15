@@ -6478,7 +6478,8 @@ def _resolve_route(route):
 # grid of thumbnails, or forgot it. A page that already draws its own top
 # backlink is left alone.
 _HOME_ROUTES = frozenset({'', '/', '/contents'})
-_BACKLINK_LABELS = {'/': 'Home', '/astro': 'Astro', '/astro/eclipticam': 'Eclipticam'}
+_BACKLINK_LABELS = {'/': 'Home', '/astro': 'Astro', '/astro/eclipticam': 'Eclipticam',
+                    '/my-contents': 'My contents'}
 _BACKLINK_HTML = ('<nav class="site-back" style="font-family:var(--font,sans-serif);'
                   'font-size:0.85rem;padding:0.6rem 1rem 0;text-align:left;">'
                   '<a href="{href}" style="color:var(--accent,#007AFF);'
@@ -6520,9 +6521,13 @@ def _parent_route(route):
     return '/'
 
 
-def _with_backlink(route, response):
-    """Insert the parent backlink at the top of an HTML 200 response's body."""
-    if route in _HOME_ROUTES or response.get('statusCode') != 200:
+def _with_backlink(route, response, private=False):
+    """Insert the parent backlink at the top of an HTML 200 response's body.
+
+    `private` is a request that authenticated: its page is a private one, so
+    a top-level page links up to /my-contents, the private home, not to /.
+    """
+    if route in _HOME_ROUTES or route == '/my-contents' or response.get('statusCode') != 200:
         return response
     if response.get('isBase64Encoded'):
         return response
@@ -6542,6 +6547,8 @@ def _with_backlink(route, response):
             and (h1 < 0 or first.start() < h1):
         return response
     parent = _parent_route(route)
+    if private and parent == '/':
+        parent = '/my-contents'
     label = _BACKLINK_LABELS.get(parent) or \
         parent.rsplit('/', 1)[-1].replace('-', ' ').capitalize()
     link = _BACKLINK_HTML.format(href=parent, label=label)
@@ -6574,7 +6581,9 @@ def lambda_handler(event, context):
         _access_log(event, context, None, (time.time() - wrapper_start) * 1000, error=e)
         raise
     if isinstance(response, dict):
-        response = _with_backlink(_route_of(event), response)
+        headers = event.get('headers') or {}
+        private = bool(headers.get('Authorization') or headers.get('authorization'))
+        response = _with_backlink(_route_of(event), response, private)
     _access_log(event, context, response, (time.time() - wrapper_start) * 1000)
     if BOTO3_AVAILABLE:
         visitor_alert.check(event, _route_of(event), response, dynamodb_resource)

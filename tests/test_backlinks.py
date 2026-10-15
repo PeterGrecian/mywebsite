@@ -73,3 +73,18 @@ def test_handler_injects_end_to_end(mywebsite, make_event, make_context):
     assert 'class="site-back"' in r["body"]
     r = mywebsite.lambda_handler(make_event("/"), make_context())
     assert 'class="site-back"' not in r["body"]
+
+
+@pytest.mark.parametrize("route", ["/groceries", "/ytpods", "/gardencam"])
+def test_private_page_links_to_private_home(mywebsite, route):
+    link = _link(mywebsite._with_backlink(route, _page("<body><h1>x</h1>"), private=True))
+    assert 'href="/my-contents"' in link and "&larr; My contents" in link
+
+
+def test_private_subpage_still_links_to_its_parent(mywebsite):
+    link = _link(mywebsite._with_backlink("/gardencam/stats", _page("<body><h1>x</h1>"), private=True))
+    assert 'href="/gardencam"' in link
+
+
+def test_private_home_has_none(mywebsite):
+    assert _link(mywebsite._with_backlink("/my-contents", _page("<body><h1>x</h1>"), private=True)) is None
