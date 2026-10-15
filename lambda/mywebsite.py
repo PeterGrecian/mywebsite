@@ -6345,6 +6345,45 @@ def _route_ytpods(rq):
     }
 
 
+def _route_ytpods_refresh(rq):
+    """POST: ask zog to recompile The Tube Times now.
+
+    Writes a marker object; a timer on zog (ytpods) polls its LastModified
+    every minute, recompiles and re-uploads ytpods/index.html. Debounced: a
+    marker under 60 s old is left alone, so repeated clicks cost nothing.
+    """
+    event = rq.event
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html',
+                        'Cache-Control': 'no-store',
+                        'WWW-Authenticate': 'Basic realm="Private contents"'}
+        }
+    method = ((event.get('requestContext') or {}).get('http') or {}).get('method') \
+        or event.get('httpMethod', '')
+    if method != 'POST':
+        return {'statusCode': 405, 'body': '{"ok": false}',
+                'headers': {'Content-Type': 'application/json', 'Allow': 'POST',
+                            'Cache-Control': 'no-store'}}
+    key = 'ytpods/refresh-request'
+    now = datetime.now(timezone.utc)
+    s3 = s3_client()
+    try:
+        last = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)['LastModified']
+        fresh = (now - last).total_seconds() < 60
+    except Exception:
+        fresh = False
+    if not fresh:
+        ip = (rq.headers.get('X-Forwarded-For') or rq.headers.get('x-forwarded-for') or '').split(',')[0].strip()
+        s3.put_object(Bucket=GARDENCAM_BUCKET, Key=key,
+                      Body=json.dumps({'t': int(now.timestamp()), 'ip': ip}).encode(),
+                      ContentType='application/json')
+    return {'statusCode': 202, 'body': '{"ok": true}',
+            'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}}
+
+
 _ROUTES_EXACT = {
     '/favicon.ico': _route_favicon_ico,
     '/favicon.png': _route_favicon_png,
@@ -6358,6 +6397,7 @@ _ROUTES_EXACT = {
     '/my-contents': _route_my_contents,
     '/groceries': _route_groceries,
     '/ytpods': _route_ytpods,
+    '/ytpods/refresh': _route_ytpods_refresh,
     '/biog': _route_biog,
     '/ai-memory': _route_ai_memory,
     '/site-test': _route_site_test,
