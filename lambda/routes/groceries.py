@@ -17,6 +17,10 @@ def _left(days):
     return "out" if days <= 0 else f"{days}d left"
 
 
+def _on(p):
+    return f" · {p['on_order']:g} on order" if p.get("on_order") else ""
+
+
 def _gbp(x):
     return f"£{x:,.2f}"
 
@@ -41,8 +45,12 @@ def render_groceries_page(data, *, theme_css_js):
     due = [p for p in preds if p.get("buy")]
     if due:
         chips = "".join(
+            f"<div class='chip ok'><b>{escape(p['group'])}</b>"
+            f"<span>{p['on_order']:g} on order · {p.get('suggest', '')} needed</span></div>"
+            if p.get("covered") else
             f"<div class='chip due'><b>{escape(p['group'])}</b>"
-            f"<span>{p.get('suggest', '')} {p['unit']} · {_left(p['days_left'])}</span></div>"
+            f"<span>{p.get('suggest', '')} {p['unit']} · {_left(p['days_left'])}"
+            f"{_on(p)}</span></div>"
             for p in due)
     else:
         chips = "<div class='chip'>Nothing watched is due</div>"
@@ -54,22 +62,52 @@ def render_groceries_page(data, *, theme_css_js):
     else:
         due_title = "Due this week <span class='muted small'>(no slot booked)</span>"
 
+    # --- placed, not yet delivered --------------------------------------
+    pend_html = ""
+    for o in data.get("pending", []):
+        rows = "".join(
+            f"<tr><td>{_short(i['name'])}</td><td class='num'>{i['qty']}</td>"
+            f"<td class='num'>{_gbp(i['price'])}</td></tr>" for i in o["items"])
+        short = o.get("short_of_free_delivery") or 0
+        warn = (f"<p class='warn'>Delivery charged {_gbp(o['delivery'])}: the trolley is "
+                f"{_gbp(short)} short of the £50 Delivery Pass minimum. Adding {_gbp(short)} or more "
+                f"before {escape(o['amend_until'] or 'the amend cut-off')} makes delivery free.</p>"
+                if short and o.get("delivery") else "")
+        pend_html += f"""
+<h2>On order: {_d(o['date'])}, {escape(o['window'])}</h2>
+<div class='card'>{warn}
+<div class='tiles'>
+<div class='tile'><div class='label'>Trolley</div><div class='big'>{_gbp(o['trolley'])}</div>
+<div class='muted small'>{len(o['items'])} lines, saved {_gbp(o['saved'] or 0)}</div></div>
+<div class='tile'><div class='label'>Delivery</div><div class='big {'warn' if o['delivery'] else ''}'>{_gbp(o['delivery'] or 0)}</div>
+<div class='muted small'>free from £50 on the pass</div></div>
+<div class='tile'><div class='label'>Estimated total</div><div class='big'>{_gbp(o['estimated_total'])}</div>
+<div class='muted small'>paid on delivery day</div></div>
+<div class='tile'><div class='label'>Amend or cancel until</div><div class='big small2'>{escape(o['amend_until'] or '?')}</div>
+<div class='muted small'>order {escape(o['order'])}</div></div>
+</div>
+<details><summary class='muted'>Basket</summary><table>
+<tr><th>Item</th><th class='num'>Qty</th><th class='num'>Price</th></tr>{rows}</table></details>
+</div>"""
+
     # --- predictions -----------------------------------------------------
     prow = []
     for p in preds:
         prods = ", ".join(_short(n, 38) for n, _ in p["products"][:2])
         if "runout" not in p:
             prow.append(f"<tr><td>{escape(p['group'])}</td><td colspan=4 class='muted'>"
-                        f"too few purchases ({len(p['purchases'])})</td><td class='muted small'>{prods}</td></tr>")
+                        f"too few purchases ({len(p['purchases'])})</td><td></td><td class='muted small'>{prods}</td></tr>")
             continue
         cls = "warn" if p["buy"] else ""
         low = " <span class='muted small'>(low confidence)</span>" if p["confidence"] == "low" else ""
+        onord = f"{p['on_order']:g}" if p.get("on_order") else ""
         prow.append(
             f"<tr class='{cls}'><td>{escape(p['group'])}{low}</td>"
             f"<td class='num'>{p['per_week']:.1f} {p['unit']}</td>"
             f"<td class='num'>{p['stock_now']:g}</td>"
             f"<td class='num'>{_d(p['runout'])}</td>"
             f"<td class='num'>{p['days_left']:+d}d</td>"
+            f"<td class='num'>{onord}</td>"
             f"<td class='muted small'>{prods}</td></tr>")
 
     # --- money -----------------------------------------------------------
@@ -116,12 +154,13 @@ def render_groceries_page(data, *, theme_css_js):
 <h1>Groceries</h1>
 <p class='muted'>Sainsbury's, KT5. Last delivery {_d(last['date'])}; built {_d(data['generated'])}.</p>
 
+{pend_html}
 <h2>{due_title}</h2>
 <div class='chips'>{chips}</div>
 
 <h2>Watched items</h2>
 <div class='card'><table>
-<tr><th>Group</th><th class='num'>Use / week</th><th class='num'>Stock now</th><th class='num'>Runs out</th><th class='num'></th><th>Usually</th></tr>
+<tr><th>Group</th><th class='num'>Use / week</th><th class='num'>Stock now</th><th class='num'>Runs out</th><th class='num'></th><th class='num'>On order</th><th>Usually</th></tr>
 {''.join(prow)}
 </table>
 <p class='muted small'>Rate = what was bought before the latest purchase, over the days it lasted. Online orders only.</p></div>
@@ -168,7 +207,9 @@ td{{border-bottom:1px solid #2C2C2E;padding:6px 8px;vertical-align:top}}
 tr.warn td:first-child,.warn{{color:#FF9500}}
 .chips{{display:flex;flex-wrap:wrap;gap:8px}}
 .chip{{background:#161616;border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:center}}
-.chip.due{{border:1px solid #FF9500}} .chip span{{color:#FF9500}}
+.chip.due{{border:1px solid #FF9500}} .chip.due span{{color:#FF9500}}
+.chip.ok{{border:1px solid #34C759}} .chip.ok span{{color:#34C759}}
+.big.small2{{font-size:1rem}} details{{margin-top:10px}} summary{{cursor:pointer}}
 .tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}}
 .tile{{background:#161616;border-radius:12px;padding:12px 14px}}
 .tile .label{{color:#8E8E93;font-size:.82rem}} .tile .big{{font-size:1.4rem;margin:4px 0}}
