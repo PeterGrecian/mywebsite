@@ -9,6 +9,8 @@ import json
 import math
 import re
 
+import visitor_alert
+
 try:
     import boto3
     BOTO3_AVAILABLE = True
@@ -6276,6 +6278,41 @@ def _route_root(rq):
 # dict (returned as-is) or an HTML string (wrapped by the epilogue below).
 # ---------------------------------------------------------------------------
 
+def _route_ytpods(rq):
+    """The Tube Times: a listings page of Peter's YouTube subscriptions.
+
+    ytpods (~/ytpods) pre-renders the whole page daily and uploads it to
+    GARDENCAM_BUCKET/ytpods/index.html, so this route only serves it. Private,
+    behind the house password like /my-contents; layout and content changes
+    belong in ~/ytpods, not here.
+    """
+    if not check_basic_auth(rq.event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html',
+                        'Cache-Control': 'no-store',
+                        'WWW-Authenticate': 'Basic realm="Private contents"'}
+        }
+    try:
+        obj = s3_client().get_object(Bucket=GARDENCAM_BUCKET, Key='ytpods/index.html')
+        body = obj['Body'].read().decode('utf-8')
+    except Exception as e:
+        print(f'ytpods fetch failed: {e}')
+        return {
+            'statusCode': 503,
+            'body': '<html><body><h1>The Tube Times is not available right now</h1></body></html>',
+            'headers': {'Content-Type': 'text/html; charset=utf-8',
+                        'Cache-Control': 'no-store'}
+        }
+    return {
+        'statusCode': 200,
+        'body': body,
+        'headers': {'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store'}
+    }
+
+
 _ROUTES_EXACT = {
     '/favicon.ico': _route_favicon_ico,
     '/favicon.png': _route_favicon_png,
@@ -6287,6 +6324,7 @@ _ROUTES_EXACT = {
     '/cv': _route_cv,
     '/contents': _route_contents,
     '/my-contents': _route_my_contents,
+    '/ytpods': _route_ytpods,
     '/biog': _route_biog,
     '/ai-memory': _route_ai_memory,
     '/site-test': _route_site_test,
@@ -6505,6 +6543,8 @@ def lambda_handler(event, context):
     if isinstance(response, dict):
         response = _with_backlink(_route_of(event), response)
     _access_log(event, context, response, (time.time() - wrapper_start) * 1000)
+    if BOTO3_AVAILABLE:
+        visitor_alert.check(event, _route_of(event), response, dynamodb_resource)
     return response
 
 

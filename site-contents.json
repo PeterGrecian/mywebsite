@@ -172,5 +172,14 @@
     "sort_order": 0,
     "visible": true,
     "header_link": true
+  },
+  {
+    "path": "ytpods",
+    "title": "The Tube Times",
+    "description": "listings of my YouTube subscriptions, newspaper style",
+    "color": "pastel-peach",
+    "sort_order": 19,
+    "visible": true,
+    "auth_required": true
   }
 ]

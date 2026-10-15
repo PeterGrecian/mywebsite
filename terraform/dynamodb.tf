@@ -101,3 +101,29 @@ resource "aws_dynamodb_table" "astro_host_capacity" {
     type = "S"
   }
 }
+
+# Visitor alerts — dedupe and daily cap for lambda/visitor_alert.py. One row
+# per (London day, client IP) that triggered, a '#count' row per day for the
+# cap, and permanent day='owner' rows for the owner's IPs (seeded by hand,
+# never in git: the repo is public). Day rows expire after 3 days.
+resource "aws_dynamodb_table" "visitor_alerts" {
+  name         = "mywebsite-visitor-alerts"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "day"
+  range_key    = "ip"
+
+  attribute {
+    name = "day"
+    type = "S"
+  }
+
+  attribute {
+    name = "ip"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+}
