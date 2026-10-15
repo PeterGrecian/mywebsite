@@ -6318,6 +6318,19 @@ def _route_ytpods(rq):
     behind the house password like /my-contents; layout and content changes
     belong in ~/ytpods, not here.
     """
+    return _serve_ytpods(rq, 'ytpods/index.html')
+
+
+_YTPODS_BACK = re.compile(r'/ytpods/back/([1-9][0-9]{0,2})')
+
+
+def _route_ytpods_back(rq):
+    """An older week of The Tube Times, /ytpods/back/<N> for N in 1..999."""
+    n = _YTPODS_BACK.fullmatch(rq.route).group(1)
+    return _serve_ytpods(rq, f'ytpods/back/{n}.html')
+
+
+def _serve_ytpods(rq, key):
     if not check_basic_auth(rq.event, GARDENCAM_PASSWORD):
         return {
             'statusCode': 401,
@@ -6327,8 +6340,15 @@ def _route_ytpods(rq):
                         'WWW-Authenticate': 'Basic realm="Private contents"'}
         }
     try:
-        obj = s3_client().get_object(Bucket=GARDENCAM_BUCKET, Key='ytpods/index.html')
+        obj = s3_client().get_object(Bucket=GARDENCAM_BUCKET, Key=key)
         body = obj['Body'].read().decode('utf-8')
+    except s3_client().exceptions.NoSuchKey:
+        return {
+            'statusCode': 404,
+            'body': '<html><body><h1>No such edition of The Tube Times</h1></body></html>',
+            'headers': {'Content-Type': 'text/html; charset=utf-8',
+                        'Cache-Control': 'no-store'}
+        }
     except Exception as e:
         print(f'ytpods fetch failed: {e}')
         return {
@@ -6441,6 +6461,7 @@ _ROUTES_EXACT = {
 }
 
 _ROUTES_PATTERN = [
+    (_PRED, lambda route: _YTPODS_BACK.fullmatch(route), _route_ytpods_back),
     (_PREFIX, '/calendaralarm', _route_calendaralarm),
     (_PREFIX, '/glacier', _route_glacier),
     (_PREFIX, '/gardencam/capture', _route_gardencam_capture),
