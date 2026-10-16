@@ -15,6 +15,7 @@ APPS = {                      # name: (letter, letter colour); '' = tick only
     'groceries': ('G', '#7DDC8A'),
     'pi-fleet':  ('P', '#FFB27A'),
     'ytpods':    ('V', '#F2E6CC'),
+    'my-contents': ('M', '#E0E0E0'),   # the private home
 }
 BG, TICK = '#000000', '#FF3B30'
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'

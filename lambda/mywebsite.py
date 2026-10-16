@@ -6444,6 +6444,7 @@ _APP_SECTIONS = {
     # the drawer, and Google's WebAPK server never fetches the manifest).
     '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries', 'rev': '2'},
     '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
+    '/my-contents': {'name': 'My contents', 'short_name': 'My contents', 'icon': 'my-contents'},
     # The main site, just the tick. Last: it catches every page the sections
     # above do not, and a page carrying its own manifest (/ytpods) keeps it.
     '':           {'name': 'Peter Grecian', 'short_name': 'Peter G', 'icon': 'site'},
