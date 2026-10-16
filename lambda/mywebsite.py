@@ -6444,7 +6444,7 @@ _APP_SECTIONS = {
     # the drawer, and Google's WebAPK server never fetches the manifest).
     '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries', 'rev': '2'},
     '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
-    '/my-contents': {'name': 'My contents', 'short_name': 'My contents', 'icon': 'my-contents'},
+    '/my-contents': {'name': 'My contents', 'short_name': 'My contents', 'icon': 'my-contents', 'rev': '2'},
     # The public home, just the tick. Its scope is /contents, NOT /: an
     # installed app scoped to the whole site makes Chrome on Android treat
     # every page as "already installed", and no section app will install
