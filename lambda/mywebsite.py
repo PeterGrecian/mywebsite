@@ -6439,7 +6439,10 @@ def _route_ytpods_asset(rq):
 # the install silently falls back to the main app. /ytpods serves its own.
 _APP_SECTIONS = {
     '/astro':     {'name': 'Astronomy', 'short_name': 'Astro', 'icon': 'astro'},
-    '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries'},
+    # rev: a new app identity (manifest URL and id). Bump it when a phone's
+    # Chrome holds a stale install record ("already installed", no app in
+    # the drawer, and Google's WebAPK server never fetches the manifest).
+    '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries', 'rev': '2'},
     '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
     # The main site, just the tick. Last: it catches every page the sections
     # above do not, and a page carrying its own manifest (/ytpods) keeps it.
@@ -6447,6 +6450,11 @@ _APP_SECTIONS = {
 }
 _APP_THEME = '#000000'
 _APP_ICON_B64 = {}
+
+
+def _app_manifest_leaf(app):
+    rev = app.get('rev')
+    return f'manifest-{rev}.webmanifest' if rev else 'manifest.webmanifest'
 
 
 def _app_section_of(route):
@@ -6461,7 +6469,8 @@ def _route_app_manifest(rq):
     app = _APP_SECTIONS[section]
     home = section or '/'
     manifest = {
-        'id': home, 'scope': home, 'start_url': home,
+        'id': f"{home}?app={app['rev']}" if app.get('rev') else home,
+        'scope': home, 'start_url': home,
         'name': app['name'], 'short_name': app['short_name'],
         'display': 'standalone',
         'background_color': _APP_THEME, 'theme_color': _APP_THEME,
@@ -6548,8 +6557,8 @@ _ROUTES_EXACT = {
     '/': _route_root,
 }
 
-for _section in _APP_SECTIONS:
-    _ROUTES_EXACT[f'{_section}/manifest.webmanifest'] = _route_app_manifest
+for _section, _app in _APP_SECTIONS.items():
+    _ROUTES_EXACT[f'{_section}/{_app_manifest_leaf(_app)}'] = _route_app_manifest
     _ROUTES_EXACT[f'{_section}/app-icon-192.png'] = _route_app_icon
     _ROUTES_EXACT[f'{_section}/app-icon-512.png'] = _route_app_icon
 
@@ -6725,7 +6734,7 @@ def _with_app_manifest(route, response):
     m = _HEAD_OPEN.search(body)
     if not m:
         return response
-    tags = (f'<link rel="manifest" href="{section}/manifest.webmanifest">'
+    tags = (f'<link rel="manifest" href="{section}/{_app_manifest_leaf(_APP_SECTIONS[section])}">'
             f'<meta name="theme-color" content="{_APP_THEME}">'
             f'<link rel="apple-touch-icon" href="{section}/app-icon-192.png">')
     return {**response, 'body': body[:m.end()] + tags + body[m.end():]}
