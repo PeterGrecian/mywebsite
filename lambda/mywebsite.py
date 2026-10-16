@@ -6431,6 +6431,60 @@ def _route_ytpods_asset(rq):
     return {'statusCode': 200, 'headers': headers, 'body': data.decode('utf-8')}
 
 
+# Home-screen apps, one per section, so a phone can install each as its own
+# app beside the main site's. Each gets a manifest whose id and scope are the
+# section, and icons drawn by tools/make-app-icons.py (the section's letter
+# over the red tick). Manifest and icons are served WITHOUT auth even for a
+# private section: Chrome fetches them with no credentials, and behind auth
+# the install silently falls back to the main app. /ytpods serves its own.
+_APP_SECTIONS = {
+    '/astro':     {'name': 'Astronomy', 'short_name': 'Astro', 'icon': 'astro'},
+    '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries'},
+    '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
+}
+_APP_THEME = '#000000'
+_APP_ICON_B64 = {}
+
+
+def _app_section_of(route):
+    for section in _APP_SECTIONS:
+        if route == section or route.startswith(section + '/'):
+            return section
+    return None
+
+
+def _route_app_manifest(rq):
+    section = rq.route.rsplit('/', 1)[0]
+    app = _APP_SECTIONS[section]
+    manifest = {
+        'id': section, 'scope': section, 'start_url': section,
+        'name': app['name'], 'short_name': app['short_name'],
+        'display': 'standalone',
+        'background_color': _APP_THEME, 'theme_color': _APP_THEME,
+        'icons': [
+            {'src': f'{section}/app-icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
+            {'src': f'{section}/app-icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'},
+            {'src': f'{section}/app-icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
+        ],
+    }
+    return {'statusCode': 200, 'body': json.dumps(manifest),
+            'headers': {'Content-Type': 'application/manifest+json',
+                        'Cache-Control': 'public, max-age=3600'}}
+
+
+def _route_app_icon(rq):
+    section, leaf = rq.route.rsplit('/', 1)
+    size = leaf[len('app-icon-'):-len('.png')]
+    fname = f"app-{_APP_SECTIONS[section]['icon']}-{size}.png"
+    b64 = _APP_ICON_B64.get(fname)
+    if b64 is None:
+        with open(fname, 'rb') as f:
+            b64 = _APP_ICON_B64[fname] = base64.b64encode(f.read()).decode('ascii')
+    return {'statusCode': 200, 'isBase64Encoded': True, 'body': b64,
+            'headers': {'Content-Type': 'image/png',
+                        'Cache-Control': 'public, max-age=86400'}}
+
+
 _ROUTES_EXACT = {
     '/favicon.ico': _route_favicon_ico,
     '/favicon.png': _route_favicon_png,
@@ -6489,6 +6543,11 @@ _ROUTES_EXACT = {
     '': _route_root,
     '/': _route_root,
 }
+
+for _section in _APP_SECTIONS:
+    _ROUTES_EXACT[f'{_section}/manifest.webmanifest'] = _route_app_manifest
+    _ROUTES_EXACT[f'{_section}/app-icon-192.png'] = _route_app_icon
+    _ROUTES_EXACT[f'{_section}/app-icon-512.png'] = _route_app_icon
 
 _ROUTES_PATTERN = [
     (_PRED, lambda route: _YTPODS_BACK.fullmatch(route), _route_ytpods_back),
@@ -6646,6 +6705,28 @@ def _with_backlink(route, response, private=False):
     return {**response, 'body': body[:at] + link + body[at:]}
 
 
+_HEAD_OPEN = re.compile(r'<head\b[^>]*>', re.I)
+
+
+def _with_app_manifest(route, response):
+    """Link a section's app manifest into the head of its HTML pages."""
+    section = _app_section_of(route)
+    if section is None or response.get('statusCode') != 200 or response.get('isBase64Encoded'):
+        return response
+    hdrs = response.get('headers') or {}
+    body = response.get('body')
+    if 'text/html' not in (hdrs.get('Content-Type') or hdrs.get('content-type') or '') \
+            or not isinstance(body, str) or 'rel="manifest"' in body:
+        return response
+    m = _HEAD_OPEN.search(body)
+    if not m:
+        return response
+    tags = (f'<link rel="manifest" href="{section}/manifest.webmanifest">'
+            f'<meta name="theme-color" content="{_APP_THEME}">'
+            f'<link rel="apple-touch-icon" href="{section}/app-icon-192.png">')
+    return {**response, 'body': body[:m.end()] + tags + body[m.end():]}
+
+
 def _route_of(event):
     """The stage-stripped route, as _dispatch computes it."""
     path = event.get('rawPath') or event.get('path') or ''
@@ -6675,6 +6756,7 @@ def lambda_handler(event, context):
         headers = event.get('headers') or {}
         private = bool(headers.get('Authorization') or headers.get('authorization'))
         response = _with_backlink(_route_of(event), response, private)
+        response = _with_app_manifest(_route_of(event), response)
     _access_log(event, context, response, (time.time() - wrapper_start) * 1000)
     if BOTO3_AVAILABLE:
         visitor_alert.check(event, _route_of(event), response, dynamodb_resource)

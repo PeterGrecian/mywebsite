@@ -186,8 +186,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7780,
-  "sha": "4e62160d453fe118",
+  "len": 7939,
+  "sha": "0d8b75d05a5f0435",
   "status": 200
  },
  "/astro-suffix": {
@@ -425,8 +425,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5461,
-  "sha": "82e13143f2edc9cb",
+  "len": 5620,
+  "sha": "f4913a6d377f7534",
   "status": 200
  },
  "/astro/astrocam-suffix": {
@@ -448,8 +448,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5461,
-  "sha": "82e13143f2edc9cb",
+  "len": 5620,
+  "sha": "f4913a6d377f7534",
   "status": 200
  },
  "/astro/astrocam/child": {
@@ -483,8 +483,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5457,
-  "sha": "65bb2497d0695dae",
+  "len": 5616,
+  "sha": "aa745b185ce16786",
   "status": 200
  },
  "/astro/canon-suffix": {
@@ -506,8 +506,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5457,
-  "sha": "65bb2497d0695dae",
+  "len": 5616,
+  "sha": "aa745b185ce16786",
   "status": 200
  },
  "/astro/canon/child": {
@@ -565,8 +565,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11127,
-  "sha": "1af31c18488264d2",
+  "len": 11286,
+  "sha": "5f60ebab4da8eb6d",
   "status": 200
  },
  "/astro/color-max-test-suffix": {
@@ -624,8 +624,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11127,
-  "sha": "1af31c18488264d2",
+  "len": 11286,
+  "sha": "5f60ebab4da8eb6d",
   "status": 200
  },
  "/astro/colour-max-test-suffix": {
@@ -683,8 +683,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5614,
-  "sha": "3671867f849374ae",
+  "len": 5773,
+  "sha": "ec24b60045fb99d6",
   "status": 200
  },
  "/astro/disks-suffix": {
@@ -706,8 +706,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5614,
-  "sha": "3671867f849374ae",
+  "len": 5773,
+  "sha": "ec24b60045fb99d6",
   "status": 200
  },
  "/astro/disks/?$": {
@@ -801,8 +801,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5789,
-  "sha": "66a4bdda90300ded",
+  "len": 5948,
+  "sha": "009226063e0f5a81",
   "status": 200
  },
  "/astro/eclipticam-suffix": {
@@ -824,8 +824,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5789,
-  "sha": "66a4bdda90300ded",
+  "len": 5948,
+  "sha": "009226063e0f5a81",
   "status": 200
  },
  "/astro/eclipticam/child": {
@@ -859,8 +859,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/astro/photos-suffix": {
@@ -882,8 +882,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/astro/photos/child": {
@@ -916,8 +916,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/astro/showcase-suffix": {
@@ -939,8 +939,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/astro/showcase/child": {
@@ -1032,8 +1032,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12038,
-  "sha": "95df7b7a0218a1ff",
+  "len": 12197,
+  "sha": "b9c2b9706d73017e",
   "status": 200
  },
  "/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -1115,8 +1115,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12038,
-  "sha": "95df7b7a0218a1ff",
+  "len": 12197,
+  "sha": "b9c2b9706d73017e",
   "status": 200
  },
  "/astro/storage/2026-01": {
@@ -1126,8 +1126,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12048,
-  "sha": "102296105d01efa2",
+  "len": 12207,
+  "sha": "fb256506d11d94f6",
   "status": 200
  },
  "/astro/storage/child": {
@@ -1161,8 +1161,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7499,
-  "sha": "f1ed40dc8fa86160",
+  "len": 7658,
+  "sha": "cff8026b3fdea053",
   "status": 200
  },
  "/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -1244,8 +1244,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7499,
-  "sha": "f1ed40dc8fa86160",
+  "len": 7658,
+  "sha": "cff8026b3fdea053",
   "status": 200
  },
  "/astro/transients/child": {
@@ -1707,8 +1707,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7780,
-  "sha": "4e62160d453fe118",
+  "len": 7939,
+  "sha": "0d8b75d05a5f0435",
   "status": 200
  },
  "/default/astro-suffix": {
@@ -1946,8 +1946,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5461,
-  "sha": "82e13143f2edc9cb",
+  "len": 5620,
+  "sha": "f4913a6d377f7534",
   "status": 200
  },
  "/default/astro/astrocam-suffix": {
@@ -1969,8 +1969,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5461,
-  "sha": "82e13143f2edc9cb",
+  "len": 5620,
+  "sha": "f4913a6d377f7534",
   "status": 200
  },
  "/default/astro/astrocam/child": {
@@ -2004,8 +2004,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5457,
-  "sha": "65bb2497d0695dae",
+  "len": 5616,
+  "sha": "aa745b185ce16786",
   "status": 200
  },
  "/default/astro/canon-suffix": {
@@ -2027,8 +2027,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5457,
-  "sha": "65bb2497d0695dae",
+  "len": 5616,
+  "sha": "aa745b185ce16786",
   "status": 200
  },
  "/default/astro/canon/child": {
@@ -2086,8 +2086,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11127,
-  "sha": "1af31c18488264d2",
+  "len": 11286,
+  "sha": "5f60ebab4da8eb6d",
   "status": 200
  },
  "/default/astro/color-max-test-suffix": {
@@ -2145,8 +2145,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11127,
-  "sha": "1af31c18488264d2",
+  "len": 11286,
+  "sha": "5f60ebab4da8eb6d",
   "status": 200
  },
  "/default/astro/colour-max-test-suffix": {
@@ -2204,8 +2204,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5614,
-  "sha": "3671867f849374ae",
+  "len": 5773,
+  "sha": "ec24b60045fb99d6",
   "status": 200
  },
  "/default/astro/disks-suffix": {
@@ -2227,8 +2227,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5614,
-  "sha": "3671867f849374ae",
+  "len": 5773,
+  "sha": "ec24b60045fb99d6",
   "status": 200
  },
  "/default/astro/disks/?$": {
@@ -2322,8 +2322,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5789,
-  "sha": "66a4bdda90300ded",
+  "len": 5948,
+  "sha": "009226063e0f5a81",
   "status": 200
  },
  "/default/astro/eclipticam-suffix": {
@@ -2345,8 +2345,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 5789,
-  "sha": "66a4bdda90300ded",
+  "len": 5948,
+  "sha": "009226063e0f5a81",
   "status": 200
  },
  "/default/astro/eclipticam/child": {
@@ -2380,8 +2380,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/default/astro/photos-suffix": {
@@ -2403,8 +2403,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/default/astro/photos/child": {
@@ -2437,8 +2437,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/default/astro/showcase-suffix": {
@@ -2460,8 +2460,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 11515,
-  "sha": "4d7592eca1546123",
+  "len": 11674,
+  "sha": "f6d379a874962a49",
   "status": 200
  },
  "/default/astro/showcase/child": {
@@ -2553,8 +2553,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12038,
-  "sha": "95df7b7a0218a1ff",
+  "len": 12197,
+  "sha": "b9c2b9706d73017e",
   "status": 200
  },
  "/default/astro/storage(/\\d{4}-\\d{2})?/?$": {
@@ -2636,8 +2636,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 12038,
-  "sha": "95df7b7a0218a1ff",
+  "len": 12197,
+  "sha": "b9c2b9706d73017e",
   "status": 200
  },
  "/default/astro/storage/child": {
@@ -2671,8 +2671,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7499,
-  "sha": "f1ed40dc8fa86160",
+  "len": 7658,
+  "sha": "cff8026b3fdea053",
   "status": 200
  },
  "/default/astro/transients(?:/([a-z0-9-]+))?/?$": {
@@ -2754,8 +2754,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 7499,
-  "sha": "f1ed40dc8fa86160",
+  "len": 7658,
+  "sha": "cff8026b3fdea053",
   "status": 200
  },
  "/default/astro/transients/child": {
@@ -3049,7 +3049,7 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1734,
+  "len": 1862,
   "sha": "ac0335c76bf51013",
   "status": 200
  },
@@ -4626,8 +4626,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 9150,
-  "sha": "960341a6243e9901",
+  "len": 9315,
+  "sha": "5e0fb080b6f32f78",
   "status": 200
  },
  "/default/pi-fleet-suffix": {
@@ -7207,7 +7207,7 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 1718,
+  "len": 1846,
   "sha": "7cde34affd1841fc",
   "status": 200
  },
@@ -8808,8 +8808,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 9150,
-  "sha": "960341a6243e9901",
+  "len": 9315,
+  "sha": "5e0fb080b6f32f78",
   "status": 200
  },
  "/pi-fleet-suffix": {
