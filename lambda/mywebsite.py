@@ -6445,9 +6445,12 @@ _APP_SECTIONS = {
     '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries', 'rev': '2'},
     '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
     '/my-contents': {'name': 'My contents', 'short_name': 'My contents', 'icon': 'my-contents'},
-    # The main site, just the tick. Last: it catches every page the sections
-    # above do not, and a page carrying its own manifest (/ytpods) keeps it.
-    '':           {'name': 'Peter Grecian', 'short_name': 'Peter G', 'icon': 'site'},
+    # The public home, just the tick. Its scope is /contents, NOT /: an
+    # installed app scoped to the whole site makes Chrome on Android treat
+    # every page as "already installed", and no section app will install
+    # (found 2026-10-16: groceries and my-contents both refused until the
+    # / app was removed).
+    '/contents':  {'name': 'Peter Grecian', 'short_name': 'Peter G', 'icon': 'site'},
 }
 _APP_THEME = '#000000'
 _APP_ICON_B64 = {}
@@ -6459,16 +6462,18 @@ def _app_manifest_leaf(app):
 
 
 def _app_section_of(route):
+    if route in ('', '/'):                     # the same page as /contents
+        return '/contents'
     for section in _APP_SECTIONS:
         if route == section or route.startswith(section + '/'):
             return section
-    return ''
+    return None
 
 
 def _route_app_manifest(rq):
     section = rq.route.rsplit('/', 1)[0]
     app = _APP_SECTIONS[section]
-    home = section or '/'
+    home = section
     manifest = {
         'id': f"{home}?app={app['rev']}" if app.get('rev') else home,
         'scope': home, 'start_url': home,
