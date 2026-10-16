@@ -68,7 +68,9 @@ def _event(path, ip='203.0.113.5', ua=BROWSER, ref='', auth=None):
 
 
 def _hit(va, path, status=200, **kw):
-    va.check(_event(path, **kw), path, {'statusCode': status}, lambda: va.res)
+    va.check(_event(path, **kw), path,
+             {'statusCode': status, 'headers': {'Content-Type': 'text/html; charset=utf-8'}},
+             lambda: va.res)
 
 
 def test_favicon_from_a_browser_alerts_once_per_day(va):
@@ -138,3 +140,11 @@ def test_a_failure_never_raises(va):
     def broken():
         raise RuntimeError('dynamodb down')
     va.check(_event('/favicon.png'), '/favicon.png', {'statusCode': 200}, broken)
+
+
+def test_manifest_fetch_with_page_referer_is_not_a_link_follow(va):
+    va.check(_event('/ytpods/manifest.webmanifest', ref='https://www.petergrecian.co.uk/ytpods'),
+             '/ytpods/manifest.webmanifest',
+             {'statusCode': 200, 'headers': {'Content-Type': 'application/manifest+json'}},
+             lambda: va.res)
+    assert va.sent == []

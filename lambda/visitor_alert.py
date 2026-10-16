@@ -68,8 +68,12 @@ def _london_day(now):
     return now.astimezone(ZoneInfo('Europe/London')).strftime('%Y-%m-%d')
 
 
-def signal(route, status, headers):
-    """'favicon' or 'link' if this request looks like a person, else None."""
+def signal(route, status, headers, ctype='text/html'):
+    """'favicon' or 'link' if this request looks like a person, else None.
+
+    'link' needs an HTML response: a manifest or icon fetch carries the
+    page's Referer too, and is the browser, not a click.
+    """
     if status != 200:
         return None
     ua = _header(headers, 'User-Agent')
@@ -81,7 +85,8 @@ def signal(route, status, headers):
     if route in _FAVICONS:
         return 'favicon'
     ref = urllib.parse.urlparse(_header(headers, 'Referer'))
-    if (ref.hostname or '').endswith(SITE_HOST) and (ref.path or '/') != route:
+    if 'text/html' in ctype and (ref.hostname or '').endswith(SITE_HOST) \
+            and (ref.path or '/') != route:
         return 'link'
     return None
 
@@ -95,7 +100,8 @@ def check(event, route, response, dynamodb_resource):
         if _header(headers, 'Authorization') and status != 401:
             _mark_owner(dynamodb_resource, client_ip(headers), now)
             return
-        kind = signal(route, status, headers)
+        rh = (response or {}).get('headers') or {}
+        kind = signal(route, status, headers, rh.get('Content-Type') or rh.get('content-type') or '')
         if kind:
             _maybe_alert(dynamodb_resource, headers, route, kind, now)
     except Exception as e:

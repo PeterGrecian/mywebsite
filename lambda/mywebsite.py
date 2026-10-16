@@ -6311,7 +6311,7 @@ def _route_root(rq):
 # ---------------------------------------------------------------------------
 
 def _route_ytpods(rq):
-    """The Tube Times: a listings page of Peter's YouTube subscriptions.
+    """Peter's Video Guide (once The Tube Times): a listings page of Peter's YouTube subscriptions.
 
     ytpods (~/ytpods) pre-renders the whole page daily and uploads it to
     GARDENCAM_BUCKET/ytpods/index.html, so this route only serves it. Private,
@@ -6325,7 +6325,7 @@ _YTPODS_BACK = re.compile(r'/ytpods/back/([1-9][0-9]{0,2})')
 
 
 def _route_ytpods_back(rq):
-    """An older week of The Tube Times, /ytpods/back/<N> for N in 1..999."""
+    """An older week of the Video Guide, /ytpods/back/<N> for N in 1..999."""
     n = _YTPODS_BACK.fullmatch(rq.route).group(1)
     return _serve_ytpods(rq, f'ytpods/back/{n}.html')
 
@@ -6345,7 +6345,7 @@ def _serve_ytpods(rq, key):
     except s3_client().exceptions.NoSuchKey:
         return {
             'statusCode': 404,
-            'body': '<html><body><h1>No such edition of The Tube Times</h1></body></html>',
+            'body': '<html><body><h1>No such edition of the Video Guide</h1></body></html>',
             'headers': {'Content-Type': 'text/html; charset=utf-8',
                         'Cache-Control': 'no-store'}
         }
@@ -6353,7 +6353,7 @@ def _serve_ytpods(rq, key):
         print(f'ytpods fetch failed: {e}')
         return {
             'statusCode': 503,
-            'body': '<html><body><h1>The Tube Times is not available right now</h1></body></html>',
+            'body': '<html><body><h1>The Video Guide is not available right now</h1></body></html>',
             'headers': {'Content-Type': 'text/html; charset=utf-8',
                         'Cache-Control': 'no-store'}
         }
@@ -6366,9 +6366,9 @@ def _serve_ytpods(rq, key):
 
 
 def _route_ytpods_refresh(rq):
-    """POST: ask zog to recompile The Tube Times now.
+    """POST: ask pip to recompile the Video Guide now.
 
-    Writes a marker object; a timer on zog (ytpods) polls its LastModified
+    Writes a marker object; a timer on pip (ytpods) polls its LastModified
     every minute, recompiles and re-uploads ytpods/index.html. Debounced: a
     marker under 60 s old is left alone, so repeated clicks cost nothing.
     """
@@ -6404,6 +6404,33 @@ def _route_ytpods_refresh(rq):
             'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}}
 
 
+_YTPODS_ASSETS = {
+    '/ytpods/manifest.webmanifest': ('ytpods/manifest.webmanifest', 'application/manifest+json'),
+    '/ytpods/icon-192.png': ('ytpods/icon-192.png', 'image/png'),
+    '/ytpods/icon-512.png': ('ytpods/icon-512.png', 'image/png'),
+}
+
+
+def _route_ytpods_asset(rq):
+    """The Video Guide's web-app manifest and icons, so it installs as its
+    own phone app. Deliberately WITHOUT auth: Chrome fetches these with no
+    credentials, and behind auth the install silently falls back to the
+    main site's app. Nothing in them is private.
+    """
+    key, ctype = _YTPODS_ASSETS[rq.route]
+    try:
+        data = s3_client().get_object(Bucket=GARDENCAM_BUCKET, Key=key)['Body'].read()
+    except Exception as e:
+        print(f'ytpods asset fetch failed: {key}: {e}')
+        return {'statusCode': 404, 'body': 'not found',
+                'headers': {'Content-Type': 'text/plain', 'Cache-Control': 'no-store'}}
+    headers = {'Content-Type': ctype, 'Cache-Control': 'public, max-age=3600'}
+    if ctype.startswith('image/'):
+        return {'statusCode': 200, 'headers': headers, 'isBase64Encoded': True,
+                'body': base64.b64encode(data).decode('ascii')}
+    return {'statusCode': 200, 'headers': headers, 'body': data.decode('utf-8')}
+
+
 _ROUTES_EXACT = {
     '/favicon.ico': _route_favicon_ico,
     '/favicon.png': _route_favicon_png,
@@ -6418,6 +6445,9 @@ _ROUTES_EXACT = {
     '/groceries': _route_groceries,
     '/ytpods': _route_ytpods,
     '/ytpods/refresh': _route_ytpods_refresh,
+    '/ytpods/manifest.webmanifest': _route_ytpods_asset,
+    '/ytpods/icon-192.png': _route_ytpods_asset,
+    '/ytpods/icon-512.png': _route_ytpods_asset,
     '/biog': _route_biog,
     '/ai-memory': _route_ai_memory,
     '/site-test': _route_site_test,
