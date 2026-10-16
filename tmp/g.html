@@ -1,0 +1,135 @@
+<!doctype html><html lang="en"><head><link rel="manifest" href="/groceries/manifest.webmanifest"><meta name="theme-color" content="#000000"><link rel="apple-touch-icon" href="/groceries/app-icon-192.png"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Groceries</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PHBhdGggZD0iTTggMjAgTDE2IDI4IEwzMiAxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkYzQjMwIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/favicon.png">
+<script>
+(function(){
+  var s=localStorage.getItem('theme');
+  var p=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));
+})();
+</script>
+<style>
+:root{font-size:21px;--bg:#000000;--card-bg:#161616;--text:#E0E0E0;--text-secondary:#8E8E93;--accent:#007AFF;--divider:#2C2C2E;--error:#FF3B30;--warning:#FF9500;--font:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;}
+:root[data-theme="light"]{--bg:#F2F2F7;--card-bg:#FFFFFF;--text:#000000;--text-secondary:#48484A;--accent:#007AFF;--divider:#C6C6C8;--error:#FF3B30;--warning:#FF9500;}
+#settings-btn{position:fixed;top:0.8rem;right:0.8rem;background:none;border:none;color:var(--text-secondary);font-size:1.2rem;cursor:pointer;z-index:10000;font-family:var(--font);padding:0.3rem;line-height:1;letter-spacing:2px;opacity:0.5;}
+#settings-btn:hover{opacity:1;}
+#settings-menu{display:none;position:fixed;top:2.4rem;right:0.8rem;background:var(--card-bg);border:1px solid var(--divider);border-radius:10px;padding:0.3rem 0;z-index:10000;min-width:160px;font-family:var(--font);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+#settings-menu.open{display:block;}
+.settings-item{display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.8rem;font-size:0.8rem;color:var(--text);cursor:pointer;white-space:nowrap;}
+.settings-item:hover{background:var(--divider);}
+.settings-item .check{color:var(--accent);font-size:0.7rem;width:1.2rem;text-align:center;}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var btn=document.createElement('button');
+  btn.id='settings-btn';
+  btn.textContent='⋯';
+  btn.title='Settings';
+  var menu=document.createElement('div');
+  menu.id='settings-menu';
+  // Theme toggle
+  var themeItem=document.createElement('div');
+  themeItem.className='settings-item';
+  var themeLabel=document.createElement('span');
+  var themeCheck=document.createElement('span');
+  themeCheck.className='check';
+  function updateThemeItem(){
+    var t=document.documentElement.getAttribute('data-theme');
+    themeLabel.textContent=t==='dark'?'Light mode':'Dark mode';
+    themeCheck.textContent='';
+  }
+  updateThemeItem();
+  themeItem.appendChild(themeLabel);
+  themeItem.appendChild(themeCheck);
+  themeItem.onclick=function(e){
+    e.stopPropagation();
+    var c=document.documentElement.getAttribute('data-theme');
+    var n=c==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',n);
+    localStorage.setItem('theme',n);
+    updateThemeItem();
+  };
+  menu.appendChild(themeItem);
+  // Allow pages to add items
+  window._settingsMenu=menu;
+  btn.onclick=function(e){e.stopPropagation();menu.classList.toggle('open');};
+  document.addEventListener('click',function(){menu.classList.remove('open');});
+  document.body.appendChild(btn);
+  document.body.appendChild(menu);
+});
+</script>
+<style>
+body{background:#000;color:#E0E0E0;font-family:-apple-system,'SF Pro Display','Inter','Roboto',sans-serif;
+  margin:0 auto;max-width:980px;padding:16px}
+h1{margin:8px 0 4px} h2{margin:28px 0 10px;font-size:1.1rem}
+.muted{color:#8E8E93} .small{font-size:.82rem}
+.card{background:#161616;border-radius:12px;padding:12px 14px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{color:#8E8E93;font-weight:500;text-align:left;border-bottom:1px solid #2C2C2E;padding:6px 8px}
+td{border-bottom:1px solid #2C2C2E;padding:6px 8px;vertical-align:top}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.warn td:first-child,.warn{color:#FF9500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#161616;border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:center}
+.chip.due{border:1px solid #FF9500} .chip.due span{color:#FF9500}
+.chip.ok{border:1px solid #34C759} .chip.ok span{color:#34C759}
+.big.small2{font-size:1rem} details{margin-top:10px} summary{cursor:pointer}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.tile{background:#161616;border-radius:12px;padding:12px 14px}
+.tile .label{color:#8E8E93;font-size:.82rem} .tile .big{font-size:1.4rem;margin:4px 0}
+</style></head><body><nav class="site-back" style="font-family:var(--font,sans-serif);font-size:0.85rem;padding:0.6rem 1rem 0;text-align:left;"><a href="/my-contents" style="color:var(--accent,#007AFF);text-decoration:none;">&larr; My contents</a></nav>
+<h1>Groceries</h1>
+<p class='muted'>Sainsbury's, KT5. Last delivery Wed 14 Oct; built Thu 15 Oct.</p>
+
+
+<h2>On order: Tue 20 Oct, 8:30am to 9:30am</h2>
+<div class='card'>
+<div class='tiles'>
+<div class='tile'><div class='label'>Trolley</div><div class='big'>£57.26</div>
+<div class='muted small'>22 lines, saved £5.13</div></div>
+<div class='tile'><div class='label'>Delivery</div><div class='big '>£0.00</div>
+<div class='muted small'>free from £50 on the pass</div></div>
+<div class='tile'><div class='label'>Estimated total</div><div class='big'>£57.26</div>
+<div class='muted small'>paid on delivery day</div></div>
+<div class='tile'><div class='label'>Amend or cancel until</div><div class='big small2'>11pm Monday, 19 October</div>
+<div class='muted small'>order 1356985822</div></div>
+</div>
+<details><summary class='muted'>Basket</summary><table>
+<tr><th>Item</th><th class='num'>Qty</th><th class='num'>Price</th></tr><tr><td>Fig Rolls 200g</td><td class='num'>1</td><td class='num'>£0.59</td></tr><tr><td>British Duck Breast Fillets x2 397g</td><td class='num'>1</td><td class='num'>£9.00</td></tr><tr><td>Unsmoked Back Bacon Rashers x10 300g</td><td class='num'>1</td><td class='num'>£1.49</td></tr><tr><td>Cat Treat Snack Pockets with Cheese 65g</td><td class='num'>1</td><td class='num'>£0.55</td></tr><tr><td>Braeburn Apples x6</td><td class='num'>1</td><td class='num'>£1.80</td></tr><tr><td>Little Gem Lettuce</td><td class='num'>1</td><td class='num'>£0.77</td></tr><tr><td>Dreamies 60g Cat Treat Biscuits with Chicken</td><td class='num'>1</td><td class='num'>£1.00</td></tr><tr><td>Onions 1kg</td><td class='num'>1</td><td class='num'>£0.80</td></tr><tr><td>Highland All Butter Shortbread Finger Biscuits 200g</td><td class='num'>1</td><td class='num'>£1.25</td></tr><tr><td>2kg King Edward Potatoes</td><td class='num'>1</td><td class='num'>£1.50</td></tr><tr><td>Custard Creams 200g</td><td class='num'>1</td><td class='num'>£0.35</td></tr><tr><td>Navarra Chorizo Ring, Taste the Difference 225g</td><td class='num'>1</td><td class='num'>£3.00</td></tr><tr><td>British Pork Cumberland Sausages, Taste the Difference x6 4…</td><td class='num'>1</td><td class='num'>£2.50</td></tr><tr><td>300g Closed Cup Chestnut Mushrooms</td><td class='num'>1</td><td class='num'>£1.05</td></tr><tr><td>1.6kg British Fresh Medium Whole Chicken</td><td class='num'>1</td><td class='num'>£3.66</td></tr><tr><td>British Beef Mince 5% Fat , Taste the Difference 500g</td><td class='num'>1</td><td class='num'>£5.75</td></tr><tr><td>Sea Salt &amp; Cider Vinegar Crisps, Taste the Difference 150g</td><td class='num'>1</td><td class='num'>£1.50</td></tr><tr><td>Crusty White Baguette</td><td class='num'>1</td><td class='num'>£1.35</td></tr><tr><td>Lea &amp; Perrins Worcester Sauce 290ml</td><td class='num'>1</td><td class='num'>£3.00</td></tr><tr><td>British or New Zealand Lamb Chops 340g</td><td class='num'>1</td><td class='num'>£6.75</td></tr><tr><td>Brussels Pate 170g</td><td class='num'>1</td><td class='num'>£1.10</td></tr><tr><td>Casillero Del Diablo Chardonnay White Wine 75cl</td><td class='num'>1</td><td class='num'>£8.50</td></tr></table></details>
+</div>
+<h2>Due this week <span class='muted small'>(no slot booked)</span></h2>
+<div class='chips'><div class='chip ok'><b>Cat treats</b><span>2 on order · 2 needed</span></div><div class='chip ok'><b>Biscuits</b><span>3 on order · 2 needed</span></div><div class='chip ok'><b>Meat</b><span>7 on order · 6 needed</span></div><div class='chip due'><b>Fish</b><span>2 packs · 4d left</span></div></div>
+
+<h2>Watched items</h2>
+<div class='card'><table>
+<tr><th>Group</th><th class='num'>Use / week</th><th class='num'>Stock now</th><th class='num'>Runs out</th><th class='num'></th><th class='num'>On order</th><th>Usually</th></tr>
+<tr class=''><td>Wet cat food</td><td class='num'>29.5 pouches</td><td class='num'>115.8</td><td class='num'>Wed 11 Nov</td><td class='num'>+27d</td><td class='num'></td><td class='muted small'>Whiskas 1+ Fish Favourites in Jelly A…, Whiskas 1+ Poultry Feast in Jelly Wet…</td></tr><tr class=''><td>Dry cat food</td><td class='num'>0.5 kg</td><td class='num'>1.9</td><td class='num'>Mon 9 Nov</td><td class='num'>+25d</td><td class='num'></td><td class='muted small'>Go-Cat Chicken &amp; Duck Adult Dry Cat F…</td></tr><tr class='warn'><td>Cat treats</td><td class='num'>1.9 packs</td><td class='num'>0.7</td><td class='num'>Sat 17 Oct</td><td class='num'>+2d</td><td class='num'>2</td><td class='muted small'>Cat Treat Snack Pockets with Cheese 6…, Dreamies 60g Cat Treat Biscuits with …</td></tr><tr class=''><td>Soup</td><td class='num'>2.2 cans</td><td class='num'>5.7</td><td class='num'>Sun 1 Nov</td><td class='num'>+17d</td><td class='num'></td><td class='muted small'>Cream Of Mushroom Soup 400g, Heinz Cream of Tomato Soup x4 400g</td></tr><tr class='warn'><td>Biscuits</td><td class='num'>1.9 packs</td><td class='num'>1.7</td><td class='num'>Wed 21 Oct</td><td class='num'>+6d</td><td class='num'>3</td><td class='muted small'>Fig Rolls 200g, Custard Creams 200g</td></tr><tr class='warn'><td>Meat</td><td class='num'>5.2 packs</td><td class='num'>3.3</td><td class='num'>Mon 19 Oct</td><td class='num'>+4d</td><td class='num'>7</td><td class='muted small'>Navarra Chorizo Ring, Taste the Diffe…, British or New Zealand Lamb Chops 340g</td></tr><tr class='warn'><td>Fish</td><td class='num'>1.2 packs</td><td class='num'>0.8</td><td class='num'>Mon 19 Oct</td><td class='num'>+4d</td><td class='num'></td><td class='muted small'>Frozen Large Cooked &amp; Peeled King Pra…, ASC Scottish Hickory Wood Smoked Salm…</td></tr>
+</table>
+<p class='muted small'>Rate = what was bought before the latest purchase, over the days it lasted. Online orders only.</p></div>
+
+<h2>Money</h2>
+<div class='tiles'><div class='tile'><div class='label'>Spent 2026</div><div class='big'>£5,084.76</div><div class='muted small'>24 orders</div></div><div class='tile'><div class='label'>Saved on offers</div><div class='big'>£477.07</div><div class='muted small'>8.6% of shelf price</div></div><div class='tile'><div class='label'>Coupons used</div><div class='big'>£9.00</div><div class='muted small'>e-vouchers at checkout</div></div><div class='tile'><div class='label'>Delivery paid</div><div class='big'>£13.50</div><div class='muted small'></div></div><div class='tile'><div class='label'>Nectar balance</div><div class='big'>86,952 pts</div><div class='muted small'>≈ £434.76 unspent</div></div></div>
+
+<h2>Orders</h2>
+<div class='card'><table>
+<tr><th>Delivered</th><th class='num'>Lines</th><th class='num'>Paid</th><th class='num'>Saved</th><th class='num'>Coupons</th><th class='num'>Subs</th><th class='num'>Unavail.</th></tr>
+<tr><td>Wed 14 Oct</td><td class='num'>43</td><td class='num'>£155.88</td><td class='num'>£12.39</td><td class='num'>£9.00</td><td class='num'></td><td class='num'></td></tr><tr><td>Thu 8 Oct</td><td class='num'>17</td><td class='num'>£81.73</td><td class='num'>£4.24</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Wed 30 Sep</td><td class='num'>31</td><td class='num'>£95.81</td><td class='num'>£8.06</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Thu 24 Sep</td><td class='num'>30</td><td class='num'>£103.20</td><td class='num'>£2.98</td><td class='num'></td><td class='num'>1</td><td class='num'>2</td></tr><tr><td>Tue 22 Sep</td><td class='num'>17</td><td class='num'>£60.54</td><td class='num'>£0.00</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Wed 16 Sep</td><td class='num'>69</td><td class='num'>£258.70</td><td class='num'>£20.60</td><td class='num'></td><td class='num'>2</td><td class='num'></td></tr><tr><td>Thu 10 Sep</td><td class='num'>35</td><td class='num'>£112.94</td><td class='num'>£10.88</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Tue 8 Sep</td><td class='num'>30</td><td class='num'>£65.83</td><td class='num'>£1.71</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Tue 1 Sep</td><td class='num'>111</td><td class='num'>£346.13</td><td class='num'>£33.72</td><td class='num'></td><td class='num'>4</td><td class='num'></td></tr><tr><td>Mon 24 Aug</td><td class='num'>91</td><td class='num'>£343.21</td><td class='num'>£23.67</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Mon 17 Aug</td><td class='num'>75</td><td class='num'>£238.33</td><td class='num'>£24.50</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Mon 10 Aug</td><td class='num'>101</td><td class='num'>£322.99</td><td class='num'>£19.42</td><td class='num'></td><td class='num'>4</td><td class='num'></td></tr><tr><td>Tue 28 Jul</td><td class='num'>69</td><td class='num'>£191.34</td><td class='num'>£14.62</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Tue 21 Jul</td><td class='num'>57</td><td class='num'>£210.53</td><td class='num'>£36.50</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Tue 14 Jul</td><td class='num'>40</td><td class='num'>£134.89</td><td class='num'>£13.42</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Wed 8 Jul</td><td class='num'>118</td><td class='num'>£408.18</td><td class='num'>£45.60</td><td class='num'></td><td class='num'>2</td><td class='num'></td></tr><tr><td>Wed 1 Jul</td><td class='num'>60</td><td class='num'>£151.64</td><td class='num'>£10.70</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Tue 23 Jun</td><td class='num'>79</td><td class='num'>£300.36</td><td class='num'>£30.42</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Wed 17 Jun</td><td class='num'>70</td><td class='num'>£260.96</td><td class='num'>£26.33</td><td class='num'></td><td class='num'></td><td class='num'></td></tr><tr><td>Tue 9 Jun</td><td class='num'>50</td><td class='num'>£231.63</td><td class='num'>£20.70</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Wed 3 Jun</td><td class='num'>73</td><td class='num'>£240.15</td><td class='num'>£16.20</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Tue 26 May</td><td class='num'>99</td><td class='num'>£299.24</td><td class='num'>£51.29</td><td class='num'></td><td class='num'>3</td><td class='num'></td></tr><tr><td>Tue 19 May</td><td class='num'>68</td><td class='num'>£213.03</td><td class='num'>£27.37</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Tue 12 May</td><td class='num'>97</td><td class='num'>£257.52</td><td class='num'>£21.75</td><td class='num'></td><td class='num'>1</td><td class='num'></td></tr><tr><td>Tue 11 Feb</td><td class='num'>65</td><td class='num'>£165.22</td><td class='num'>£12.55</td><td class='num'></td><td class='num'>2</td><td class='num'></td></tr></table></div>
+
+<h2>Substitutions</h2>
+<div class='card'><table>
+<tr><th>Date</th><th>Ordered</th><th>Got</th><th class='num'>Voucher due</th></tr>
+<tr><td>Thu 8 Oct</td><td>Home 16cm Aluminium Saucepan</td><td>Home 20cm Aluminium Saucepan</td><td class='num warn'>+£2.25</td></tr><tr><td>Wed 30 Sep</td><td>Surf 3 In 1 Laundry Washing Detergent Capsul…</td><td>Surf 3 in 1 Laundry Washing Detergent Capsul…</td><td class='num warn'>+£6.25</td></tr><tr><td>Thu 24 Sep</td><td>Sure Nonstop Protection Anti Perspirant Roll…</td><td>Sure Anti Perspirant Roll On Invisible Black…</td><td class='num '>£-0.60</td></tr><tr><td>Tue 22 Sep</td><td>Cream Of Mushroom Soup 400g</td><td>Cream Of Mushroom Soup 400g</td><td class='num '>£-1.18</td></tr><tr><td>Wed 16 Sep</td><td>Rimmel London Lasting Radiance Concealer 030…</td><td>Rimmel London Multi Tasker Concealer 040 Ivo…</td><td class='num warn'>+£2.00</td></tr><tr><td>Wed 16 Sep</td><td>Rimmel London Lasting Radiance Concealer 010…</td><td>Rimmel London Multi Tasker Concealer 040 Ivo…</td><td class='num warn'>+£2.00</td></tr><tr><td>Thu 10 Sep</td><td>Walkers Wotsits 400g Really Cheeesy Flavour …</td><td>Wotsits 375g Mac &#x27;n&#x27; Cheese with Sweet &amp; Spi…</td><td class='num '></td></tr><tr><td>Tue 1 Sep</td><td>Rainbow Fruit Salad 450g</td><td>400g Classic Fruit Salad</td><td class='num '>£-0.50</td></tr><tr><td>Tue 1 Sep</td><td>Giant Cous Cous &amp; Feta Salad, Taste the Diff…</td><td>400g Giant Cous Cous &amp; Feta Salad, Taste the…</td><td class='num warn'>+£0.75</td></tr><tr><td>Tue 1 Sep</td><td>British Duck Breast Fillets x2 397g</td><td>Gressingham Duck Breast 170g</td><td class='num '>£-2.00</td></tr><tr><td>Tue 1 Sep</td><td>Habitat Pack of 4 Portofino Tumbler Glasses</td><td>Habitat Oslo Tumbler Glasses - Pack of 4</td><td class='num warn'>+£3.50</td></tr><tr><td>Mon 24 Aug</td><td>Maybelline Lash Sensational Mascara Very Bla…</td><td>Maybelline Lash Sensational Mascara Intense …</td><td class='num '></td></tr><tr><td>Mon 10 Aug</td><td>Snack a Jacks Jumbo Caramel Rice Cakes 159g</td><td>Milk Chocolate Rice Cakes 4x35.75g</td><td class='num '>£-0.30</td></tr><tr><td>Mon 10 Aug</td><td>Snack a Jack 117g Salt &amp; Vinegar Rice Cake</td><td>130g Salt &amp; Vinegar Flavour Rice &amp; Corn Cakes</td><td class='num '>£-1.71</td></tr><tr><td>Mon 10 Aug</td><td>Bellaverde Broccoli 200g</td><td>Tenderstem Broccoli 200g</td><td class='num '>£-0.60</td></tr><tr><td>Mon 10 Aug</td><td>2 x Ripe &amp; Ready Avocados</td><td>Baby Ripen at Home Avocados x4</td><td class='num warn'>+£0.25</td></tr><tr><td>Tue 21 Jul</td><td>Sure Nonstop Protection Anti Perspirant Roll…</td><td>Sure Women Antiperspirant Deodorant Roll On …</td><td class='num '></td></tr><tr><td>Tue 14 Jul</td><td>Innocent Berry Energise Super Smoothie Straw…</td><td>innocent Plus Berry Set Go Raspberry &amp; Cherr…</td><td class='num '>£-0.50</td></tr><tr><td>Wed 8 Jul</td><td>MSC Seafood Sticks x16 250g</td><td>Stamford Street Co. MSC Seafood Sticks x16 2…</td><td class='num '>£-0.30</td></tr><tr><td>Wed 8 Jul</td><td>Rowntree&#x27;s Fruit Pastilles Strawberry &amp; Blac…</td><td>Rowntree s Fruit Pastilles Sweets Sharing Ba…</td><td class='num '></td></tr></table>
+<p class='muted small'>A dearer substitute earns a Substitute Promise voucher for the difference.</p></div>
+
+<h2>Staples</h2>
+<div class='card'><table>
+<tr><th>Item</th><th class='num'>In orders</th><th class='num'>Spent</th><th class='num'>Last</th></tr>
+<tr><td>Kale 200g</td><td class='num'>83%</td><td class='num'>£20.47</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Pains Au Chocolat x4</td><td class='num'>83%</td><td class='num'>£48.30</td><td class='num'>Thu 24 Sep</td></tr><tr><td>Hula Hoops Salt &amp; Vinegar Multipack Crisps x6</td><td class='num'>79%</td><td class='num'>£39.20</td><td class='num'>Thu 24 Sep</td></tr><tr><td>Milkybar White Chocolate Bar Multipack 4x25g</td><td class='num'>75%</td><td class='num'>£33.85</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Coca-Cola Zero Sugar 24x330ml</td><td class='num'>71%</td><td class='num'>£165.00</td><td class='num'>Wed 16 Sep</td></tr><tr><td>Red Bull Energy Drink Sugar Free 250ml x12</td><td class='num'>71%</td><td class='num'>£230.30</td><td class='num'>Wed 16 Sep</td></tr><tr><td>Rowntree&#x27;s Fruit Pastilles Strawberry &amp; Blackcurrant Sweets…</td><td class='num'>71%</td><td class='num'>£23.30</td><td class='num'>Wed 14 Oct</td></tr><tr><td>San Pellegrino Orange 4 x 330ml</td><td class='num'>71%</td><td class='num'>£57.50</td><td class='num'>Wed 16 Sep</td></tr><tr><td>St Pierre Chocolate Filled Crepes x6</td><td class='num'>71%</td><td class='num'>£36.05</td><td class='num'>Wed 16 Sep</td></tr><tr><td>British or New Zealand Lamb Chops 340g</td><td class='num'>58%</td><td class='num'>£110.25</td><td class='num'>Wed 30 Sep</td></tr><tr><td>Sea Salt &amp; Cider Vinegar Crisps, Taste the Difference 150g</td><td class='num'>58%</td><td class='num'>£20.49</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Whole Cucumber</td><td class='num'>58%</td><td class='num'>£18.62</td><td class='num'>Wed 30 Sep</td></tr><tr><td>Southern Fried Chicken</td><td class='num'>58%</td><td class='num'>£47.60</td><td class='num'>Wed 16 Sep</td></tr><tr><td>Mango 450g</td><td class='num'>54%</td><td class='num'>£54.25</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Smoked Salmon &amp; Cream Cheese on Oatmeal Bread Sandwich</td><td class='num'>54%</td><td class='num'>£45.50</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Houmous 200g</td><td class='num'>54%</td><td class='num'>£13.34</td><td class='num'>Wed 16 Sep</td></tr><tr><td>Walkers Prawn Cocktail Multipack Crisps 6 x 25g</td><td class='num'>54%</td><td class='num'>£25.65</td><td class='num'>Wed 16 Sep</td></tr><tr><td>Président French Camembert Cheese 250g</td><td class='num'>54%</td><td class='num'>£34.55</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Innocent Berry Energise Super Smoothie Strawberry, Cherry, …</td><td class='num'>50%</td><td class='num'>£39.20</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Crosta &amp; Mollica Margherita Sourdough Pizza Tomato, Mozzare…</td><td class='num'>50%</td><td class='num'>£65.20</td><td class='num'>Thu 24 Sep</td></tr><tr><td>Healthcare Paracetamol 500mg Tablets x16</td><td class='num'>50%</td><td class='num'>£5.60</td><td class='num'>Wed 30 Sep</td></tr><tr><td>Little Gem Lettuce</td><td class='num'>50%</td><td class='num'>£8.59</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Fanta Orange Zero 8x330ml</td><td class='num'>50%</td><td class='num'>£54.40</td><td class='num'>Thu 24 Sep</td></tr><tr><td>Whiskas 1+ Fish Favourites in Jelly Adult Wet Cat Food Pouc…</td><td class='num'>50%</td><td class='num'>£163.10</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Chicken &amp; Bacon Caesar Wrap</td><td class='num'>46%</td><td class='num'>£37.40</td><td class='num'>Thu 10 Sep</td></tr><tr><td>Navarra Chorizo Ring, Taste the Difference 225g</td><td class='num'>46%</td><td class='num'>£54.00</td><td class='num'>Wed 14 Oct</td></tr><tr><td>Somerset Brie Cheese 230g</td><td class='num'>46%</td><td class='num'>£32.10</td><td class='num'>Mon 24 Aug</td></tr><tr><td>Diet Coke Cola 24 x 330ml Cans</td><td class='num'>46%</td><td class='num'>£101.50</td><td class='num'>Wed 30 Sep</td></tr><tr><td>Crusty White Baguette</td><td class='num'>46%</td><td class='num'>£17.55</td><td class='num'>Wed 14 Oct</td></tr><tr><td>300g Closed Cup Chestnut Mushrooms</td><td class='num'>42%</td><td class='num'>£11.89</td><td class='num'>Wed 14 Oct</td></tr></table>
+<p class='muted small'>Bought in at least a quarter of orders since May. Personal-care items excluded.</p></div>
+</body></html>

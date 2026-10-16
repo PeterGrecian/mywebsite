@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Peter's Video Guide</title>
+<link rel="manifest" href="/ytpods/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/ytpods/icon-192.png">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Archivo+Narrow:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root { --paper:#faf6ee; --ink:#1a1a1a; --red:#d7141a; --link:#1a0dab; --visited:#681da8; --muted:#6b6459; --hair:#cfc6b5; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font:14.5px/1.42 'Source Serif 4', Georgia, serif; }
+.wrap { max-width:1180px; margin:0 auto; padding:0 16px 48px; }
+header.mast { border-bottom:4px solid var(--ink); padding:18px 0 8px; display:flex;
+  align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.mast h1 { margin:0; font:italic 900 clamp(44px,10vw,92px)/0.95 'Playfair Display', serif;
+  letter-spacing:-2px; display:flex; align-items:flex-start; gap:14px; }
+.mast h1 .price { font:700 clamp(15px,2.2vw,20px)/1 'Archivo Narrow', sans-serif;
+  font-style:normal; letter-spacing:0; border:2px solid var(--ink); padding:4px 6px;
+  margin-top:0.35em; }
+.mast .issue { font:500 13px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1px; text-align:right; color:var(--muted); }
+.strap { background:var(--ink); color:#fff; font:italic 700 17px 'Playfair Display', serif;
+  letter-spacing:.3px; padding:4px 10px 5px; margin:6px 0 20px; }
+.pick { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:16px;
+  border:2px solid var(--ink); padding:12px; margin-bottom:24px; background:#fff; }
+.pick img { width:100%; display:block; aspect-ratio:16/9; object-fit:cover; }
+.pick-label { grid-column:1/-1; font:700 13px 'Archivo Narrow', sans-serif;
+  text-transform:uppercase; letter-spacing:2px; color:var(--ink);
+  border-bottom:1px solid var(--ink); padding-bottom:4px; }
+.pick h3 { font:700 26px/1.1 'Playfair Display', serif; margin:4px 0 8px; }
+.pick p { margin:0 0 6px; font-size:16px; }
+.chan-name { font:700 12px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1.5px; color:var(--ink); }
+.dayband { background:var(--ink); color:#fff; margin:0 0 10px; padding:5px 10px;
+  font:900 22px 'Playfair Display', serif; }
+.dayband span { font:500 15px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1px; color:#ccc; margin-left:6px; }
+.cols { column-count:3; column-gap:22px; column-rule:1px solid var(--hair); }
+.chan-block { break-inside:avoid; margin:0 0 14px; }
+.chan { display:flex; justify-content:space-between; align-items:center; gap:8px;
+  border-top:3px solid var(--ink); border-bottom:1px solid var(--ink);
+  font:700 13px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1.2px; padding:3px 0; margin-bottom:6px; }
+.stars { color:var(--ink); letter-spacing:1px; white-space:nowrap; }
+.stars .off { color:var(--hair); }
+.prog { margin:0 0 9px; hyphens:auto; }
+.time { font:700 14px 'Archivo Narrow', sans-serif; margin-right:3px; }
+.title { font-weight:700; color:var(--link); text-decoration:none; }
+.title:visited { color:var(--visited); }
+.title:hover { text-decoration:underline; }
+.dur { font:700 12px 'Archivo Narrow', sans-serif; color:var(--red); white-space:nowrap;
+  margin:0 4px 0 5px; letter-spacing:.3px; }
+.pick h3 .dur { font-size:15px; vertical-align:middle; }
+.tail { font:500 12px 'Archivo Narrow', sans-serif; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.6px; white-space:nowrap; }
+.nocap { color:var(--muted); font-style:italic; }
+#refresh { margin-top:6px; font:700 12px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1px; background:var(--ink); color:#fff; border:0; padding:5px 12px; cursor:pointer; }
+#refresh:disabled { background:var(--muted); cursor:default; }
+a.more { font:700 11px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:.8px; color:var(--link); text-decoration:none; white-space:nowrap; }
+a.more.seen { color:var(--visited); }
+dialog { max-width:560px; width:calc(100% - 32px); border:2px solid var(--ink); background:var(--paper);
+  color:var(--ink); padding:16px; }
+dialog::backdrop { background:rgba(0,0,0,.55); }
+dialog img { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; margin-bottom:10px; }
+dialog h3 { font:700 24px/1.15 'Playfair Display', serif; margin:4px 0 6px; }
+dialog p { font-size:16px; line-height:1.5; }
+dialog .x { float:right; border:0; background:none; font-size:26px; line-height:1; cursor:pointer; color:var(--ink); }
+.watch { display:inline-block; background:var(--ink); color:#fff; text-decoration:none;
+  font:700 13px 'Archivo Narrow', sans-serif; text-transform:uppercase; letter-spacing:1px; padding:6px 12px; }
+.pager { display:flex; justify-content:space-between; border-top:4px solid var(--ink);
+  margin-top:20px; padding-top:8px; }
+.pager a { font:700 15px 'Archivo Narrow', sans-serif; text-transform:uppercase;
+  letter-spacing:1.2px; color:var(--ink); text-decoration:none; }
+.pager .later { margin-left:auto; }
+.pager a, .pager a:link { color:var(--link); }
+.pager a:visited { color:var(--visited); }
+.issue .p { text-transform:none; }
+.pages { font:700 15px 'Archivo Narrow', sans-serif; margin:-12px 0 14px; display:flex;
+  flex-wrap:wrap; gap:4px 14px; }
+.pages a { color:var(--link); text-decoration:none; }
+.pages a:visited { color:var(--visited); }
+.pages .cur { color:var(--ink); border-bottom:2px solid var(--ink); }
+footer { margin-top:32px; font:500 12px 'Archivo Narrow', sans-serif; color:var(--muted); }
+@media (max-width:900px) { .cols { column-count:2; } }
+@media (max-width:600px) {
+  .cols { column-count:1; }
+  .pick { grid-template-columns:1fr; }
+  /* phone: title on one line with its price, everything else on one line under it */
+  header.mast { padding:10px 0 6px; gap:4px; }
+  .mast h1 { font-size:8.4vw; letter-spacing:-1px; gap:8px; width:100%;
+    justify-content:space-between; align-items:center; }
+  .mast h1 .price { font-size:13px; padding:2px 4px; margin-top:0; border-width:1.5px; }
+  .mast .issue { text-align:left; width:100%; display:flex; flex-wrap:wrap; align-items:center;
+    gap:0 8px; font-size:11px; letter-spacing:.5px; }
+  .mast .issue br { display:none; }
+  #refresh { margin:0 0 0 auto; padding:3px 8px; font-size:11px; }
+  #age { display:none; }   /* the page refreshes itself when stale; the space goes to Refresh */
+  .strap { font-size:15px; margin:4px 0 12px; padding:2px 8px 3px; }
+  .pages { margin:-6px 0 10px; }
+  .pick { padding:8px; gap:8px; margin-bottom:16px; }
+  /* the More pop-up must fit one phone screen, image and all */
+  dialog { padding:10px 12px; width:calc(100% - 20px); max-height:calc(100dvh - 16px); }
+  dialog img { aspect-ratio:2/1; margin-bottom:6px; }
+  dialog h3 { font-size:20px; margin:2px 0 4px; }
+  dialog p { font-size:15px; line-height:1.38; margin:6px 0 8px; }
+}
+</style></head><body><nav class="site-back" style="font-family:var(--font,sans-serif);font-size:0.85rem;padding:0.6rem 1rem 0;text-align:left;"><a href="/my-contents" style="color:var(--accent,#007AFF);text-decoration:none;">&larr; My contents</a></nav><div class="wrap">
+<header class="mast"><h1>Peter’s Video Guide<span class="price">20p</span></h1>
+<div class="issue">17 programmes · 15 Oct – 16 Oct · <span class="p">1p</span><br>
+<span id="age">compiled 2.25pm Fri 16 Oct</span>
+<button id="refresh" type="button">Refresh</button></div></header>
+<div class="strap">Latest videos at a glance</div>
+<nav class="pages"><span class="cur">p1</span> <a href="/ytpods/back/1">p2</a> <a href="/ytpods/back/2">p3</a> <a href="/ytpods/back/3">p4</a> <a href="/ytpods/back/4">p5</a> <a href="/ytpods/back/5">p6</a> <a href="/ytpods/back/6">p7</a> <a href="/ytpods/back/7">p8</a> <a href="/ytpods/back/8">p9</a> <a href="/ytpods/back/9">p10</a> <a href="/ytpods/back/10">p11</a> <a href="/ytpods/back/11">p12</a></nav>
+
+<aside class="pick">
+  <div class="pick-label">Today's choice</div>
+  <a href="https://www.youtube.com/watch?v=pGQWq_q1gnM">
+    <img src="https://i.ytimg.com/vi/pGQWq_q1gnM/hqdefault.jpg" alt="" loading="lazy"></a>
+  <div class="pick-text">
+    <div class="chan-name">Asianometry <span class="stars">★★★★★<span class="off"></span></span></div>
+    <h3><a class="title" href="https://www.youtube.com/watch?v=pGQWq_q1gnM">IGBTs Took Silicon Power to the Next Level</a> <span class="dur">23min</span></h3>
+    <p>The insulated-gate bipolar transistor (IGBT) combines aspects of the power MOSFET and BJT, offering control over high power. It has transformed energy generation, electric vehicles, and industry, enabling devices like modern air conditioners and wind turbines. The programme traces its development and impact. <a class="more" href="#" data-v="pGQWq_q1gnM">More</a></p>
+    <div class="tail">12.00am Friday · Engineering</div>
+  </div>
+</aside>
+<div class="cols"><div class="chan-block"><h2 class="dayband">Friday <span>16 October</span></h2><div class="chan">GitHub<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">1.52am</span>
+<a class="title" href="https://www.youtube.com/watch?v=8hHCpNVLhmI">Open Source Friday: Spec Kit part 2</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">TLDR News EU<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">10.15am</span>
+<a class="title" href="https://www.youtube.com/watch?v=yraFNQY17C4">The EU’s Sneaky Plan to Tax Big Tech Explained</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">Audio Library<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">12.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=TwNmvIyPhic">Upbeat Corporate Music for Tutorials &amp; Tech Reviews 💡 (No Copyright) | Kevin MacLeod - Move Forward</a><span class="dur">1min</span>
+An upbeat, royalty-free corporate music track designed to add positive energy and forward momentum to various projects. Ideal for presentations, tech reviews, and tutorials, it features a steady motivational pulse and rising confident energy. <a class="more" href="#" data-v="TwNmvIyPhic">More</a> <span class="tail">Music</span></div></div><div class="chan-block"><div class="chan">SALT SHACK - EDUCATION<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">1.21pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=OzrEr5N5NMo">Who was Mary Anning 🦴</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">TechTechPotato<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">2.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=0oNqfLl6YPE">The Fastest Arm CPU Is... An IBM Mainframe?</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">IBM Technology<span class="stars">★★<span class="off">★★★</span></span></div><div class="prog"><span class="time">11.00am</span>
+<a class="title" href="https://www.youtube.com/watch?v=0FBdWvkgNQE">Decision models take off &amp; Anthropic bans cruelty to Claude</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">John Kitchin<span class="stars">★★<span class="off">★★★</span></span></div><div class="prog"><span class="time">12.36pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=6iOnu0QnPGk">Pittsburgh. Is it East Coast or Midwest? Nobody here cares, they know its the best.</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">freeCodeCamp.org<span class="stars">★★<span class="off">★★★</span></span></div><div class="prog"><span class="time">12.53pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=QKNsHZatiWU">Inside an AI Factory – Power, Cooling, and GPUs Explained</a>
+ <span class="tail"></span></div></div><div class="chan-block"><h2 class="dayband">Thursday <span>15 October</span></h2><div class="chan">Learn with Lukas<span class="stars">★★★★<span class="off">★</span></span></div><div class="prog"><span class="time">9.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=sN_VO_M99-8">8 Best Faceless YouTube Niches (October 16, 2026)</a><span class="dur">9min</span>
+Lukas shares eight YouTube niches that generate significant views and income without showing a face. He highlights channels using simple production methods like single images with music, AI-generated movies, stick-figure animations, and AI avatars, many achieving millions of views with minimal cost. <a class="more" href="#" data-v="sN_VO_M99-8">More</a> <span class="tail">Business</span></div></div><div class="chan-block"><div class="chan">Anton Petrov<span class="stars">★★★★<span class="off">★</span></span></div><div class="prog"><span class="time">11.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=rCTsGU9eJtM">Human Neurons Grew Inside a Living Mouse Brain With Bizarre Results</a><span class="dur">17min</span>
+Scientists transplant human cortical organoids into the brains of genetically modified mice, creating a hybrid brain. This &#x27;xenocortication&#x27; allows researchers to study human brain development and disease in a living system, revealing the unexpected formation of human-specific neurons and offering new avenues for medical research. <a class="more" href="#" data-v="rCTsGU9eJtM">More</a> <span class="tail">Science</span></div></div><div class="chan-block"><div class="chan">Super GT<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">7.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=x-90egfy644">This Could Be My Last Race at the Nürburgring</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">The Tech Report<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">8.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=03_BFv_7qd4">‘This smells like model collapse’ | David Gerard</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">GitHub<span class="stars">★★★<span class="off">★★</span></span></div><div class="prog"><span class="time">8.38pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=EQeJj0hoPS8">GitHub Copilot app with the Logitech MX Keypad</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">All Saints Kingston : Services<span class="stars">★★<span class="off">★★★</span></span></div><div class="prog"><span class="time">6.09am</span>
+<a class="title" href="https://www.youtube.com/watch?v=jsBacPZDwdA">Choral Evensong (Trebles) (Wed 14 Oct)</a>
+ <span class="tail"></span></div></div><div class="chan-block"><div class="chan">Taskmaster<span class="stars">★★<span class="off">★★★</span></span></div><div class="prog"><span class="time">10.00pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=2RS71gmPeLg">Taskmaster Season 22, Episode 7 - &#x27;The oldest I’ve ever looked.&#x27; | Full Episode</a>
+ <span class="tail"></span></div><div class="prog"><span class="time">10.50pm</span>
+<a class="title" href="https://www.youtube.com/watch?v=VgMBADaa9M0">&#x27;Edge-wear.&#x27; ARMANDO IANNUCCI on Season 22, Episode 7 | PODCAST</a>
+ <span class="tail"></span></div></div></div>
+<nav class="pager"><a id="next" class="later" href="/ytpods/back/1">Older →</a></nav>
+<footer>Compiled 2.25pm Friday 16 October 2026. Stars: how much of the channel you watch, recent watching counting most. Prices are what the summaries cost on Gemini: 20p so far this October, this issue's on the issue line. Estimated from token counts at $1 = 75p; the GCP bill is the truth.</footer>
+</div>
+<dialog id="pop"><form method="dialog"><button class="x" aria-label="Close">×</button></form>
+<img id="pop-img" alt=""><div class="chan-name" id="pop-chan"></div><h3 id="pop-title"></h3>
+<div class="tail" id="pop-when"></div><p id="pop-text"></p>
+<a id="pop-watch" class="watch" href="#">Watch on YouTube ›</a></dialog>
+<script id="pops" type="application/json">{"TwNmvIyPhic": {"title": "Upbeat Corporate Music for Tutorials & Tech Reviews \ud83d\udca1 (No Copyright) | Kevin MacLeod - Move Forward", "channel": "Audio Library", "summary": "This royalty-free corporate music track, \"Move Forward\" by Kevin MacLeod, offers an uplifting and motivational background for a variety of projects. It provides a driving, positive energy suitable for presentations, startup promos, and corporate videos. The track is available for free use and monetization on YouTube, requiring only attribution. It can enhance startup pitch decks, keep tutorials engaging, lift tech reviews with a modern pulse, power travel vlogs, and set a motivated tone for morning routine videos. The track features a steady motivational pulse at 0:00, rising confident energy at 0:18, a calm reflective pause at 0:35, and a gradual momentum build at 0:44.", "when": "12.00pm Friday 16 October", "tail": "Music \u00b7 1min"}, "pGQWq_q1gnM": {"title": "IGBTs Took Silicon Power to the Next Level", "channel": "Asianometry", "summary": "The insulated-gate bipolar transistor (IGBT) is a crucial component in power electronics, combining the voltage control and speed of a MOSFET with the high power handling of a BJT. It enables efficient switching of large currents in applications ranging from electric vehicles and wind turbines to household appliances like air conditioners. The programme details the evolution of power semiconductors, from early thyristors and bipolar junction transistors (BJTs) to power MOSFETs, each with their own limitations in terms of switching speed, power consumption, or voltage handling. It then focuses on the independent development of the IGBT by B. Jayant Baliga at General Electric and Carl F. Wheatley and Hans Becke at RCA in the late 1970s and early 1980s. The initial devices, known as IGTs and COMFETs, suffered from a latch-up issue, which Akio Nakagawa at Toshiba later solved by lowering the device's saturation current. The programme discusses the ongoing debate over who truly invented the IGBT and its widespread impact on modern technology.", "when": "12.00am Friday 16 October", "tail": "Engineering \u00b7 23min"}, "rCTsGU9eJtM": {"title": "Human Neurons Grew Inside a Living Mouse Brain With Bizarre Results", "channel": "Anton Petrov", "summary": "Scientists are exploring 'xenocortication', a process of transplanting human cortical organoids into living mouse brains. This technique addresses the limitations of studying human brain development and disease in lab dishes, where brain cells lack blood vessels and sensory input. Researchers used genetically modified mice born without most of their cerebral cortex, allowing the transplanted human neurons to expand dramatically, forming up to 92% of the animal's brain within three months. These human cells developed blood vessels, formed organized networks, and grew long nerve tracks into the mouse's spinal cord. Unexpectedly, the human tissue also generated von Economo neurons (VENs), a rare cell type found only in large-brained mammals like humans, associated with complex social cognition. This provides a living model to study these neurons, which are linked to conditions like autism and schizophrenia. The mice, despite lacking most of their original brain, maintained basic motor and sensory functions, and those with human tissue showed improved cognitive performance compared to brainless mice. The study also revealed that mouse immune cells attempted to repair damaged human tissue, offering a model for studying stroke and cerebral palsy. Ethical guidelines permit this research in mice due to the evolutionary gap and unlikelihood of human-like consciousness, but strictly prohibit it in primates.", "when": "11.00pm Thursday 15 October", "tail": "Science \u00b7 17min"}, "sN_VO_M99-8": {"title": "8 Best Faceless YouTube Niches (October 16, 2026)", "channel": "Learn with Lukas", "summary": "Lukas identifies eight YouTube niches that allow creators to generate substantial views and income without appearing on camera. He presents examples of channels currently experiencing rapid growth. One successful approach involves using a single image with background music, generating millions of views for minimal production cost. Another niche features AI-generated movies, though this requires a higher initial investment, with one channel achieving 72 million views. Simpler, low-cost options include stick-figure animation videos about history or politics, which have seen 1.1 million views on new channels. Other profitable niches use basic 3D animations, a mix of stock footage and simple animations for explainer videos, and AI-generated geopolitical documentaries. Finally, channels featuring AI avatars and stock footage of animals, such as dogs, also prove highly successful, with one channel gaining 1.5 million views on its first video. Lukas emphasizes that many of these methods are low-cost or free to produce, making them accessible for beginners.", "when": "9.00pm Thursday 15 October", "tail": "Business \u00b7 9min"}}</script>
+<script>
+// More opens a pop-up, not a page, so :visited never fires: remember opened ones here
+function seenSet() { try { return new Set(JSON.parse(localStorage.getItem('ytpods-seen') || '[]')); } catch (e) { return new Set(); } }
+function paintSeen() { const s = seenSet(); document.querySelectorAll('a.more').forEach(a => a.classList.toggle('seen', s.has(a.dataset.v))); }
+function markSeen(v) {
+  const s = seenSet(); s.add(v);
+  try { localStorage.setItem('ytpods-seen', JSON.stringify([...s].slice(-500))); } catch (e) {}
+  paintSeen();
+}
+paintSeen();
+// the arrow keys turn the pages, as the Newer / Older links do
+document.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const a = document.getElementById({ArrowRight: 'next', ArrowLeft: 'prev'}[e.key] || '');
+  if (a) location.href = a.href;
+});
+// on a phone, a swipe does the same, like turning a page: swipe left for older
+let swipe = null;
+document.addEventListener('touchstart', e => {
+  swipe = e.touches.length === 1 && !document.querySelector('dialog[open]')
+    && !(window.visualViewport && visualViewport.scale > 1.05)   // zoomed in: that is panning
+    ? {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()} : null;
+}, {passive: true});
+document.addEventListener('touchend', e => {
+  if (!swipe) return;
+  const dx = e.changedTouches[0].clientX - swipe.x, dy = e.changedTouches[0].clientY - swipe.y;
+  const quick = Date.now() - swipe.t < 700;
+  swipe = null;
+  if (!quick || Math.abs(dx) < 70 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+  const a = document.getElementById(dx < 0 ? 'next' : 'prev');
+  if (a) location.href = a.href;
+}, {passive: true});
+const GENERATED = 1792157123;
+const pops = JSON.parse(document.getElementById('pops').textContent);
+const dlg = document.getElementById('pop');
+document.addEventListener('click', e => {
+  const a = e.target.closest('a.more'); if (!a) return;
+  e.preventDefault();
+  markSeen(a.dataset.v);
+  const p = pops[a.dataset.v], url = 'https://www.youtube.com/watch?v=' + a.dataset.v;
+  document.getElementById('pop-img').src = 'https://i.ytimg.com/vi/' + a.dataset.v + '/hqdefault.jpg';
+  document.getElementById('pop-chan').textContent = p.channel;
+  document.getElementById('pop-title').textContent = p.title;
+  document.getElementById('pop-when').textContent = p.when + (p.tail ? ' · ' + p.tail : '');
+  document.getElementById('pop-text').textContent = p.summary;
+  document.getElementById('pop-watch').href = url;
+  dlg.showModal();
+});
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+function ago(s) {
+  const m = Math.round((Date.now() / 1000 - s) / 60);
+  if (m < 2) return 'just now';
+  if (m < 60) return m + ' minutes ago';
+  const h = Math.round(m / 60);
+  if (h < 36) return h + (h === 1 ? ' hour ago' : ' hours ago');
+  return Math.round(h / 24) + ' days ago';
+}
+const age = document.getElementById('age');
+const showAge = () => age.textContent = 'compiled ' + ago(GENERATED);
+showAge(); setInterval(showAge, 60000);
+
+// Refresh: mywebsite drops a flag in S3, zog notices within a minute and
+// regenerates; we reload once the served page carries a newer GENERATED.
+const btn = document.getElementById('refresh');
+async function requestRefresh(auto) {
+  btn.disabled = true; btn.textContent = auto ? 'Updating…' : 'Requesting…';
+  let r;
+  try { r = await fetch('/ytpods/refresh', {method: 'POST'}); }
+  catch (e) { r = null; }
+  if (!r || !r.ok) { btn.textContent = auto ? 'Refresh' : 'Refresh unavailable'; btn.disabled = !auto; return; }
+  btn.textContent = auto ? 'Updating…' : 'Compiling…';
+  const t0 = Date.now();
+  const poll = setInterval(async () => {
+    try {
+      const html = await (await fetch(location.href, {cache: 'no-store'})).text();
+      const m = html.match(/const GENERATED = (\d+)/);
+      if (m && +m[1] > GENERATED) { clearInterval(poll); location.reload(); }
+    } catch (e) {}
+    if (Date.now() - t0 > 15 * 60000) {
+      clearInterval(poll); btn.textContent = 'zog asleep? try later'; btn.disabled = false;
+    }
+  }, 15000);
+}
+btn.addEventListener('click', () => requestRefresh(false));
+// An edition older than STALE_HOURS asks for a fresh one on open.
+if (Date.now() / 1000 - GENERATED > 6 * 3600) requestRefresh(true);
+</script>
+</body></html>
