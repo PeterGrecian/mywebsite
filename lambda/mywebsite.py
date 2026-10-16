@@ -6441,6 +6441,9 @@ _APP_SECTIONS = {
     '/astro':     {'name': 'Astronomy', 'short_name': 'Astro', 'icon': 'astro'},
     '/groceries': {'name': 'Groceries', 'short_name': 'Groceries', 'icon': 'groceries'},
     '/pi-fleet':  {'name': 'Pi Fleet', 'short_name': 'Pi Fleet', 'icon': 'pi-fleet'},
+    # The main site, just the tick. Last: it catches every page the sections
+    # above do not, and a page carrying its own manifest (/ytpods) keeps it.
+    '':           {'name': 'Peter Grecian', 'short_name': 'Peter G', 'icon': 'site'},
 }
 _APP_THEME = '#000000'
 _APP_ICON_B64 = {}
@@ -6450,14 +6453,15 @@ def _app_section_of(route):
     for section in _APP_SECTIONS:
         if route == section or route.startswith(section + '/'):
             return section
-    return None
+    return ''
 
 
 def _route_app_manifest(rq):
     section = rq.route.rsplit('/', 1)[0]
     app = _APP_SECTIONS[section]
+    home = section or '/'
     manifest = {
-        'id': section, 'scope': section, 'start_url': section,
+        'id': home, 'scope': home, 'start_url': home,
         'name': app['name'], 'short_name': app['short_name'],
         'display': 'standalone',
         'background_color': _APP_THEME, 'theme_color': _APP_THEME,

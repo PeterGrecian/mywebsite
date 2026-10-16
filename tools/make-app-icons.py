@@ -9,7 +9,8 @@ Usage: tools/make-app-icons.py [outdir]
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
-APPS = {                      # name: (letter, letter colour)
+APPS = {                      # name: (letter, letter colour); '' = tick only
+    'site':      ('', None),     # the main site: just the red tick, larger
     'astro':     ('A', '#8EA6FF'),
     'groceries': ('G', '#7DDC8A'),
     'pi-fleet':  ('P', '#FFB27A'),
@@ -23,16 +24,21 @@ def draw(letter, colour, size=512, ss=4):
     S = size * ss
     im = Image.new('RGB', (S, S), BG)
     d = ImageDraw.Draw(im)
-    font = ImageFont.truetype(FONT, int(S * 0.42))
-    l, t, r, b = d.textbbox((0, 0), letter, font=font)
-    w, h = r - l, b - t
-    top = S * 0.13                                   # letter block top
-    d.text(((S - w) / 2 - l, top - t), letter, font=font, fill=colour)
     # Tick: the favicon's path M8 20 L16 28 L32 10 in a 40-unit box,
     # scaled to sit under the letter, inside the 80% safe zone.
-    tw = S * 0.34
-    k = tw / 24                                      # path spans x 8..32
-    ox, oy = (S - tw) / 2 - 8 * k, top + h + S * 0.11 - 10 * k
+    if letter:
+        font = ImageFont.truetype(FONT, int(S * 0.42))
+        l, t, r, b = d.textbbox((0, 0), letter, font=font)
+        w, h = r - l, b - t
+        top = S * 0.13                               # letter block top
+        d.text(((S - w) / 2 - l, top - t), letter, font=font, fill=colour)
+        tw = S * 0.34
+        k = tw / 24                                  # path spans x 8..32
+        ox, oy = (S - tw) / 2 - 8 * k, top + h + S * 0.11 - 10 * k
+    else:                                            # tick alone, centred
+        tw = S * 0.44
+        k = tw / 24
+        ox, oy = (S - tw) / 2 - 8 * k, S / 2 - 19 * k   # path spans y 10..28
     pts = [(ox + x * k, oy + y * k) for x, y in ((8, 20), (16, 28), (32, 10))]
     width = int(5 * k)
     d.line(pts, fill=TICK, width=width, joint='curve')
