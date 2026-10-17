@@ -2876,56 +2876,6 @@ def _route_gardencam_capture(rq):
         }
 
 
-def _route_gardencam_timing(rq):
-    event, context, path, route = rq.event, rq.context, rq.path, rq.route
-    stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
-    headers, fav, start_time = rq.headers, rq.fav, rq.start_time
-    html = ''
-    # `method` used to be read here without ever being assigned on this path.
-    # It worked as far as the interpreter was concerned only because other
-    # branches of the old 2,700-line _dispatch assigned it, making it a
-    # function-local -- so every request to /gardencam/timing raised
-    # UnboundLocalError and returned 500. Verified live before the fix.
-    method = (event.get('requestContext', {}).get('http', {}).get('method')
-              or event.get('httpMethod', 'GET'))
-    if method == 'POST':
-        try:
-            from decimal import Decimal
-
-            body = event.get('body', '{}')
-            timing_data = json.loads(body)
-
-            # Log to DynamoDB
-            if BOTO3_AVAILABLE:
-                dynamodb = boto3.resource('dynamodb', region_name=GARDENCAM_REGION)
-                table = dynamodb.Table('gardencam-page-timing')
-
-                item = {
-                    'timestamp': timing_data.get('timestamp', datetime.utcnow().isoformat()),
-                    'page_load_ms': Decimal(str(timing_data.get('pageLoadTime', 0))),
-                    'dom_ready_ms': Decimal(str(timing_data.get('domReadyTime', 0))),
-                    'server_response_ms': Decimal(str(timing_data.get('serverResponseTime', 0))),
-                    'user_agent': timing_data.get('userAgent', '')[:500],
-                    'ip': event.get('requestContext', {}).get('identity', {}).get('sourceIp', 'unknown')
-                }
-
-                table.put_item(Item=item)
-
-            return {
-                'statusCode': 200,
-                'body': json.dumps({'status': 'logged'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-        except Exception as e:
-            print(f"Error logging timing: {e}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'error': str(e)}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-    return html
-
-
 def _route_gardencam_stats(rq):
     event, context, path, route = rq.event, rq.context, rq.path, rq.route
     stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
@@ -6282,7 +6232,6 @@ _ROUTES_PATTERN = [
     (_PREFIX, '/calendaralarm', _route_calendaralarm),
     (_PREFIX, '/glacier', _route_glacier),
     (_PREFIX, '/gardencam/capture', _route_gardencam_capture),
-    (_PREFIX, '/gardencam/timing', _route_gardencam_timing),
     (_PREFIX, '/gardencam/stats', _route_gardencam_stats),
     (_PREFIX, '/gardencam/fullres', _route_gardencam_fullres),
     (_PREFIX, '/gardencam/display', _route_gardencam_display),
@@ -6538,6 +6487,19 @@ def _dispatch(event, context):
     headers = event.get('headers', {})
     ip = headers.get('X-Forwarded-For') or headers.get('x-forwarded-for', 'Unknown')
     print(f'X-Forwarded-For = {ip}')
+
+    # Cross-site writes (CSRF). A browser resends cached Basic credentials on a
+    # form or fetch posted from another site, so the password alone does not
+    # stop one. Browsers always send Origin on a cross-origin write; scripts
+    # (memspeed upload, pollers) send none, so only a foreign Origin is refused.
+    method = ((event.get('requestContext') or {}).get('http') or {}).get('method') \
+        or event.get('httpMethod', 'GET')
+    origin = headers.get('origin') or headers.get('Origin')
+    origin_host = urllib.parse.urlparse(origin or '').hostname or ''
+    if method not in ('GET', 'HEAD', 'OPTIONS') and origin is not None and not (
+            origin_host.endswith('petergrecian.co.uk') or origin_host == host.split(':')[0]):
+        return {'statusCode': 403, 'body': 'Cross-site request refused',
+                'headers': {'Content-Type': 'text/plain', 'Cache-Control': 'no-store'}}
 
     rq = _Request(event=event, context=context, path=path, route=route,
                   stage=stage, host=host, root=root, ip=ip, headers=headers,

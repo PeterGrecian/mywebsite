@@ -3786,69 +3786,75 @@
  },
  "/default/gardencam/timing": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1444,
+  "sha": "d3b79c5181627ce9",
+  "status": 404
  },
  "/default/gardencam/timing-suffix": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1451,
+  "sha": "626e992b37e1bd28",
+  "status": 404
  },
  "/default/gardencam/timing/": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1445,
+  "sha": "3b6a55d31c3785cc",
+  "status": 404
  },
  "/default/gardencam/timing/child": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 811,
-  "sha": "32605cec19b61ce6",
-  "status": 200
+  "len": 1450,
+  "sha": "5546753fbf5c3d16",
+  "status": 404
  },
  "/default/gardencam/timing/child/grandchild": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 816,
-  "sha": "16977e56ed88836a",
-  "status": 200
+  "len": 1461,
+  "sha": "db4eb558392f39dc",
+  "status": 404
  },
  "/default/gardencam/timing/sample-item.jpg": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 811,
-  "sha": "32605cec19b61ce6",
-  "status": 200
+  "len": 1460,
+  "sha": "cc6320966f8eaba9",
+  "status": 404
  },
  "/default/gardencam/videos": {
   "b64": false,
@@ -7968,69 +7974,75 @@
  },
  "/gardencam/timing": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1436,
+  "sha": "6bdbb3f50c67594e",
+  "status": 404
  },
  "/gardencam/timing-suffix": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1443,
+  "sha": "b6b883acb0f0a3f5",
+  "status": 404
  },
  "/gardencam/timing/": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 807,
-  "sha": "9d58cf3f88a9d4a5",
-  "status": 200
+  "len": 1437,
+  "sha": "4f8ea8747cc210cd",
+  "status": 404
  },
  "/gardencam/timing/child": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 811,
-  "sha": "32605cec19b61ce6",
-  "status": 200
+  "len": 1442,
+  "sha": "98780d9cc5beda9b",
+  "status": 404
  },
  "/gardencam/timing/child/grandchild": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 816,
-  "sha": "16977e56ed88836a",
-  "status": 200
+  "len": 1453,
+  "sha": "43279e28159cde95",
+  "status": 404
  },
  "/gardencam/timing/sample-item.jpg": {
   "b64": false,
-  "cache": "",
+  "cache": "public, max-age=300",
   "ct": "text/html; charset=utf-8",
   "hdrs": [
+   "Cache-Control",
    "Content-Type"
   ],
-  "len": 811,
-  "sha": "32605cec19b61ce6",
-  "status": 200
+  "len": 1452,
+  "sha": "3db476227d093cb0",
+  "status": 404
  },
  "/gardencam/videos": {
   "b64": false,
