@@ -234,16 +234,3 @@ class TestFormatStatsForDisplay:
     def test_empty_stats(self, mywebsite):
         assert mywebsite.format_stats_for_display(None) == ""
         assert mywebsite.format_stats_for_display({}) == ""
-
-
-class TestTokenCost:
-    def test_known_model(self, mywebsite):
-        # gpt-4.1-mini: (0.40, 1.60) per million
-        cost = mywebsite._token_cost("gpt-4.1-mini", 1_000_000, 1_000_000)
-        assert cost == pytest.approx(2.0)
-
-    def test_unknown_model(self, mywebsite):
-        assert mywebsite._token_cost("unknown-model", 1000, 1000) == 0.0
-
-    def test_zero_tokens(self, mywebsite):
-        assert mywebsite._token_cost("gpt-4.1-mini", 0, 0) == 0.0

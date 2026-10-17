@@ -71,16 +71,15 @@
  },
  "/ai-config": {
   "b64": false,
-  "cache": "no-store",
-  "ct": "text/html",
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
   "hdrs": [
    "Cache-Control",
-   "Content-Type",
-   "WWW-Authenticate"
+   "Content-Type"
   ],
-  "len": 51,
-  "sha": "77127858ad4ed46c",
-  "status": 401
+  "len": 1429,
+  "sha": "d9a087b06f5f9ca1",
+  "status": 404
  },
  "/ai-config-suffix": {
   "b64": false,
@@ -1602,16 +1601,15 @@
  },
  "/default/ai-config": {
   "b64": false,
-  "cache": "no-store",
-  "ct": "text/html",
+  "cache": "public, max-age=300",
+  "ct": "text/html; charset=utf-8",
   "hdrs": [
    "Cache-Control",
-   "Content-Type",
-   "WWW-Authenticate"
+   "Content-Type"
   ],
-  "len": 51,
-  "sha": "77127858ad4ed46c",
-  "status": 401
+  "len": 1437,
+  "sha": "016b36e7a21a9c6a",
+  "status": 404
  },
  "/default/ai-config-suffix": {
   "b64": false,
@@ -4823,8 +4821,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 289,
-  "sha": "d331f1171bbc85c9",
+  "len": 268,
+  "sha": "f3fb526e545a76d5",
   "status": 200
  },
  "/default/robots.txt-suffix": {
@@ -4882,8 +4880,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 13058,
-  "sha": "0ab135ff916aff2d",
+  "len": 12983,
+  "sha": "4fa6c666a2049940",
   "status": 200
  },
  "/default/site-test-suffix": {
@@ -9005,8 +9003,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 289,
-  "sha": "d331f1171bbc85c9",
+  "len": 268,
+  "sha": "f3fb526e545a76d5",
   "status": 200
  },
  "/robots.txt-suffix": {
@@ -9064,8 +9062,8 @@
   "hdrs": [
    "Content-Type"
   ],
-  "len": 13058,
-  "sha": "0ab135ff916aff2d",
+  "len": 12983,
+  "sha": "4fa6c666a2049940",
   "status": 200
  },
  "/site-test-suffix": {

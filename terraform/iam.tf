@@ -236,15 +236,6 @@ resource "aws_iam_role_policy" "ssm_parameters" {
         Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/calendaralarm/*"
       },
       {
-        Effect = "Allow"
-        Action = [
-          "ssm:GetParameter",
-          "ssm:GetParameters",
-          "ssm:PutParameter"
-        ]
-        Resource = "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/ai-config/*"
-      },
-      {
         # srfcplus session cookie. The /srfcplus page reads it and the
         # update-cookie form writes it, so this needs Put as well as Get.
         # It was missing entirely: get_srfcplus_cookie() was failing with
