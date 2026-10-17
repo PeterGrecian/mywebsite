@@ -4070,8 +4070,24 @@ def _route_ai_config(rq):
     stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
     headers, fav, start_time = rq.headers, rq.fav, rq.start_time
     html = ''
+    # Private: it writes SSM. Until 2026-10-17 it had no auth at all, and a
+    # scanner wrote an XSS probe into /ai-config/alerting on 2026-09-05.
+    if not check_basic_auth(event, GARDENCAM_PASSWORD):
+        return {
+            'statusCode': 401,
+            'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+            'headers': {'Content-Type': 'text/html',
+                        'Cache-Control': 'no-store',
+                        'WWW-Authenticate': 'Basic realm="Private contents"'}
+        }
     method = event.get('requestContext', {}).get('http', {}).get('method') or event.get('httpMethod', 'GET')
     message = None
+    # The browser resends Basic credentials on a cross-site form POST, so a
+    # write also needs this site's Origin (CSRF).
+    origin = urllib.parse.urlparse(headers.get('origin') or headers.get('Origin') or '').hostname or ''
+    if method == 'POST' and not origin.endswith('petergrecian.co.uk'):
+        return {'statusCode': 403, 'body': 'Forbidden',
+                'headers': {'Content-Type': 'text/plain', 'Cache-Control': 'no-store'}}
     if method == 'POST':
         body = event.get('body', '')
         if event.get('isBase64Encoded'):
@@ -4101,7 +4117,8 @@ def _route_ai_config(rq):
             provider = urllib.parse.unquote_plus(params.get('provider', ''))
             model = urllib.parse.unquote_plus(params.get('model', ''))
             valid_apps = [a['key'] for a in AI_APPS]
-            if app_key in valid_apps and provider in valid_providers:
+            prov_models = next((p['models'] for p in AI_PROVIDERS if p['key'] == provider), [])
+            if app_key in valid_apps and provider in valid_providers and model in prov_models:
                 set_ai_config(app_key, provider, model)
                 app_name = next(a['name'] for a in AI_APPS if a['key'] == app_key)
                 prov_name = next(p['name'] for p in AI_PROVIDERS if p['key'] == provider)

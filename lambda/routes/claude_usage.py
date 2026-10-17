@@ -1,5 +1,7 @@
 """AI config page renderers (failover chain, per-app provider/model config, usage meter)."""
 
+import html as _html
+
 # These are set by the first call from mywebsite.py stubs
 _AI_APPS = None
 _AI_PROVIDERS = None
@@ -77,16 +79,17 @@ def _render_usage_meter(usage):
         local_ts = c["ts"].astimezone(london)
         tz_name = local_ts.strftime("%Z")  # "BST" or "GMT"
         time_str = local_ts.strftime("%H:%M:%S")
-        status = f'<span style="color:var(--error);">{c["error"][:30]}</span>' if c.get("error") else f'{c["duration_ms"]}ms'
+        status = f'<span style="color:var(--error);">{_html.escape(c["error"][:30])}</span>' if c.get("error") else f'{c["duration_ms"]}ms'
         model_short = c["model"].split("/")[-1].replace("anthropic.", "")
         if len(model_short) > 20:
             model_short = model_short[:18] + ".."
+        model_short = _html.escape(model_short)
         in_tok = c.get("input_tokens", 0)
         out_tok = c.get("output_tokens", 0)
         tok_str = f'{in_tok:,}↑ {out_tok:,}↓' if (in_tok or out_tok) else "—"
         recent_rows += f'''<tr style="border-top:1px solid var(--divider);">
             <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{time_str}</td>
-            <td style="padding:0.3rem;font-size:0.55rem;">{c["app"]}</td>
+            <td style="padding:0.3rem;font-size:0.55rem;">{_html.escape(str(c["app"]))}</td>
             <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{model_short}</td>
             <td style="padding:0.3rem;font-size:0.55rem;color:var(--text-secondary);">{tok_str}</td>
             <td style="padding:0.3rem;font-size:0.55rem;text-align:right;">{status}</td>

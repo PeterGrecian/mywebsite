@@ -70,7 +70,17 @@
   "status": 404
  },
  "/ai-config": {
-  "exception": "TypeError"
+  "b64": false,
+  "cache": "no-store",
+  "ct": "text/html",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
  },
  "/ai-config-suffix": {
   "b64": false,
@@ -1591,7 +1601,17 @@
   "status": 404
  },
  "/default/ai-config": {
-  "exception": "TypeError"
+  "b64": false,
+  "cache": "no-store",
+  "ct": "text/html",
+  "hdrs": [
+   "Cache-Control",
+   "Content-Type",
+   "WWW-Authenticate"
+  ],
+  "len": 51,
+  "sha": "77127858ad4ed46c",
+  "status": 401
  },
  "/default/ai-config-suffix": {
   "b64": false,
