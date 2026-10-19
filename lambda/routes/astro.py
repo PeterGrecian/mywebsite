@@ -374,6 +374,16 @@ def _section(sec):
         # this is ~1 in 2 million and the percentage always read 0.000%.
         nb = int(badpix.get("n_hot", 0)) + int(badpix.get("n_cold", 0))
         stats.append(_stat("bad pixels", f'{nb}'))
+    env = s.get("env")
+    if env:
+        bt_min = env.get("box_temp_min")
+        bt_max = env.get("box_temp_max")
+        if bt_min is not None and bt_max is not None:
+            stats.append(_stat("enclosure temp", f'{bt_min:.1f}&ndash;{bt_max:.1f} &deg;C'))
+        rh_min = env.get("box_rh_min")
+        rh_max = env.get("box_rh_max")
+        if rh_min is not None and rh_max is not None:
+            stats.append(_stat("relative humidity", f'{rh_min:.0f}&ndash;{rh_max:.0f}%'))
     stats_html = f'<div class="stats">{"".join(stats)}</div>' if stats else ""
 
     cards = []
