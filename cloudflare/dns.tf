@@ -129,3 +129,15 @@ resource "cloudflare_record" "acm_validation" {
   ttl     = 300
   proxied = false # must be real DNS — ACM resolves it directly
 }
+
+# Tailnet-only service names: *.t.petergrecian.co.uk → ora's tailnet IP.
+# Caddy on ora terminates TLS (wildcard cert via DNS-01) and reverse-proxies
+# to the fleet's web UIs (osd, deck, …). Unreachable off the tailnet.
+resource "cloudflare_record" "tailnet_wildcard" {
+  zone_id = cloudflare_zone.pg.id
+  name    = "*.t"
+  type    = "A"
+  content = "100.114.55.123" # ora (tailscale)
+  ttl     = 300
+  proxied = false
+}
