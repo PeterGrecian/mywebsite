@@ -10,6 +10,17 @@ whose Referer is another page of this site. Scanners send a Referer too, but
 their paths 404, so status 200 is required. Bots that request one path and
 leave never trigger either way.
 
+A favicon counts only when its Referer is a page of this site (re-measured
+over 2026-09-24..10-24: of 41 non-owner favicon fetches that passed the UA
+rules, the 16 with a page Referer look human; the 25 without one, or with the
+favicon itself as Referer, were scanners, census probes and cloud VMs fetching
+it to fingerprint the site).
+
+Enrichment, deterministic and only on a would-be alert: reverse DNS of the
+client IP, labelled by network when the name says (GCP, AWS, ...). A name
+that belongs to a scanning project suppresses the alert; a cloud name only
+labels it, since a person on a VPN can come from one.
+
 Excluded by rule, before the signal is looked at:
   - anything without a browser UA, or with a bot/tool token: this covers the
     calendaralarm poller, pi-fleet reporting, the strand startup probe
@@ -32,6 +43,8 @@ Severity is `info` (Slack only, no xMatters): this must never wake anyone.
 """
 import json
 import re
+import socket
+from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -46,9 +59,24 @@ _BOT_UA = re.compile(
     r'bot|crawl|spider|slurp|curl|wget|python|go-http|java|okhttp|axios|'
     r'node-fetch|httpx|aiohttp|libwww|headless|lighthouse|petal|semrush|'
     r'censys|scan|sniff|research|preview|facebookexternal|calendaralarm|'
-    r'pi-fleet|inspection|googleother|google-|associationservice|redirectmap',
+    r'pi-fleet|inspection|googleother|google-|associationservice|redirectmap|'
+    r'measurement|census',
     re.I)
 _CRAWLER_PREFIXES = ('66.249.',)
+
+# Reverse-DNS suffix -> network label for the Slack line.
+_NETWORKS = (('.googleusercontent.com', 'GCP'), ('.amazonaws.com', 'AWS'),
+             ('.azure.com', 'Azure'), ('.cloudapp.net', 'Azure'),
+             ('.linodeusercontent.com', 'Linode'), ('.vultrusercontent.com', 'Vultr'),
+             ('.your-server.de', 'Hetzner'), ('.ovh.net', 'OVH'),
+             ('.digitalocean.com', 'DigitalOcean'), ('.oraclecloud.com', 'Oracle'),
+             ('.googlebot.com', 'Googlebot'))
+# Reverse-DNS names of scanning projects: these never alert.
+_SCANNER_RDNS = re.compile(
+    r'internet-census|internet-measurement|censys|shodan|binaryedge|'
+    r'shadowserver|stretchoid|onyphe|leakix|criminalip|recyber|'
+    r'scan|probe|crawl|googlebot', re.I)
+RDNS_TIMEOUT = 1.0
 
 # Per-container memo of owner IPs already written today, so an authenticated
 # session costs one put per container, not one per request.
@@ -82,13 +110,32 @@ def signal(route, status, headers, ctype='text/html'):
     ip = client_ip(headers)
     if not ip or ip.startswith(_CRAWLER_PREFIXES):
         return None
-    if route in _FAVICONS:
-        return 'favicon'
     ref = urllib.parse.urlparse(_header(headers, 'Referer'))
-    if 'text/html' in ctype and (ref.hostname or '').endswith(SITE_HOST) \
-            and (ref.path or '/') != route:
+    from_page = (ref.hostname or '').endswith(SITE_HOST) \
+        and (ref.path or '/') not in _FAVICONS
+    if route in _FAVICONS:
+        return 'favicon' if from_page else None
+    if 'text/html' in ctype and from_page and (ref.path or '/') != route:
         return 'link'
     return None
+
+
+def _rdns(ip):
+    """Reverse DNS name of ip, or '' if none or it took over RDNS_TIMEOUT."""
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        return pool.submit(socket.gethostbyaddr, ip).result(RDNS_TIMEOUT)[0]
+    except Exception:
+        return ''
+    finally:
+        pool.shutdown(wait=False)
+
+
+def describe(ip):
+    """(rdns, network label, is_scanner) for a client IP."""
+    name = _rdns(ip)
+    net = next((label for sfx, label in _NETWORKS if name.lower().endswith(sfx)), '')
+    return name, net, bool(name and _SCANNER_RDNS.search(name))
 
 
 def check(event, route, response, dynamodb_resource):
@@ -139,6 +186,13 @@ def _maybe_alert(dynamodb_resource, headers, route, kind, now):
             return
         raise
 
+    # After the dedupe, so a scanner costs one lookup a day, and before the
+    # cap, so it does not use up a slot.
+    name, net, scanner = describe(ip)
+    if scanner:
+        print(f'visitor alert suppressed: {ip} is {name}')
+        return
+
     # Cap: increment the day's counter only while it is at most DAILY_CAP.
     # Alerts 1..DAILY_CAP go out; number DAILY_CAP+1 sends one 'capped'
     # line; after that the condition fails and nothing is sent.
@@ -164,7 +218,9 @@ def _maybe_alert(dynamodb_resource, headers, route, kind, now):
     ua = _header(headers, 'User-Agent')
     _send(f'A visitor on www.petergrecian.co.uk: {route}'
           + (f' ({country})' if country else ''),
-          f'{kind} | ip {ip} | ref {ref or "-"} | ua {ua[:160]} | {n}/{DAILY_CAP} today')
+          f'{kind} | ip {ip}'
+          + (f' ({name}{", " + net if net else ""})' if name else ' (no rDNS)')
+          + f' | ref {ref or "-"} | ua {ua[:160]} | {n}/{DAILY_CAP} today')
 
 
 def _send(title, detail):
