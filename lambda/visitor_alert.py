@@ -35,23 +35,22 @@ Two suppression rules, ruled by towhom 2026-10-15:
   - dedupe: one alert per client IP per London day, by conditional put.
     The client IP is the FIRST entry of X-Forwarded-For, never the chain:
     the Cloudflare hop rotates per request.
-  - a hard cap of DAILY_CAP alerts a day, then one 'capped' message, counted
-    by a conditional increment, whatever the detection thinks. It does not
-    rely on the WAF still blocking scanners upstream.
+  - a hard cap of alerts a day, then one 'capped' message, whatever the
+    detection thinks. It does not rely on the WAF still blocking scanners
+    upstream. This now lives in visitor_digest.py, which does the sending.
 
-Severity is `info` (Slack only, no xMatters): this must never wake anyone.
+This module only records the visitor (a 'pending' row): it fires seconds into
+a visit, too early to say what the visit was. visitor_digest.py sends the alert
+once the IP goes quiet. Severity is `info` (Slack only, no xMatters): this must
+never wake anyone.
 """
-import json
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
-import urllib.request
 from datetime import datetime, timedelta, timezone
 
 TABLE = 'mywebsite-visitor-alerts'
-ALERT_ENDPOINT = 'https://b5wgk4mp4g.execute-api.eu-west-1.amazonaws.com/alert'
-DAILY_CAP = 10
 SITE_HOST = 'petergrecian.co.uk'
 
 _FAVICONS = frozenset({'/favicon.ico', '/favicon.png', '/favicon.svg'})
@@ -176,59 +175,27 @@ def _maybe_alert(dynamodb_resource, headers, route, kind, now):
         return
     # Dedupe: the first trigger of the day for this IP wins the put. An owner
     # row for today (written on authentication) also blocks it.
+    item = {'day': day, 'ip': ip, 'kind': kind, 'path': route,
+            'ts': now.isoformat(), 'ttl': ttl}
     try:
-        table.put_item(
-            Item={'day': day, 'ip': ip, 'kind': kind, 'path': route,
-                  'ts': now.isoformat(), 'ttl': ttl},
-            ConditionExpression='attribute_not_exists(ip)')
+        table.put_item(Item=item, ConditionExpression='attribute_not_exists(ip)')
     except ClientError as e:
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             return
         raise
 
-    # After the dedupe, so a scanner costs one lookup a day, and before the
-    # cap, so it does not use up a slot.
+    # After the dedupe, so a scanner costs one lookup a day.
     name, net, scanner = describe(ip)
     if scanner:
         print(f'visitor alert suppressed: {ip} is {name}')
         return
 
-    # Cap: increment the day's counter only while it is at most DAILY_CAP.
-    # Alerts 1..DAILY_CAP go out; number DAILY_CAP+1 sends one 'capped'
-    # line; after that the condition fails and nothing is sent.
-    try:
-        n = table.update_item(
-            Key={'day': day, 'ip': '#count'},
-            UpdateExpression='SET #ttl = :ttl ADD #n :one',
-            ConditionExpression='attribute_not_exists(#n) OR #n <= :cap',
-            ExpressionAttributeNames={'#ttl': 'ttl', '#n': 'n'},   # TTL is reserved
-            ExpressionAttributeValues={':one': 1, ':cap': DAILY_CAP, ':ttl': ttl},
-            ReturnValues='UPDATED_NEW')['Attributes']['n']
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-            return
-        raise
-
-    if n > DAILY_CAP:
-        _send(f'Visitor alerts capped at {DAILY_CAP} for {day}; '
-              f'the rest of today is in the access log.', '')
-        return
-    country = _header(headers, 'CF-IPCountry')
-    ref = _header(headers, 'Referer')
-    ua = _header(headers, 'User-Agent')
-    _send(f'A visitor on www.petergrecian.co.uk: {route}'
-          + (f' ({country})' if country else ''),
-          f'{kind} | ip {ip}'
-          + (f' ({name}{", " + net if net else ""})' if name else ' (no rDNS)')
-          + f' | ref {ref or "-"} | ua {ua[:160]} | {n}/{DAILY_CAP} today')
-
-
-def _send(title, detail):
-    payload = {'source': 'mywebsite', 'severity': 'info', 'title': title}
-    if detail:
-        payload['detail'] = detail
-    req = urllib.request.Request(
-        ALERT_ENDPOINT, data=json.dumps(payload).encode(),
-        headers={'Content-Type': 'application/json'}, method='POST')
-    with urllib.request.urlopen(req, timeout=3) as r:
-        r.read()
+    # Nothing is sent from here: the visit has only just begun. visitor_digest
+    # sends this row once the IP has gone quiet, with the pages it saw. City and
+    # region arrive only with Cloudflare's visitor location headers switched on.
+    table.put_item(Item={
+        **item, 'pending': 1, 'rdns': name, 'net': net,
+        'country': _header(headers, 'CF-IPCountry'),
+        'city': _header(headers, 'CF-IPCity'),
+        'region': _header(headers, 'CF-Region'),
+        'ua': _header(headers, 'User-Agent')[:300]})
