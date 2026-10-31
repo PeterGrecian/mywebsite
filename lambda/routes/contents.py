@@ -14,8 +14,10 @@ def render_contents_page(*, theme_css_js, private=False):
 
     `auth_required` used to only add a PRIVATE badge, which left the public
     page advertising exactly what it was withholding. It now filters as well,
-    and the badge survives on the private page where it is useful: it marks
-    which links will ask for a password.
+    and the badge survives on the private page, where it marks which links
+    are kept off the public list. That is navigation, not enforcement: the
+    flag does not protect the page, and most badged links answer anyone who
+    has the URL. Each route does its own auth.
     """
     boto3 = sys.modules.get("boto3")
     BOTO3_AVAILABLE = boto3 is not None
