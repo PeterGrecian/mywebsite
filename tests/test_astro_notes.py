@@ -178,7 +178,7 @@ class TestInstrumentPage:
         assert result["statusCode"] == 200
         body = result["body"]
         assert "f/4" in body
-        assert "2 arcsec per pixel" in body
+        assert "2.2 arcsec per pixel" in body
 
     def test_lists_only_its_own_notes(self, mywebsite, make_event,
                                       make_context):
@@ -348,7 +348,7 @@ class TestInstrumentPhoto:
     def test_camera_and_host_are_in_the_specs(self):
         from routes.astro import INSTRUMENT_SPECS
         specs = dict(INSTRUMENT_SPECS["firstscope"]["specs"])
-        assert "lens removed" in specs["Camera"]
+        assert "lens and IR filter removed" in specs["Camera"]
         assert "Pi 3" in specs["Computer"]
 
 

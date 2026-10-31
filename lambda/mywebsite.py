@@ -28,10 +28,12 @@ ASTRO_BUCKET = "astro-berrylands-eu-west-1"
 # they are re-based here: stops50 = log2(mean - 50) -> log2(mean - 64). A
 # manifest entry that carries its own "black_level" is trusted as is, so this
 # switches itself off once the pipeline re-bases at source.
-ASTRO_BLACK = {"astrocam": 64.0, "eclipticam": 64.0, "eclipticam-hq16": 256.0}
+ASTRO_BLACK = {"astrocam": 64.0, "eclipticam": 64.0, "eclipticam-hq16": 256.0,
+               "firstscope": 256.0, "xoverpi": 256.0}
 PIPELINE_PEDESTAL = 50.0
 # hq16 is 12-bit: the pipeline's chart floor is 200, not 50 (camera.json pedestal)
-PIPELINE_PEDESTAL_BY = {"eclipticam-hq16": 200.0}
+PIPELINE_PEDESTAL_BY = {"eclipticam-hq16": 200.0, "firstscope": 200.0,
+                        "xoverpi": 200.0}
 
 
 def _rebase_stops(camera, stops, entry=None):
@@ -4395,7 +4397,7 @@ def _route_x54(rq):
     headers, fav, start_time = rq.headers, rq.fav, rq.start_time
     html = ''
     m = re.search(
-        r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
+        r'/astro/(astrocam|canon|firstscope|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$',
         path)
     camera, night = m.group(1), m.group(2)
     # The night PAGE is addressed by the logical camera ('eclipticam') and
@@ -4410,6 +4412,7 @@ def _route_x54(rq):
     player_prefixes = {
         'astrocam': ['astrocam'],
         'canon': ['canon'],
+        'firstscope': ['xoverpi'],
         'eclipticam': ['eclipticam-v3w', 'eclipticam-v1'],
     }.get(camera, [camera])
     try:
@@ -4468,12 +4471,13 @@ def _route_x55(rq):
     html = ''
     import json as _json
     m = re.search(
-        r'/astro/(astrocam|eclipticam|canon)'
+        r'/astro/(astrocam|eclipticam|canon|firstscope)'
         r'(?:/night/(\d{4}-\d{2}-\d{2})'
         r'|/week/(\d{4}-\d{2}-\d{2})'
         r'|/month/(\d{4}-\d{2})'
         r'|(/all)'
-        r'|(/nights))?/?$',
+        r'|(/nights)'
+        r'|/results)?/?$',
         path)
     camera, night = m.group(1), m.group(2)
     want_week, want_month = m.group(3), m.group(4)
@@ -4481,7 +4485,7 @@ def _route_x55(rq):
     want_index = m.group(6) is not None
     is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
     titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
-              'canon': 'EOS Camera'}
+              'canon': 'EOS Camera', 'firstscope': 'FirstScope'}
     # unify-cameras split: each section is now its own top-level S3
     # camera prefix (eclipticam-v3w / eclipticam-v1) with UN-prefixed
     # filenames (max.jpg, not v3w_max.jpg). astrocam is a single camera.
@@ -4489,6 +4493,8 @@ def _route_x55(rq):
     cam_sections = {
         'astrocam': [('astrocam', None)],
         'canon': [('canon', None)],
+        # The page is named for the telescope, S3 for the camera's config.
+        'firstscope': [('xoverpi', None)],
         'eclipticam': [('eclipticam-v3w', 'IMX708 Wide (v3w)'),
                        ('eclipticam-hq16', 'IMX477 + 16 mm (HQ16)'),
                        ('eclipticam-v1', 'OV5647 (v1)')],
@@ -4496,6 +4502,8 @@ def _route_x55(rq):
     # The camera whose nights drive the calendar + thumbnails (the
     # night camera for eclipticam).
     primary_cam = cam_sections[0][0]
+    manifest_key = ('xoverpi/index.json' if camera == 'firstscope'
+                    else f'{camera}/index.json')
     try:
         s3 = s3_client()
         paginator = s3.get_paginator('list_objects_v2')
@@ -4527,7 +4535,7 @@ def _route_x55(rq):
             manifest = None
             try:
                 obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                    Key=f'{camera}/index.json')
+                                    Key=manifest_key)
                 manifest = _json.loads(obj['Body'].read())
             except Exception:
                 manifest = None
@@ -4680,6 +4688,7 @@ def _route_x55(rq):
             moon_net_url = None
             sun_net_url = None
             from routes.astro import (render_astro_camera_calendar,
+                                      render_firstscope_subnav,
                                       CAMERA_PHOTOS, CAMERA_VIEWS)
             view_urls = []
             for v in CAMERA_VIEWS.get(camera, []):
@@ -4705,7 +4714,9 @@ def _route_x55(rq):
                     sun_net_url=sun_net_url,
                     window_label=window_label, weeks=weeks,
                     months=months, photo_url=rig_url,
-                    view_urls=view_urls),
+                    view_urls=view_urls,
+                    subnav_html=(render_firstscope_subnav('results')
+                                 if camera == 'firstscope' else None)),
                 'headers': {'Content-Type': 'text/html; charset=utf-8'}}
 
         # Nights nav strip (nights[:14]). Prefer the precomputed manifest
@@ -4713,7 +4724,7 @@ def _route_x55(rq):
         # listing if no manifest is published yet.
         try:
             idx_obj = s3.get_object(Bucket=ASTRO_BUCKET,
-                                    Key=f'{camera}/index.json')
+                                    Key=manifest_key)
             manifest = _json.loads(idx_obj['Body'].read())
             nights = [e.get('night') for e in manifest.get('nights', [])]
         except Exception:
@@ -4775,6 +4786,9 @@ def _route_x55(rq):
                          'poster-diff.jpg', 'poster-detrans.jpg',
                          'poster-detrans-deep.jpg',
                          'poster-derot.jpg', 'poster-derot-deep.jpg', 'poster-glow.jpg',
+                         'night-still.jpg', 'night-still-annotated.jpg',
+                         'star-counts.png', 'star-colours.png',
+                         'star-crops.jpg',
                          'derot.jpg', 'max.jpg', 'brightness.png',
                          'thumb.jpg'):
                 if base in names:
@@ -6252,8 +6266,8 @@ _ROUTES_PATTERN = [
     (_PRED, lambda route: re.search(r'/astro/storage(/\d{4}-\d{2})?/?$', route), _route_x51),
     (_PRED, lambda route: re.search(r'/astro/disks/?$', route), _route_x52),
     (_PRED, lambda route: re.search(r'/astro/eclipticam/(v3w|hq16|history)/?$', route), _route_eclipticam_subpage),
-    (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
-    (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/month/\d{4}-\d{2}|/all|/nights)?/?$', route), _route_x55),
+    (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|firstscope|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
+    (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon|firstscope)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/results|/month/\d{4}-\d{2}|/all|/nights)?/?$', route), _route_x55),
     (_PREFIX, '/starcam/night/', _route_starcam_night),
     (_PREFIX, '/starcam/gallery', _route_starcam_gallery),
     (_PREFIX, '/starcam/videos', _route_starcam_videos),

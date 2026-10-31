@@ -246,15 +246,54 @@ NIGHT_NOTES = {
 # astro-science's Gaia G calibration of 2026-09-21, 4.15 stops = 18.1
 # mag/arcsec^2, one stop = 0.753 mag. Valid from the glass-window epoch
 # (POSINDEX 3, 2026-08-20) at gain 1. camera -> (first night, mag, at stops).
-SKY_MAG = {"astrocam": ("2026-08-20", 18.1, 4.15)}
+# Zero points from astro-science (Gaia G, mail of 2026-10-31), newest last:
+# (from_night, mag, at_stops, provisional). The astro repo's camera.json sky_mag
+# holds the same values for the chart axes. fshq has none until darks exist.
+_ECLIPTICAM_V3W_MAG = [("2026-10-07", 17.8, 3.12, False)]
+SKY_MAG = {
+    # Glass window fitted 08-20, removed 10-17: 0.12 stops of throughput.
+    "astrocam": [("2026-08-20", 18.1, 4.15, False),
+                 ("2026-10-17", 18.1, 4.27, True)],
+    "eclipticam": _ECLIPTICAM_V3W_MAG,
+    "eclipticam-v3w": _ECLIPTICAM_V3W_MAG,
+    "eclipticam-hq16": [("2026-10-14", 17.8, 5.49, True)],
+    "canon": [("2026-08-10", 18.1, 8.80, True)],
+}
+MAG_PER_STOP = 0.753
+
+
+def _sky_cal(camera, night):
+    found = None
+    for cal in SKY_MAG.get(camera) or ():
+        if (night or "") >= cal[0]:
+            found = cal
+    return found
 
 
 def sky_mag(camera, night, stops):
     """mag/arcsec^2 (Gaia G, about visual) or None when uncalibrated."""
-    cal = SKY_MAG.get(camera)
-    if not cal or not isinstance(stops, (int, float)) or (night or "") < cal[0]:
+    cal = _sky_cal(camera, night)
+    if not cal or not isinstance(stops, (int, float)):
         return None
-    return cal[1] - 0.753 * (stops - cal[2])
+    return cal[1] - MAG_PER_STOP * (stops - cal[2])
+
+
+def _mag_value(camera, night, mag, places=1):
+    """A provisional zero point reads as approximate wherever it is shown."""
+    cal = _sky_cal(camera, night)
+    return f'{"&asymp;" if cal and cal[3] else ""}{mag:.{places}f}'
+
+
+def sky_text(camera, night, stops):
+    """A night's darkness as the site always states it: mag/arcsec^2 where the
+    camera has a zero point, and bits (one bit = one stop = twice the light)."""
+    if not isinstance(stops, (int, float)):
+        return f"{stops}" if stops is not None else ""
+    m = sky_mag(camera, night, stops)
+    bits = f"{stops:.1f} bits"
+    if m is None:
+        return bits
+    return f"{_mag_value(camera, night, m)} mag/arcsec&sup2; &middot; {bits}"
 
 
 # Darkest-sky stops (above black, as shown) below which a night reads clear.
@@ -334,8 +373,10 @@ def _section(sec):
         v = ("" if lim is None else
              ", so clear" if stops < lim else ", so cloudy")
         m = sky_mag(s.get("camera"), s.get("night"), stops)
-        ms = f' ({m:.1f} mag/arcsec&sup2;)' if m is not None else ""
-        lede.append(f'Darkest sky {stops:.2f} stops above black{ms}{v}.')
+        said = (f'{_mag_value(s.get("camera"), s.get("night"), m)} '
+                f'mag/arcsec&sup2; ({stops:.2f} bits)' if m is not None
+                else f'{stops:.2f} bits')
+        lede.append(f'Darkest sky {said}{v}.')
     if (s.get("verdict") or "").lower() == "twilight-only":
         cut = (s.get("anchor") or {}).get("sun_cut_deg", -18)
         lede.append(f'All of it in twilight (sun above {cut:g}&deg;), '
@@ -356,11 +397,11 @@ def _section(sec):
         ref = (f' ({ref_exp:g} s equiv.)' if isinstance(ref_exp, (int, float))
                and isinstance(exptime, (int, float))
                and abs(ref_exp - exptime) > 0.5 else "")
-        stats.append(_stat(f"darkest sky, stops above black{ref}", sv))
         m = sky_mag(s.get("camera"), s.get("night"), stops)
         if m is not None:
             stats.append(_stat("darkest sky, mag/arcsec&sup2; (Gaia G)",
-                               f'{m:.2f}'))
+                               _mag_value(s.get("camera"), s.get("night"), m, 2)))
+        stats.append(_stat(f"darkest sky, bits{ref}", sv))
     derot = s.get("derot")
     if derot:
         w = derot.get("window_utc") or [None, None]
@@ -388,6 +429,18 @@ def _section(sec):
 
     cards = []
     n = 0
+    still = urls.get("night-still-annotated.jpg") or urls.get("night-still.jpg")
+    if still:
+        cards.append(_story_card(
+            None, "The night held still",
+            f'<a href="{still}"><img src="{still}" '
+            f'alt="the night\'s frames turned about the pole and stacked"></a>',
+            "The night's frames, each turned about the celestial pole so the "
+            "stars stay put, then stacked. The arch is the sky the field swept "
+            "out as the Earth turned: evening bottom left, dawn bottom right. "
+            "The times show where the centre of the field was at each hour, "
+            "London time. The pole and Polaris are placed from a plate solve "
+            "of the stars.", prov))
     for key, poster_key, title, cap in _HERO:
         c = video_card(None, key, poster_key, title, cap)
         if c:
@@ -409,6 +462,32 @@ def _section(sec):
             "30% of the darkest 10 minutes, so twilight and cloud are left "
             "out of it. Left out is not thrown away: those frames still go "
             "into the videos.", prov))
+    counts = urls.get("star-counts.png")
+    if counts:
+        n += 1
+        cards.append(_story_card(
+            n, "How faint it reached",
+            f'<a href="{counts}"><img src="{counts}" alt="stars in the '
+            f'covered sky, and those detected, by magnitude"></a>',
+            "Every catalogued star in the sky the field covered (grey) against "
+            "those detected in the night's stack (blue), by Gaia G magnitude. "
+            "As focus improves, and on good nights, the blue bars creep to the "
+            "right.", prov))
+    for key, title, alt, cap in (
+            ("star-colours.png", "The colours of the stars",
+             "our colour of each star against Gaia's",
+             "Each star's colour as measured here, against the colour Gaia "
+             "measured for the same star."),
+            ("star-crops.jpg", "The brightest stars, close up",
+             "the night's brightest stars, blue to red",
+             "The night's brightest stars at the camera's own scale, from "
+             "blue to red.")):
+        url = urls.get(key)
+        if url:
+            n += 1
+            cards.append(_story_card(
+                n, title, f'<a href="{url}"><img src="{url}" alt="{alt}"></a>',
+                cap, prov))
     for key, poster_key, title, cap in _STEPS:
         c = video_card(n + 1, key, poster_key, title, cap)
         if c:
@@ -598,6 +677,8 @@ CAMERA_SUBTITLES = {
     "astrocam": "night-by-night colour sweeps and stacks with a camera "
                 "facing north and towards the pole and zenith",
 }
+CAMERA_SUBTITLES["firstscope"] = ("Night by night through the 76 mm Newtonian at "
+                                  "prime focus")
 DEFAULT_CAMERA_SUBTITLE = "night-by-night colour sweeps and stacks"
 
 # Caption under the multi-night brightness plot; the default is used for
@@ -776,6 +857,10 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
 
     bar_html = _render_calendar_bar(camera, window_label, list(weeks),
                                     list(months))
+    # FirstScope's cards show the arch-shaped still whole, not cropped.
+    thumb_css = (".night-thumb { aspect-ratio: 3 / 2; } "
+                 ".night-thumb img { object-fit: contain; }"
+                 if camera == "firstscope" else "")
 
     if not nights_with_meta:
         cards_html = ('<p class="empty">No nights in this window.</p>'
@@ -794,7 +879,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             if n_stacked is not None and n_frames is not None:
                 stats_parts.append(f'{n_stacked}/{n_frames}')
             if stops is not None:
-                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
+                stats_parts.append(sky_text(camera, night, stops))
             stats = " &middot; ".join(stats_parts)
             if thumb:
                 poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
@@ -849,6 +934,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     .window-label {{ color: var(--text-secondary); }}
     .more-link {{ color: var(--accent); text-decoration: none; white-space: nowrap; }}
     .more-link:hover {{ opacity: 0.8; }}
+    {thumb_css}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
   </style>
@@ -871,7 +957,8 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
 </html>'''
 
 
-def _eclipticam_night_cards(nights_with_meta, windowed=False, anchor=""):
+def _eclipticam_night_cards(nights_with_meta, windowed=False, anchor="",
+                            camera="eclipticam-v3w"):
     """Night cards for an eclipticam sensor subpage; each links to the
     shared night page, at `anchor` when the sensor has its own section."""
     if not nights_with_meta:
@@ -891,7 +978,7 @@ def _eclipticam_night_cards(nights_with_meta, windowed=False, anchor=""):
             if n_stacked is not None and n_frames is not None:
                 stats_parts.append(f'{n_stacked}/{n_frames}')
             if stops is not None:
-                stats_parts.append(f'{stops:.1f}' if isinstance(stops, (int, float)) else f'{stops}')
+                stats_parts.append(sky_text(camera, night, stops))
             stats = " &middot; ".join(stats_parts)
             if thumb:
                 poster = f'<img src="{thumb}" alt="{night}" loading="lazy">'
@@ -1026,7 +1113,8 @@ def render_eclipticam_hq16_page(*, theme_css_js, title, first_light_url=None,
       <div class="caption">Single 60 s exposures from 13 Oct 2026, 22:30 London time. Left: the v3 Wide view showing the 100&deg; field with the HQ16 field outlined in yellow. Right: the HQ16 frame, resolving the 22.4&deg; &times; 16.9&deg; region with 19.9 arcsec/photosite resolution.</div>
     </section>'''
 
-    cards_html = _eclipticam_night_cards(nights_with_meta, anchor="#hq16")
+    cards_html = _eclipticam_night_cards(nights_with_meta, anchor="#hq16",
+                                         camera="eclipticam-hq16")
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -1992,6 +2080,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
         f'⚙ advanced player &mdash; frame-step, clip, compare</a>'
         f'</div>')
 
+    subnav_html = render_firstscope_subnav("results") if camera == "firstscope" else ""
     body = "".join(_section(sec) for sec in sections) or \
         '<p class="empty">No published data for this night.</p>'
 
@@ -2011,6 +2100,9 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     .nights {{ text-align: center; margin-bottom: 1.25rem; }}
     .nights a {{ display: inline-block; margin: 0.15rem 0.3rem; padding: 0.2rem 0.55rem; font-size: 0.8rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; }}
     .nights a.cur {{ color: var(--text); background: var(--divider, #2C2C2E); }}
+    .subnav {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1rem; }}
+    .subnav-link {{ display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg); border: 1px solid var(--divider, #2C2C2E); border-radius: 8px; text-decoration: none; }}
+    .subnav-link.active {{ background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }}
     .player-link {{ text-align: center; margin: 0.5rem 0 1.25rem; }}
     .player-link a {{ display: inline-block; padding: 0.4rem 0.9rem; color: var(--accent); background: var(--card-bg); border-radius: 8px; text-decoration: none; font-size: 0.85rem; }}
     .player-link a:hover {{ opacity: 0.85; }}
@@ -2049,6 +2141,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
   <div class="container">
     <h1>{title}</h1>
     <div class="subtitle">{subtitle}</div>
+    {subnav_html}
     {nights_nav}
     {player_link}
     {body}
@@ -3313,6 +3406,7 @@ CAMERA_LABELS = {
     "eclipticam-v3w": "eclipticam v3w",
     "eclipticam-v1": "eclipticam v1",
     "firstscope": "firstscope v1",
+    "xoverpi": "firstscope fshq",
     "canon": "canon 2000D",
     "starcam": "starcam v1",
 }
@@ -3429,17 +3523,19 @@ INSTRUMENT_SPECS = {
         },
         "specs": [
             ("Optics", "76 mm Newtonian, spherical primary, f/4"),
-            ("Camera", "Raspberry Pi Camera v1, lens removed, the "
-                       "sensor sits at the focuser"),
+            ("Camera", "Raspberry Pi HQ camera (IMX477), &ldquo;fshq&rdquo;, "
+                       "lens and IR filter removed, the sensor sits at the "
+                       "focuser"),
             ("Computer", "Raspberry Pi 3, cable-tied to the tube"),
             ("Focal length", "300 mm"),
             ("Tracking", "None, fixed mount, the sky drifts through"),
             ("Finder", "None, but 2 lasers mark where it points on the "
                        "walls"),
-            ("Field of view", "0.7 &times; 0.5 degrees, about the width of the "
-                              "moon"),
-            ("Plate scale", "2 arcsec per pixel (binned 2&times;2)"),
-            ("Frames", "1296 &times; 972, already binned 2&times;2 at capture"),
+            ("Field of view", "1.3 &times; 0.9 degrees, about twice the width "
+                              "of the moon"),
+            ("Plate scale", "2.2 arcsec per pixel, binned 2&times;2 "
+                            "(plate solved, 2026-10-30)"),
+            ("Frames", "2028 &times; 1520, already binned 2&times;2 at capture"),
             ("Typical sub", "3 seconds"),
         ],
         "history": [
@@ -3456,6 +3552,9 @@ INSTRUMENT_SPECS = {
                            "the scope is pointing on the walls: the wall to "
                            "the right is 101cm away, the wall to the left is "
                            "124cm."),
+            ("2026-10-30", "First night with the HQ camera (fshq), and the "
+                           "first published as nightly pages like the other "
+                           "cameras."),
         ],
         "results": [
             ("19&times;", "noise reduction from 600 de-rotated frames, "
@@ -3727,6 +3826,10 @@ INSTRUMENT_CSS = '''
     h1 { font-size: 1.6rem; margin: 1rem 0 0.2rem; }
     .i-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.1rem; }
     .i-blurb { font-size: 1rem; line-height: 1.65; margin: 0 0 1.5rem; }
+    .subnav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0 auto 1rem; }
+    .subnav-link { display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.85rem; font-weight: 500; color: var(--text); background: var(--card-bg); border: 1px solid var(--divider, #2C2C2E); border-radius: 8px; text-decoration: none; }
+    .subnav-link:hover { border-color: var(--accent, #007AFF); color: var(--accent, #007AFF); }
+    .subnav-link.active { background: var(--accent, #007AFF); border-color: var(--accent, #007AFF); color: #fff; }
     .i-marks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0 0 1.5rem; }
     .i-marks figure { margin: 0; }
     .i-marks img { width: 100%; height: auto; display: block; border-radius: 8px; }
@@ -3767,6 +3870,15 @@ INSTRUMENT_CSS = '''
     .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
     .footer a { color: var(--accent); text-decoration: none; }
 '''
+
+
+def render_firstscope_subnav(active):
+    """The telescope page is a story; its nights are one click away."""
+    links = (("telescope", "/astro/firstscope", "The telescope"),
+             ("results", "/astro/firstscope/results", "Results"))
+    return '<nav class="subnav">' + "".join(
+        f'<a class="subnav-link{" active" if key == active else ""}" '
+        f'href="{url}">{label}</a>' for key, url, label in links) + '</nav>'
 
 
 def render_astro_instrument(*, theme_css_js, slug, notes=(), photo_url=None,
@@ -3866,6 +3978,8 @@ def render_astro_instrument(*, theme_css_js, slug, notes=(), photo_url=None,
                       f'<p class="i-blurb">{modelling["body"]}</p>'
                       if modelling else '')
 
+    subnav_html = render_firstscope_subnav("telescope") if slug == "firstscope" else ""
+
     blurb = spec["blurb"]
     if isinstance(blurb, str):
         blurb = [blurb]
@@ -3883,6 +3997,7 @@ def render_astro_instrument(*, theme_css_js, slug, notes=(), photo_url=None,
 <body>
   <div class="container">
     <h1>{spec["title"]}</h1>
+    {subnav_html}
     <div class="i-sub">{spec["subtitle"]}</div>
     {photo_html}
     {blurb_html}
