@@ -360,7 +360,7 @@ def _section(sec):
     ref_exp = anchor.get("stops_ref_exptime")
     lede = []
     if s.get("n_frames"):
-        e = f" of {exptime:g} s" if isinstance(exptime, (int, float)) else ""
+        e = f" of {exptime:.3g} s" if isinstance(exptime, (int, float)) else ""
         lede.append(f'{s["n_frames"]} frames{e}, '
                     f'{_london_hhmm(s.get("first_frame_utc"))} to '
                     f'{_london_hhmm(s.get("last_frame_utc"))} (London time).')
