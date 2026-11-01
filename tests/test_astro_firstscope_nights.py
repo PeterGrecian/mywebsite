@@ -84,3 +84,22 @@ def test_night_page_prefers_annotated_still_and_shows_star_charts():
     assert "https://x/ann.jpg" in html and "https://x/plain.jpg" not in html
     for u in ("counts.png", "colours.png", "crops.jpg"):
         assert f"https://x/{u}" in html
+
+
+def test_still_swipe_data_is_in_the_page():
+    import html
+    import json
+    from routes.astro import _section
+    sec = {"summary": {}, "stamp_camera": "xoverpi", "stamp_night": "2026-10-31",
+           "urls": {"night-still-annotated-dark.jpg": "https://s3/own?a=1&b=2"},
+           "still_base": "/astro/firstscope/night/",
+           "still_nights": [("2026-10-30", "https://s3/prev?a=1&b=2"),
+                            ("2026-10-31", "https://s3/presigned?x=1")]}
+    page = _section(sec)
+    attr = page.split('data-nights="', 1)[1].split('"', 1)[0]
+    items = json.loads(html.unescape(attr))
+    assert [i["n"] for i in items] == ["2026-10-30", "2026-10-31"]
+    assert items[0]["u"] == "https://s3/prev?a=1&b=2"
+    assert items[1]["u"] == "https://s3/own?a=1&b=2"   # the page's own picture
+    assert 'data-night="2026-10-31"' in page
+    assert 'data-base="/astro/firstscope/night/"' in page

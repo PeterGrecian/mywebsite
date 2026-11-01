@@ -1,6 +1,8 @@
 """Astro hub page — lists the project's astronomy cameras."""
 
 import base64
+import html
+import json
 import os
 import re
 
@@ -303,6 +305,9 @@ CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 # The night still's full-screen zoomable view: real full screen, because filling
 # the page alone gives up too much of a phone to Chrome's bars (Peter, 2026-11-01).
 # Pinch and double tap zoom; the only control is Close, so nothing covers the picture.
+# Swipe sideways for the next or previous night: in the viewer, unzoomed, it swaps the
+# picture and stays full screen, and Close lands on the page of the night being shown;
+# on the page it opens that night's page. A night with no still is skipped.
 _STILL_VIEWER = r"""
 <style>
 .stillbar { display:flex; margin:10px 0 4px; }
@@ -312,6 +317,9 @@ _STILL_VIEWER = r"""
 .stillview.open { display:block; }
 .stillview img { position:absolute; left:0; top:0; max-width:none; width:auto; height:auto; transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
 .stillview button { position:absolute; top:calc(8px + env(safe-area-inset-top)); right:8px; background:rgba(0,0,0,.6); }
+.stillview .stillday { position:absolute; top:calc(16px + env(safe-area-inset-top)); left:12px; color:#E0E0E0; font-size:15px; background:rgba(0,0,0,.6); border-radius:8px; padding:4px 10px; opacity:0; transition:opacity .4s; pointer-events:none; }
+.stillview .stillday.on { opacity:1; }
+.stillimg { touch-action:pan-y pinch-zoom; }
 </style>
 <script>
 (function () {
@@ -320,10 +328,57 @@ _STILL_VIEWER = r"""
   var view = document.createElement('div');
   view.className = 'stillview';
   view.style.background = img.dataset.surround || '#000';
-  view.innerHTML = '<img alt=""><button>Close</button>';
+  view.innerHTML = '<img alt=""><div class="stillday"></div><button>Close</button>';
   document.body.appendChild(view);
   var big = view.querySelector('img'), f = 1, z = 1, tx = 0, ty = 0;
   big.src = img.src; big.draggable = false;
+  big.onload = fit;
+  var nights = JSON.parse(img.dataset.nights || '[]'), base = img.dataset.base || '';
+  var home = img.dataset.night, cur = home, dayEl = view.querySelector('.stillday'), dayT = 0;
+  function at() { for (var i = 0; i < nights.length; i++) if (nights[i].n === cur) return i; return -1; }
+  function say(text) {
+    dayEl.textContent = text; dayEl.classList.add('on');
+    clearTimeout(dayT); dayT = setTimeout(function () { dayEl.classList.remove('on'); }, 2000);
+  }
+  function neat(n) {
+    return new Date(n + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/London' });
+  }
+  function preload() {   // the neighbours, so a swipe is instant
+    var i = at();
+    [i - 1, i + 1].forEach(function (j) { if (nights[j]) new Image().src = nights[j].u; });
+  }
+  function step(dir) {   // +1 later, -1 earlier; skips a night whose still does not load
+    var i = at() + dir;
+    (function attempt() {
+      if (!nights[i]) { say(dir > 0 ? 'No later night' : 'No earlier night'); return; }
+      var t = new Image();
+      t.onload = function () {
+        cur = nights[i].n; big.src = nights[i].u;
+        view.style.background = nights[i].s || '#404040';
+        say(neat(cur)); preload();
+      };
+      t.onerror = function () { i += dir; attempt(); };
+      t.src = nights[i].u;
+    })();
+  }
+  // Swipe on the page's own picture: that night's page, which opens with the still.
+  var sx = null, sy = 0;
+  img.addEventListener('touchstart', function (e) {
+    sx = e.touches.length === 1 ? e.touches[0].clientX : null; sy = e.touches[0].clientY;
+  }, { passive: true });
+  img.addEventListener('touchend', function (e) {
+    if (sx === null) return;
+    var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+    var i = at(), dir = dx < 0 ? 1 : -1;
+    (function attempt(j) {   // same skip as the viewer: only go to a night that has a still
+      if (!nights[j]) return;
+      var t = new Image();
+      t.onload = function () { location.href = base + nights[j].n; };
+      t.onerror = function () { attempt(j + dir); };
+      t.src = nights[j].u;
+    })(i + dir);
+  });
   function render() {
     var W = view.clientWidth, H = view.clientHeight, s = f * z;
     var w = big.naturalWidth * s, h = big.naturalHeight * s;
@@ -343,28 +398,36 @@ _STILL_VIEWER = r"""
     view.classList.add('open'); document.body.style.overflow = 'hidden';
     history.pushState({ still: 1 }, '');
     if (view.requestFullscreen) view.requestFullscreen().catch(function () {});
-    if (big.complete) fit(); else big.onload = fit;
+    if (big.complete) fit();
+    preload();
   }
   function shut() {
     view.classList.remove('open'); document.body.style.overflow = '';
     if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    if (cur !== home) location.href = base + cur;   // the page should match the picture
   }
   img.closest('a').addEventListener('click', function (e) { e.preventDefault(); open(); });
   bar.querySelector('.stillfull').addEventListener('click', open);
   view.querySelector('button').addEventListener('click', function () { history.back(); });
   window.addEventListener('popstate', function () { if (view.classList.contains('open')) shut(); });
   window.addEventListener('resize', function () { if (view.classList.contains('open')) fit(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && view.classList.contains('open') && !document.fullscreenElement) history.back(); });
+  document.addEventListener('keydown', function (e) {
+    if (!view.classList.contains('open')) return;
+    if (e.key === 'Escape' && !document.fullscreenElement) history.back();
+    if (e.key === 'ArrowRight') step(1);
+    if (e.key === 'ArrowLeft') step(-1);
+  });
   document.addEventListener('fullscreenchange', function () {   // back gesture or Esc leaves full screen: close too
     if (view.classList.contains('open')) { if (document.fullscreenElement) fit(); else history.back(); }
   });
   view.addEventListener('wheel', function (e) { e.preventDefault(); zoomAt(z * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY); }, { passive: false });
   // On the whole view, not the image, so fingers landing on the surround count too.
-  var pts = {}, last = null, pinch = null, tapT = 0, moved = false;
+  var pts = {}, last = null, pinch = null, tapT = 0, moved = false, start = null, two = false;
   view.addEventListener('pointerdown', function (e) {
     if (e.target.closest('button')) return;
     view.setPointerCapture(e.pointerId); pts[e.pointerId] = [e.clientX, e.clientY]; moved = false;
     var ids = Object.keys(pts);
+    if (ids.length === 1) { start = [e.clientX, e.clientY]; two = false; } else two = true;
     if (ids.length === 2) {
       var a = pts[ids[0]], b = pts[ids[1]];
       pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: z }; last = null; moved = true;
@@ -388,6 +451,11 @@ _STILL_VIEWER = r"""
     delete pts[e.pointerId];
     if (Object.keys(pts).length < 2) pinch = null;
     last = null;
+    // Unzoomed, a one finger sideways swipe changes night; zoomed, the same drag pans.
+    if (e.type === 'pointerup' && start && !two && z === 1 && Object.keys(pts).length === 0) {
+      var dx = e.clientX - start[0], dy = e.clientY - start[1];
+      if (Math.abs(dx) >= 60 && Math.abs(dx) >= 1.5 * Math.abs(dy)) step(dx < 0 ? 1 : -1);
+    }
     if (e.type === 'pointerup' && !moved) {   // double tap: zoom in there, or back to fit
       var now = Date.now();
       if (now - tapT < 350) { if (z > 1) fit(); else zoomAt(4, e.clientX, e.clientY); tapT = 0; } else tapT = now;
@@ -422,6 +490,18 @@ def _video(url, poster, full):
             f'<span class="vzs"><button data-r="0.25">&frac14;&times;</button>'
             f'<button data-r="0.5" class="on">&frac12;&times;</button>'
             f'<button data-r="1">1&times;</button></span></div>')
+
+
+def _still_nights_attrs(sec, surround, still):
+    """Attributes the still's viewer swipes with: this night's neighbours, oldest first."""
+    around = sec.get("still_nights") or []
+    night = sec.get("stamp_night") or ""
+    items = [{"n": n, "u": u} for n, u in around]
+    for item in items:
+        if item["n"] == night:   # the page's own, which may not be the dark render
+            item.update(u=still, s=surround)
+    return (f'data-night="{night}" data-base="{sec.get("still_base", "")}" '
+            f'data-nights="{html.escape(json.dumps(items), quote=True)}" ')
 
 
 def _section(sec):
@@ -538,6 +618,7 @@ def _section(sec):
         cards.append(_story_card(
             None, "The night held still",
             f'<a href="{still}"><img class="stillimg" data-surround="{surround}" src="{still}" '
+            f'{_still_nights_attrs(sec, surround, still)}'
             f'alt="the night\'s frames turned about the pole and stacked"></a>'
             '<div class="stillbar"><button class="stillfull">Full screen</button></div>'
             + _STILL_VIEWER,
@@ -546,7 +627,8 @@ def _section(sec):
             "out as the Earth turned: evening bottom left, dawn bottom right. "
             "The times show where the centre of the field was at each hour, "
             "London time. The pole and Polaris are placed from a plate solve "
-            "of the stars.", prov))
+            "of the stars. Swipe the picture sideways for the next or previous "
+            "night.", prov))
     for key, poster_key, title, cap in _HERO:
         c = video_card(None, key, poster_key, title, cap)
         if c:

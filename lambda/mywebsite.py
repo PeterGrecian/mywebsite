@@ -4801,6 +4801,20 @@ def _route_x55(rq):
                                  'summary': summary, 'urls': urls,
                                  'stamp_camera': s3_cam,
                                  'stamp_night': night})
+                if camera == 'firstscope':
+                    # What the still's swipe needs: up to a month either way.
+                    # A presign is local, so this costs no S3 call; a night
+                    # with no still 404s and the page's script skips it.
+                    order = sorted(n for n in nights if n)
+                    if night not in order:
+                        order = sorted(order + [night])
+                    i = order.index(night)
+                    sections[-1]['still_base'] = f'/astro/{camera}/night/'
+                    sections[-1]['still_nights'] = [
+                        (n, get_presigned_url(
+                            f'{s3_cam}/nights/{n}/night-still-annotated-dark.jpg',
+                            bucket=ASTRO_BUCKET))
+                        for n in order[max(0, i - 30):i + 31]]
     except Exception as e:
         return {'statusCode': 500,
                 'body': f'<p>error: {e}</p>',
