@@ -248,7 +248,7 @@ NIGHT_NOTES = {
 # (POSINDEX 3, 2026-08-20) at gain 1. camera -> (first night, mag, at stops).
 # Zero points from astro-science (Gaia G, mail of 2026-10-31), newest last:
 # (from_night, mag, at_stops, provisional). The astro repo's camera.json sky_mag
-# holds the same values for the chart axes. fshq has none until darks exist.
+# holds the same values for the chart axes. hqfs has none until darks exist.
 _ECLIPTICAM_V3W_MAG = [("2026-10-07", 17.8, 3.12, False)]
 SKY_MAG = {
     # Glass window fitted 08-20, removed 10-17: 0.12 stops of throughput.
@@ -298,6 +298,106 @@ def sky_text(camera, night, stops):
 
 # Darkest-sky stops (above black, as shown) below which a night reads clear.
 CLEAR_BELOW_STOPS = {"astrocam": 6.0}
+
+
+# The night still's full-screen zoomable view: real full screen, because filling
+# the page alone gives up too much of a phone to Chrome's bars (Peter, 2026-11-01).
+# Pinch and double tap zoom; the only control is Close, so nothing covers the picture.
+_STILL_VIEWER = r"""
+<style>
+.stillbar { display:flex; margin:10px 0 4px; }
+.stillbar button, .stillview button { background:#2C2C2E; color:#E0E0E0; border:0; border-radius:8px; min-height:40px; min-width:44px; padding:0 12px; font-size:15px; }
+.stillbar .stillfull { margin-left:auto; background:#007AFF; color:#fff; }
+.stillview { position:fixed; inset:0; z-index:1000; overflow:hidden; touch-action:none; display:none; }
+.stillview.open { display:block; }
+.stillview img { position:absolute; left:0; top:0; max-width:none; width:auto; height:auto; transform-origin:0 0; user-select:none; -webkit-user-drag:none; }
+.stillview button { position:absolute; top:calc(8px + env(safe-area-inset-top)); right:8px; background:rgba(0,0,0,.6); }
+</style>
+<script>
+(function () {
+  var img = document.querySelector('.stillimg'), bar = document.querySelector('.stillbar');
+  if (!img || !bar) return;
+  var view = document.createElement('div');
+  view.className = 'stillview';
+  view.style.background = img.dataset.surround || '#000';
+  view.innerHTML = '<img alt=""><button>Close</button>';
+  document.body.appendChild(view);
+  var big = view.querySelector('img'), f = 1, z = 1, tx = 0, ty = 0;
+  big.src = img.src; big.draggable = false;
+  function render() {
+    var W = view.clientWidth, H = view.clientHeight, s = f * z;
+    var w = big.naturalWidth * s, h = big.naturalHeight * s;
+    tx = w <= W ? (W - w) / 2 : Math.min(0, Math.max(W - w, tx));
+    ty = h <= H ? (H - h) / 2 : Math.min(0, Math.max(H - h, ty));
+    big.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  function fit() {
+    f = Math.min(view.clientWidth / (big.naturalWidth || 1), view.clientHeight / (big.naturalHeight || 1));
+    z = 1; render();
+  }
+  function zoomAt(nz, cx, cy) {   // cx, cy stays put on screen; stops at 4 screen px per image px
+    nz = Math.max(1, Math.min(4 / f, nz));
+    tx = cx - (cx - tx) * nz / z; ty = cy - (cy - ty) * nz / z; z = nz; render();
+  }
+  function open() {
+    view.classList.add('open'); document.body.style.overflow = 'hidden';
+    history.pushState({ still: 1 }, '');
+    if (view.requestFullscreen) view.requestFullscreen().catch(function () {});
+    if (big.complete) fit(); else big.onload = fit;
+  }
+  function shut() {
+    view.classList.remove('open'); document.body.style.overflow = '';
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+  }
+  img.closest('a').addEventListener('click', function (e) { e.preventDefault(); open(); });
+  bar.querySelector('.stillfull').addEventListener('click', open);
+  view.querySelector('button').addEventListener('click', function () { history.back(); });
+  window.addEventListener('popstate', function () { if (view.classList.contains('open')) shut(); });
+  window.addEventListener('resize', function () { if (view.classList.contains('open')) fit(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && view.classList.contains('open') && !document.fullscreenElement) history.back(); });
+  document.addEventListener('fullscreenchange', function () {   // back gesture or Esc leaves full screen: close too
+    if (view.classList.contains('open')) { if (document.fullscreenElement) fit(); else history.back(); }
+  });
+  view.addEventListener('wheel', function (e) { e.preventDefault(); zoomAt(z * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY); }, { passive: false });
+  // On the whole view, not the image, so fingers landing on the surround count too.
+  var pts = {}, last = null, pinch = null, tapT = 0, moved = false;
+  view.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('button')) return;
+    view.setPointerCapture(e.pointerId); pts[e.pointerId] = [e.clientX, e.clientY]; moved = false;
+    var ids = Object.keys(pts);
+    if (ids.length === 2) {
+      var a = pts[ids[0]], b = pts[ids[1]];
+      pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: z }; last = null; moved = true;
+    } else last = pts[e.pointerId];
+  });
+  view.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in pts)) return;
+    pts[e.pointerId] = [e.clientX, e.clientY];
+    var ids = Object.keys(pts);
+    if (pinch && ids.length === 2) {
+      var a = pts[ids[0]], b = pts[ids[1]];
+      zoomAt(pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+    } else if (last) {
+      var p = pts[e.pointerId];
+      if (Math.hypot(p[0] - last[0], p[1] - last[1]) > 3) moved = true;
+      if (moved) { tx += p[0] - last[0]; ty += p[1] - last[1]; last = p; render(); }
+    }
+  });
+  function up(e) {
+    if (!(e.pointerId in pts)) return;
+    delete pts[e.pointerId];
+    if (Object.keys(pts).length < 2) pinch = null;
+    last = null;
+    if (e.type === 'pointerup' && !moved) {   // double tap: zoom in there, or back to fit
+      var now = Date.now();
+      if (now - tapT < 350) { if (z > 1) fit(); else zoomAt(4, e.clientX, e.clientY); tapT = 0; } else tapT = now;
+    }
+  }
+  view.addEventListener('pointerup', up);
+  view.addEventListener('pointercancel', up);
+})();
+</script>
+"""
 
 
 def _story_card(n, title, inner, cap, prov=""):
@@ -429,12 +529,18 @@ def _section(sec):
 
     cards = []
     n = 0
-    still = urls.get("night-still-annotated.jpg") or urls.get("night-still.jpg")
+    # Dark grey outside the arch, the arch untouched (Peter, 2026-11-01); nights
+    # without that render stay on black.
+    dark = urls.get("night-still-annotated-dark.jpg")
+    still = dark or urls.get("night-still-annotated.jpg") or urls.get("night-still.jpg")
     if still:
+        surround = "#404040" if dark else "#000"
         cards.append(_story_card(
             None, "The night held still",
-            f'<a href="{still}"><img src="{still}" '
-            f'alt="the night\'s frames turned about the pole and stacked"></a>',
+            f'<a href="{still}"><img class="stillimg" data-surround="{surround}" src="{still}" '
+            f'alt="the night\'s frames turned about the pole and stacked"></a>'
+            '<div class="stillbar"><button class="stillfull">Full screen</button></div>'
+            + _STILL_VIEWER,
             "The night's frames, each turned about the celestial pole so the "
             "stars stay put, then stacked. The arch is the sky the field swept "
             "out as the Earth turned: evening bottom left, dawn bottom right. "
@@ -3406,7 +3512,7 @@ CAMERA_LABELS = {
     "eclipticam-v3w": "eclipticam v3w",
     "eclipticam-v1": "eclipticam v1",
     "firstscope": "firstscope v1",
-    "xoverpi": "firstscope fshq",
+    "xoverpi": "firstscope hqfs",
     "canon": "canon 2000D",
     "starcam": "starcam v1",
 }
@@ -3523,7 +3629,7 @@ INSTRUMENT_SPECS = {
         },
         "specs": [
             ("Optics", "76 mm Newtonian, spherical primary, f/4"),
-            ("Camera", "Raspberry Pi HQ camera (IMX477), &ldquo;fshq&rdquo;, "
+            ("Camera", "Raspberry Pi HQ camera (IMX477), &ldquo;hqfs&rdquo;, "
                        "lens and IR filter removed, the sensor sits at the "
                        "focuser"),
             ("Computer", "Raspberry Pi 3, cable-tied to the tube"),
@@ -3552,7 +3658,7 @@ INSTRUMENT_SPECS = {
                            "the scope is pointing on the walls: the wall to "
                            "the right is 101cm away, the wall to the left is "
                            "124cm."),
-            ("2026-10-30", "First night with the HQ camera (fshq), and the "
+            ("2026-10-30", "First night with the HQ camera (hqfs), and the "
                            "first published as nightly pages like the other "
                            "cameras."),
         ],

@@ -15,7 +15,7 @@ def test_cameras_use_their_real_names():
     assert _astro().camera_label("eclipticam-v3w") == "eclipticam v3w"
     assert _astro().camera_label("eclipticam-v1") == "eclipticam v1"
     assert _astro().camera_label("astrocam") == "astrocam v3"
-    assert _astro().camera_label("xoverpi") == "firstscope fshq"
+    assert _astro().camera_label("xoverpi") == "firstscope hqfs"
     assert _astro().camera_label("nosuchcam") == "nosuchcam"  # unknown passes through
 
 

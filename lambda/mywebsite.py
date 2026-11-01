@@ -4787,6 +4787,7 @@ def _route_x55(rq):
                          'poster-detrans-deep.jpg',
                          'poster-derot.jpg', 'poster-derot-deep.jpg', 'poster-glow.jpg',
                          'night-still.jpg', 'night-still-annotated.jpg',
+                         'night-still-annotated-dark.jpg',
                          'star-counts.png', 'star-colours.png',
                          'star-crops.jpg',
                          'derot.jpg', 'max.jpg', 'brightness.png',

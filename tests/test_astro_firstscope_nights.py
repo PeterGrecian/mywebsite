@@ -31,7 +31,7 @@ def test_night_routes_exist():
 
 
 def test_stamp_names_the_camera():
-    assert CAMERA_LABELS["xoverpi"] == "firstscope fshq"
+    assert CAMERA_LABELS["xoverpi"] == "firstscope hqfs"
 
 
 def test_results_route_is_the_calendar():
