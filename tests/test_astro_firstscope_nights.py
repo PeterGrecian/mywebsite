@@ -103,3 +103,18 @@ def test_still_swipe_data_is_in_the_page():
     assert items[1]["u"] == "https://s3/own?a=1&b=2"   # the page's own picture
     assert 'data-night="2026-10-31"' in page
     assert 'data-base="/astro/firstscope/night/"' in page
+
+
+def test_still_composite_is_last_in_the_set():
+    import html
+    import json
+    from routes.astro import _section
+    sec = {"summary": {}, "stamp_camera": "xoverpi", "stamp_night": "2026-10-31",
+           "urls": {"night-still-annotated-dark.jpg": "https://s3/own"},
+           "still_base": "/astro/firstscope/night/",
+           "still_nights": [("2026-10-31", "https://s3/own")],
+           "still_composite": "https://s3/composite?a=1&b=2"}
+    page = _section(sec)
+    attr = page.split('data-nights="', 1)[1].split('"', 1)[0]
+    items = json.loads(html.unescape(attr))
+    assert items[-1] == {"n": "all", "u": "https://s3/composite?a=1&b=2", "label": "All nights"}

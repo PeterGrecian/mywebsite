@@ -307,7 +307,9 @@ CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 # Pinch and double tap zoom; the only control is Close, so nothing covers the picture.
 # Swipe sideways for the next or previous night: in the viewer, unzoomed, it swaps the
 # picture and stays full screen, and Close lands on the page of the night being shown;
-# on the page it opens that night's page. A night with no still is skipped.
+# on the page it opens that night's page. A night with no still is skipped. The last
+# in the set is every night on one sky: it has no page of its own, so it opens in the
+# viewer and Close returns to the page you started on.
 _STILL_VIEWER = r"""
 <style>
 .stillbar { display:flex; margin:10px 0 4px; }
@@ -341,6 +343,8 @@ _STILL_VIEWER = r"""
     clearTimeout(dayT); dayT = setTimeout(function () { dayEl.classList.remove('on'); }, 2000);
   }
   function neat(n) {
+    var i = at();
+    if (i >= 0 && nights[i].label) return nights[i].label;
     return new Date(n + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/London' });
   }
   function preload() {   // the neighbours, so a swipe is instant
@@ -374,7 +378,11 @@ _STILL_VIEWER = r"""
     (function attempt(j) {   // same skip as the viewer: only go to a night that has a still
       if (!nights[j]) return;
       var t = new Image();
-      t.onload = function () { location.href = base + nights[j].n; };
+      t.onload = function () {
+        if (!nights[j].label) { location.href = base + nights[j].n; return; }
+        open(); cur = nights[j].n; big.src = nights[j].u;   // no page of its own: the viewer
+        view.style.background = nights[j].s || '#404040'; say(neat(cur));
+      };
       t.onerror = function () { attempt(j + dir); };
       t.src = nights[j].u;
     })(i + dir);
@@ -404,7 +412,8 @@ _STILL_VIEWER = r"""
   function shut() {
     view.classList.remove('open'); document.body.style.overflow = '';
     if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
-    if (cur !== home) location.href = base + cur;   // the page should match the picture
+    var shown = nights[at()];
+    if (cur !== home && shown && !shown.label) location.href = base + cur;   // the page should match the picture
   }
   img.closest('a').addEventListener('click', function (e) { e.preventDefault(); open(); });
   bar.querySelector('.stillfull').addEventListener('click', open);
@@ -497,6 +506,9 @@ def _still_nights_attrs(sec, surround, still):
     around = sec.get("still_nights") or []
     night = sec.get("stamp_night") or ""
     items = [{"n": n, "u": u} for n, u in around]
+    composite = sec.get("still_composite")
+    if composite:
+        items.append({"n": "all", "u": composite, "label": "All nights"})
     for item in items:
         if item["n"] == night:   # the page's own, which may not be the dark render
             item.update(u=still, s=surround)
@@ -628,7 +640,7 @@ def _section(sec):
             "The times show where the centre of the field was at each hour, "
             "London time. The pole and Polaris are placed from a plate solve "
             "of the stars. Swipe the picture sideways for the next or previous "
-            "night.", prov))
+            "night; the last in the set is every night on one sky.", prov))
     for key, poster_key, title, cap in _HERO:
         c = video_card(None, key, poster_key, title, cap)
         if c:

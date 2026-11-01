@@ -4815,6 +4815,10 @@ def _route_x55(rq):
                             f'{s3_cam}/nights/{n}/night-still-annotated-dark.jpg',
                             bucket=ASTRO_BUCKET))
                         for n in order[max(0, i - 30):i + 31]]
+                    # Last in the set, from bin/night-still-composite.
+                    sections[-1]['still_composite'] = get_presigned_url(
+                        f'{s3_cam}/night-still-composite.jpg',
+                        bucket=ASTRO_BUCKET)
     except Exception as e:
         return {'statusCode': 500,
                 'body': f'<p>error: {e}</p>',
