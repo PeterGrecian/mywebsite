@@ -310,6 +310,8 @@ CLEAR_BELOW_STOPS = {"astrocam": 6.0}
 # on the page it opens that night's page. A night with no still is skipped. The last
 # in the set is every night on one sky: it has no page of its own, so it opens in the
 # viewer and Close returns to the page you started on.
+# With a mouse (hover and a fine pointer) there are also buttons, on the page and in
+# the viewer: earlier, later, and all nights (Peter, 2026-11-02). A phone gets none.
 _STILL_VIEWER = r"""
 <style>
 .stillbar { display:flex; margin:10px 0 4px; }
@@ -322,6 +324,16 @@ _STILL_VIEWER = r"""
 .stillview .stillday { position:absolute; top:calc(16px + env(safe-area-inset-top)); left:12px; color:#E0E0E0; font-size:15px; background:rgba(0,0,0,.6); border-radius:8px; padding:4px 10px; opacity:0; transition:opacity .4s; pointer-events:none; }
 .stillview .stillday.on { opacity:1; }
 .stillimg { touch-action:pan-y pinch-zoom; }
+.stillbar .stillnav, .stillview .stillnav { display:none; }
+.stillbar .stillnav { margin-right:6px; }
+.stillview .stillnav { background:rgba(0,0,0,.6); }
+.stillview .stillprev, .stillview .stillnext { top:50%; transform:translateY(-50%); font-size:24px; min-height:64px; }
+.stillview .stillprev { left:8px; right:auto; }
+.stillview .stillnext { right:8px; }
+.stillview .stillall { right:auto; left:50%; transform:translateX(-50%); top:auto; bottom:12px; }
+@media (hover: hover) and (pointer: fine) {
+  .stillbar .stillnav, .stillview .stillnav { display:inline-block; }
+}
 </style>
 <script>
 (function () {
@@ -330,7 +342,10 @@ _STILL_VIEWER = r"""
   var view = document.createElement('div');
   view.className = 'stillview';
   view.style.background = img.dataset.surround || '#000';
-  view.innerHTML = '<img alt=""><div class="stillday"></div><button>Close</button>';
+  view.innerHTML = '<img alt=""><div class="stillday"></div><button class="stillclose">Close</button>'
+    + '<button class="stillnav stillprev" title="earlier night (left arrow)">&lsaquo;</button>'
+    + '<button class="stillnav stillnext" title="later night (right arrow)">&rsaquo;</button>'
+    + '<button class="stillnav stillall">All nights</button>';
   document.body.appendChild(view);
   var big = view.querySelector('img'), f = 1, z = 1, tx = 0, ty = 0;
   big.src = img.src; big.draggable = false;
@@ -374,19 +389,32 @@ _STILL_VIEWER = r"""
     if (sx === null) return;
     var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
     if (Math.abs(dx) < 60 || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
-    var i = at(), dir = dx < 0 ? 1 : -1;
+    pageStep(dx < 0 ? 1 : -1);
+  });
+  function show(j) {   // in the viewer, nights[j], which has loaded
+    cur = nights[j].n; big.src = nights[j].u;
+    view.style.background = nights[j].s || '#404040'; say(neat(cur));
+  }
+  function pageStep(dir) {   // from the page: that night's page, or the viewer for one without
+    var i = at();
     (function attempt(j) {   // same skip as the viewer: only go to a night that has a still
       if (!nights[j]) return;
       var t = new Image();
       t.onload = function () {
         if (!nights[j].label) { location.href = base + nights[j].n; return; }
-        open(); cur = nights[j].n; big.src = nights[j].u;   // no page of its own: the viewer
-        view.style.background = nights[j].s || '#404040'; say(neat(cur));
+        open(); show(j);
       };
       t.onerror = function () { attempt(j + dir); };
       t.src = nights[j].u;
     })(i + dir);
-  });
+  }
+  function allIndex() { for (var i = 0; i < nights.length; i++) if (nights[i].label) return i; return -1; }
+  function showAll() {
+    var j = allIndex();
+    if (j < 0) { say('No all-nights picture yet'); return; }
+    if (!view.classList.contains('open')) open();
+    show(j); preload();
+  }
   function render() {
     var W = view.clientWidth, H = view.clientHeight, s = f * z;
     var w = big.naturalWidth * s, h = big.naturalHeight * s;
@@ -417,7 +445,19 @@ _STILL_VIEWER = r"""
   }
   img.closest('a').addEventListener('click', function (e) { e.preventDefault(); open(); });
   bar.querySelector('.stillfull').addEventListener('click', open);
-  view.querySelector('button').addEventListener('click', function () { history.back(); });
+  var later = allIndex() >= 0;
+  bar.insertAdjacentHTML('afterbegin',
+    '<button class="stillnav" data-d="-1" title="the earlier night\'s page">&lsaquo; Earlier</button>'
+    + '<button class="stillnav" data-d="1" title="the later night\'s page">Later &rsaquo;</button>'
+    + (later ? '<button class="stillnav" data-d="all">All nights</button>' : ''));
+  bar.querySelectorAll('.stillnav').forEach(function (b) {
+    b.addEventListener('click', function () { b.dataset.d === 'all' ? showAll() : pageStep(+b.dataset.d); });
+  });
+  view.querySelector('.stillclose').addEventListener('click', function () { history.back(); });
+  view.querySelector('.stillprev').addEventListener('click', function () { step(-1); });
+  view.querySelector('.stillnext').addEventListener('click', function () { step(1); });
+  var allBtn = view.querySelector('.stillall');
+  if (later) allBtn.addEventListener('click', showAll); else allBtn.remove();
   window.addEventListener('popstate', function () { if (view.classList.contains('open')) shut(); });
   window.addEventListener('resize', function () { if (view.classList.contains('open')) fit(); });
   document.addEventListener('keydown', function (e) {
@@ -639,8 +679,9 @@ def _section(sec):
             "out as the Earth turned: evening bottom left, dawn bottom right. "
             "The times show where the centre of the field was at each hour, "
             "London time. The pole and Polaris are placed from a plate solve "
-            "of the stars. Swipe the picture sideways for the next or previous "
-            "night; the last in the set is every night on one sky.", prov))
+            "of the stars. Swipe the picture sideways (or, with a mouse, use the "
+            "buttons or arrow keys) for the next or previous night; the last in "
+            "the set is every night on one sky.", prov))
     for key, poster_key, title, cap in _HERO:
         c = video_card(None, key, poster_key, title, cap)
         if c:
