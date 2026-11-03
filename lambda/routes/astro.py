@@ -330,7 +330,7 @@ _STILL_VIEWER = r"""
 .stillview .stillprev, .stillview .stillnext { top:50%; transform:translateY(-50%); font-size:24px; min-height:64px; }
 .stillview .stillprev { left:8px; right:auto; }
 .stillview .stillnext { right:8px; }
-.stillview .stillall { right:auto; left:50%; transform:translateX(-50%); top:auto; bottom:12px; }
+.stillview .stillall { right:auto; left:50%; transform:translateX(-50%); }   /* top, level with Close: the bottom is the still's scale bar and caption */
 @media (hover: hover) and (pointer: fine) {
   .stillbar .stillnav, .stillview .stillnav { display:inline-block; }
 }
