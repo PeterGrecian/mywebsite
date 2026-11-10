@@ -4185,6 +4185,12 @@ def _route_x50(rq):
         item_copy['thumb_url'] = (get_presigned_url(item_copy['thumb_key'],
                                                     bucket=ASTRO_BUCKET)
                                   if item_copy.get('thumb_key') else None)
+        # an article entry: a video (image_key is then its poster) and figures
+        item_copy['video_url'] = (get_presigned_url(item_copy['video_key'],
+                                                    bucket=ASTRO_BUCKET)
+                                  if item_copy.get('video_key') else None)
+        item_copy['figures'] = [dict(f, url=get_presigned_url(f['key'], bucket=ASTRO_BUCKET))
+                                for f in (item_copy.get('figures') or []) if f.get('key')]
         prev_item = items[idx - 1] if idx > 0 else None
         next_item = items[idx + 1] if idx + 1 < len(items) else None
         return {

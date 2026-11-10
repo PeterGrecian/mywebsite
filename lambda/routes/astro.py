@@ -2698,7 +2698,9 @@ def transient_category_counts(items):
 
 
 def render_astro_transients(*, theme_css_js, items, counts, selected=None):
-    """Gallery of curated one-off captures.
+    """The Transients list, laid out like Field Notes: one card per entry with
+    its picture, a short intro, and a link to the entry page, which carries the
+    full text, the evidence and (for an article entry) a video and figures.
 
     items: manifest entries (already filtered to `selected`), each with an
         added 'image_url' / 'thumb_url' presigned pair.
@@ -2717,76 +2719,49 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     chips_html = f'<div class="chips">{"".join(chips)}</div>'
 
     if not items:
-        cards_html = ('<p class="empty">Nothing in this category yet.</p>'
-                      if selected else
-                      '<p class="empty">The collection is empty &mdash; '
-                      'publish one with <code>astro/bin/add-transient</code>.</p>')
+        body = ('<p class="empty">Nothing in this category yet.</p>'
+                if selected else
+                '<p class="empty">The collection is empty &mdash; '
+                'publish one with <code>astro/bin/add-transient</code>.</p>')
     else:
         cards = []
         for e in items:
             item_id = e.get("id") or ""
+            href = f"/astro/transients/{item_id}" if item_id else (e.get("image_url") or "")
             thumb = e.get("thumb_url") or e.get("image_url") or ""
-            full = e.get("image_url") or ""
-            item_href = f"/astro/transients/{item_id}" if item_id else full
-            # Meta line: date, clock time if we recorded one, camera.
-            meta = [e.get("date") or ""]
+            meta = [_esc(e.get("date") or "")]
             if e.get("time"):
-                meta.append(e["time"])
+                meta.append(_esc(e["time"]))
             if e.get("camera"):
                 meta.append(_esc(camera_label(e["camera"])))
-            meta_html = " &middot; ".join(x for x in meta if x)
-            caption = e.get("caption") or ""
-            cap_paras = [p.strip() for p in caption.split("\n\n") if p.strip()] if caption else []
-            cap_html = "".join(f'<p class="t-cap">{p}</p>' for p in cap_paras)
-
-            rationale = e.get("rationale") or ""
-            rat_paras = [p.strip() for p in rationale.split("\n\n") if p.strip()] if rationale else []
-            why_paras = "".join(f'<p class="t-why">{p}</p>' for p in rat_paras)
-
-            evidence = [x for x in (e.get("evidence") or []) if x]
-            ev_html = f'<ul class="t-ev">{"".join(f"<li>{x}</li>" for x in evidence)}</ul>' if evidence else ""
-
-            why_html = ""
-            if why_paras or ev_html:
-                why_html = f'<div class="t-reason">{why_paras}{ev_html}</div>'
-            # A missing field reads as "unknown", not as silence: an
-            # unhedged category label claims the classification is settled,
-            # which is exactly what an entry with no confidence has not
-            # established.
+            # A missing confidence reads as "unclassified", not as silence: an
+            # unhedged label claims the classification is settled.
             conf = (e.get("confidence") or "unknown").lower()
-            conf_html = ""
-            if conf and conf != "confirmed":
-                conf_html = (f'<span class="t-conf">'
-                             f'{TRANSIENT_CONFIDENCE.get(conf, conf)}</span>')
-            # A night link only when that night actually has a page.
+            badge = _transient_label(e.get("category") or "other")
+            if conf != "confirmed":
+                badge += f" &middot; {TRANSIENT_CONFIDENCE.get(conf, conf)}"
+            meta.append(f'<span class="n-cat">{badge}</span>')
+            # The intro: the entry's own summary, else its caption's first paragraph.
+            intro = e.get("summary") or next(
+                (q.strip() for q in str(e.get("caption") or "").split("\n\n") if q.strip()), "")
             night_html = ""
-            if e.get("night") and e.get("camera") in (
-                    "astrocam", "eclipticam", "canon"):
-                night_html = (
-                    f'<a class="t-night" '
-                    f'href="/astro/{e["camera"]}/night/{e["night"]}">'
-                    f'night page &rarr;</a>')
-            detail_link = f'<a class="t-view" href="{item_href}">Picture &amp; Analysis &rarr;</a>' if item_id else ''
-            poster = (f'<img src="{thumb}" alt="{e.get("title", "")}" '
-                      f'loading="lazy">' if thumb else
-                      '<div class="no-thumb">no preview</div>')
-            title_text = e.get("title", "")
-            title_html = f'<a class="t-title-link" href="{item_href}">{title_text}</a>' if item_id else title_text
+            if e.get("night") and e.get("camera") in NIGHT_PAGE_CAMERAS:
+                night_html = (f'<a href="/astro/{e["camera"]}/night/{e["night"]}">'
+                              f'night page &rarr;</a>')
+            play = '<span class="n-play">&#9654; video</span>' if e.get("video_key") else ""
+            shot = (f'<a class="n-shot" href="{href}"><img src="{thumb}" '
+                    f'alt="{_esc(e.get("title"))}" loading="lazy">{play}</a>' if thumb else "")
+            title = _esc(e.get("title") or "Untitled")
             cards.append(
-                f'<figure class="t-card">'
-                f'<a class="t-shot" href="{item_href}">{poster}</a>'
-                f'<figcaption>'
-                f'<div class="t-head">'
-                f'<span class="t-title">{title_html}</span>'
-                f'<span class="t-badge">'
-                f'{_transient_label(e.get("category") or "other")}'
-                f'{conf_html}</span>'
-                f'</div>'
-                f'<div class="t-meta">{meta_html}</div>'
-                f'{cap_html}{why_html}'
-                f'<div class="t-links">{night_html}{detail_link}</div>'
-                f'</figcaption></figure>')
-        cards_html = f'<div class="t-grid">{"".join(cards)}</div>'
+                f'<figure class="n-card">{shot}'
+                f'<figcaption class="n-body">'
+                f'<div class="n-title"><a href="{href}">{title}</a></div>'
+                f'<div class="n-meta">{" &middot; ".join(m for m in meta if m)}</div>'
+                f'{_paras(intro, "n-sum", _md_inline)}'
+                f'<div class="n-links">{night_html}'
+                f'<a class="n-read" href="{href}">Read more &rarr;</a>'
+                f'</div></figcaption></figure>')
+        body = f'<div class="n-list">{"".join(cards)}</div>'
 
     heading = ("Transients" if not selected
                else f"Transients &mdash; {_transient_label(selected)}")
@@ -2798,45 +2773,10 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Transients</title>
   {theme_css_js}
-  <style>
-    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
-    .container {{ max-width: 1100px; margin: 0 auto; }}
-    h1 {{ text-align: center; font-size: 1.6rem; margin: 1rem 0 0.2rem; }}
-    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }}
-    .chips {{ display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-bottom: 1.2rem; }}
-    .chip {{ display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px; background: var(--card-bg); color: var(--text-secondary); text-decoration: none; font-size: 0.8rem; }}
-    .chip:hover {{ opacity: 0.85; }}
-    .chip.on {{ color: var(--accent); }}
-    .chip .n {{ opacity: 0.6; font-size: 0.72rem; margin-left: 0.2rem; }}
-    .t-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }}
-    .t-card {{ margin: 0; background: var(--card-bg); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }}
-    .t-shot {{ display: block; background: #000; overflow: hidden; }}
-    .t-shot img {{ width: 100%; height: auto; display: block; transition: transform 0.3s ease; }}
-    .t-shot:hover img {{ transform: scale(1.02); }}
-    .no-thumb {{ color: var(--text-secondary); font-size: 0.85rem; padding: 2rem; text-align: center; }}
-    figcaption {{ padding: 0.75rem 0.85rem 0.85rem; display: flex; flex-direction: column; flex: 1; }}
-    .t-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }}
-    .t-title {{ font-weight: 600; font-size: 0.95rem; }}
-    .t-title-link {{ color: inherit; text-decoration: none; }}
-    .t-title-link:hover {{ color: var(--accent); }}
-    .t-badge {{ color: var(--text-secondary); font-size: 0.7rem; white-space: nowrap; }}
-    .t-meta {{ color: var(--text-secondary); font-size: 0.78rem; margin-top: 0.2rem; }}
-    .t-cap {{ font-size: 0.86rem; color: var(--text, #e0e0e0); line-height: 1.5; margin: 0.45rem 0 0; }}
-    .t-cap + .t-cap {{ margin-top: 0.5rem; }}
-    .t-conf {{ display: block; font-size: 0.66rem; opacity: 0.75; }}
-    .t-reason {{ margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--divider, #2C2C2E); }}
-    .t-why {{ font-size: 0.86rem; color: var(--text, #e0e0e0); line-height: 1.5; margin: 0.3rem 0 0; }}
-    .t-why + .t-why {{ margin-top: 0.5rem; }}
-    .t-ev {{ font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin: 0.35rem 0 0; padding-left: 1.1rem; }}
-    .t-ev li {{ margin-bottom: 0.15rem; }}
-    .t-links {{ display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.78rem; }}
-    .t-night {{ color: var(--accent); text-decoration: none; }}
-    .t-view {{ color: var(--accent); text-decoration: none; font-weight: 500; margin-left: auto; }}
-    .t-view:hover {{ text-decoration: underline; }}
-    .empty {{ text-align: center; color: var(--text-secondary); }}
-    code {{ font-size: 0.85em; }}
-    .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
-    .footer a {{ color: var(--accent); text-decoration: none; }}
+  <style>{NOTES_CSS}
+    .n-shot {{ position: relative; }}
+    .n-play {{ position: absolute; left: 0.5rem; bottom: 0.5rem; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.72rem; border-radius: 6px; padding: 0.15rem 0.45rem; }}
+    .n-cat {{ color: var(--text-secondary); }}
   </style>
 </head>
 <body>
@@ -2844,7 +2784,7 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     <h1>{heading}</h1>
     <div class="subtitle">A collection of short lived events.</div>
     {chips_html}
-    {cards_html}
+    {body}
     <div class="footer"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
@@ -2898,7 +2838,25 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
         all_paras.extend([p.strip() for p in caption.split("\n\n") if p.strip()])
     if rationale:
         all_paras.extend([p.strip() for p in rationale.split("\n\n") if p.strip()])
-    prose_html = "".join(f'<p>{p}</p>' for p in all_paras)
+    prose_html = "".join(f'<p>{_md_inline(p)}</p>' for p in all_paras)
+
+    # An article entry (Fireworks!, 2026-11-05) leads with a video, the image
+    # being its poster, and carries more pictures below the text.
+    video_url = item.get("video_url") or ""
+    if video_url:
+        media_html = (f'<video class="viewer-video" src="{video_url}" poster="{full_url}" '
+                      f'controls autoplay muted loop playsinline preload="auto"></video>')
+    else:
+        media_html = f'''<div class="viewer-media" id="media-zoom-trigger" title="Click for high-resolution zoom">
+          <img src="{full_url}" alt="{title}" fetchpriority="high" />
+        </div>
+        <div class="viewer-hint">&#x1F50D; Click to zoom</div>'''
+    figs_html = "".join(
+        f'<figure class="art-fig"><a href="{f["url"]}"><img src="{f["url"]}" alt="{_esc(f.get("caption"))}" '
+        f'loading="lazy"></a>'
+        + (f'<figcaption>{_md_inline(f["caption"])}</figcaption>' if f.get("caption") else "")
+        + '</figure>'
+        for f in (item.get("figures") or []) if f.get("url"))
 
     ev_block = ""
     if evidence:
@@ -2969,6 +2927,11 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }}
     .viewer-media {{ cursor: zoom-in; display: block; }}
+    .viewer-video {{ width: 100%; height: auto; max-height: 80vh; display: block; margin: 0 auto; background: #000; }}
+    .art-figs {{ display: flex; flex-direction: column; gap: 1.2rem; }}
+    .art-fig {{ margin: 0; background: var(--card-bg, #161616); border: 1px solid var(--divider, #2c2c2e); border-radius: 10px; overflow: hidden; }}
+    .art-fig img {{ width: 100%; height: auto; display: block; }}
+    .art-fig figcaption {{ padding: 0.6rem 0.9rem; font-size: 0.88rem; color: var(--text-secondary, #8e8e93); }}
     .viewer-media img {{
       width: 100%;
       height: auto;
@@ -3087,10 +3050,7 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
 
     <main>
       <div class="viewer-frame">
-        <div class="viewer-media" id="media-zoom-trigger" title="Click for high-resolution zoom">
-          <img src="{full_url}" alt="{title}" fetchpriority="high" />
-        </div>
-        <div class="viewer-hint">&x1F50D; Click to zoom</div>
+        {media_html}
       </div>
 
       <div class="zoom-modal" id="zoom-modal" role="dialog" aria-modal="true">
@@ -3100,6 +3060,7 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
 
       <section class="prose-section">
         {f'<div class="prose-block">{prose_html}</div>' if prose_html else ''}
+        {f'<div class="art-figs">{figs_html}</div>' if figs_html else ''}
         {ev_block}
         {f'<div class="prose-block"><h2>Associated Observing Night</h2>{night_link}</div>' if night_link else ''}
       </section>
