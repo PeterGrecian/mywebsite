@@ -144,6 +144,25 @@ def render_groceries_page(data, *, theme_css_js):
                     f"<td>{_short(got.get('name', '?'), 45)}</td>"
                     f"<td class='num {'warn' if diff > 0 else ''}'>{'+' if diff > 0 else ''}{_gbp(diff) if diff else ''}</td></tr>")
 
+    # --- coupon wallet (Substitute Promise vouchers expire in 2 months) ----
+    wal = data.get("wallet") or {}
+    wrow = []
+    for c in sorted(wal.get("coupons", []), key=lambda c: c["valid_to"]):
+        hot = c.get("status", "ok") != "ok"
+        what = c.get("product") or c.get("detail") or "your shop"
+        wrow.append(f"<tr><td>{escape(c['heading'])}</td><td>{_short(what, 50)}</td>"
+                    f"<td class='num'>{_d(c['valid_to'])}</td>"
+                    f"<td class='{'warn' if hot else 'muted'}'>{escape(c.get('status', ''))}</td></tr>")
+    nec = wal.get("nectar") or {}
+    nec_txt = (f"Nectar: {nec['points']:,} points"
+               + (f" ({_gbp(nec['pounds'])})" if nec.get("pounds") is not None else "")
+               if nec.get("points") is not None else "Nectar balance not read")
+    wallet_html = ("" if not wal else f"""
+<h2>Coupon wallet</h2>
+<div class='card'>{'<table><tr><th>Coupon</th><th>On</th><th class="num">Valid to</th><th></th></tr>' + ''.join(wrow) + '</table>' if wrow else "<p class='muted'>No coupons in the wallet.</p>"}
+<p class='muted small'>{escape(nec_txt)}. Read {escape(wal.get('read', '?').replace('T', ' '))}; next delivery {_d(wal['next_delivery']) if wal.get('next_delivery') else '?'}. Apply coupons at checkout: they expire.</p></div>
+""")
+
     # --- staples ---------------------------------------------------------
     strow = "".join(
         f"<tr><td>{_short(r['name'])}</td><td class='num'>{r['share']:.0%}</td>"
@@ -155,6 +174,7 @@ def render_groceries_page(data, *, theme_css_js):
 <p class='muted'>Sainsbury's, KT5. Last delivery {_d(last['date'])}; built {_d(data['generated'])}.</p>
 
 {pend_html}
+{wallet_html}
 <h2>{due_title}</h2>
 <div class='chips'>{chips}</div>
 
