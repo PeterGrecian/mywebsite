@@ -715,6 +715,18 @@ def _section(sec):
             "As focus improves, and on good nights, the blue bars creep to the "
             "right.", prov))
     for key, title, alt, cap in (
+            ("sky-labelled.jpg", "What is in the deep sky",
+             "the deep sky with the Milky Way's plane and bright stars marked",
+             "One frame of the deep sky above, the one with the most of the "
+             "Milky Way in view, with the plane of the galaxy drawn in orange "
+             "(the thin lines are 10&deg; either side) and the bright stars named. "
+             "Both are placed by the night's own fit of the lens to the stars."),
+            ("hq16-in-v3w.jpg", "Where HQ16 points",
+             "the wide view with the HQ16's narrow field outlined in yellow",
+             "The v3 Wide's view near midnight, with the narrow field of the HQ "
+             "camera and 16 mm lens outlined in yellow, from a plate solve of "
+             "its own stars. The outline bends because the wide lens curves "
+             "the edges of its view."),
             ("star-colours.png", "The colours of the stars",
              "our colour of each star against Gaia's",
              "Each star's colour as measured here, against the colour Gaia "

@@ -4796,6 +4796,7 @@ def _route_x55(rq):
                          'night-still-annotated-dark.jpg',
                          'star-counts.png', 'star-colours.png',
                          'star-crops.jpg',
+                         'sky-labelled.jpg', 'hq16-in-v3w.jpg',
                          'derot.jpg', 'max.jpg', 'brightness.png',
                          'thumb.jpg'):
                 if base in names:
