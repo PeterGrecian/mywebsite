@@ -169,3 +169,29 @@ class TestRenderPiFleetPage:
                 break
         else:
             pytest.fail("Local IP label not found")
+
+    def test_click_to_expand_detail_modal(self, pi_fleet, helpers):
+        """Clicking a card opens a modal containing full untruncated fields."""
+        pis = [_make_pi(
+            "deskpi",
+            cpu_model="Raspberry Pi Model A Plus Rev 1.1",
+            os_version="Raspbian GNU/Linux 13 (trixie)",
+            expected_app="cloud-init-init, gpioviz",
+            description="SD card image builder and GPIO visualizer",
+            notes="Pi Model A+ with 240MB RAM, ARMv6, running Trixie",
+            hardware_serial="0000000083bdc328",
+            sd_cid="035344534c3038478028f5686000eb75",
+            memory_used_mb=90,
+            memory_total_mb=221,
+        )]
+        html = pi_fleet.render_pi_fleet_page(pis, **helpers)
+        assert 'onclick="openPiModal(this)"' in html
+        assert 'id="pi-modal"' in html
+        assert 'class="pi-detail-tpl"' in html
+        assert "Raspberry Pi Model A Plus Rev 1.1" in html
+        assert "Raspbian GNU/Linux 13 (trixie)" in html
+        assert "SD card image builder and GPIO visualizer" in html
+        assert "Pi Model A+ with 240MB RAM, ARMv6, running Trixie" in html
+        assert "0000000083bdc328" in html
+        assert "035344534c3038478028f5686000eb75" in html
+        assert "90 / 221 MB" in html

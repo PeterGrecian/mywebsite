@@ -1,5 +1,6 @@
 """Pi Fleet dashboard route handler."""
 
+import html as _html
 import os
 
 _TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
@@ -88,8 +89,137 @@ def _short_model(model):
     )
 
 
+def _detail_row(label, value, full=False):
+    if value is None or value == "" or value == "unknown" or value == "Unknown":
+        return ""
+    cls = "detail-item detail-span" if full else "detail-item"
+    return (
+        f'<div class="{cls}">'
+        f'<div class="detail-label">{_html.escape(str(label))}</div>'
+        f'<div class="detail-value">{_html.escape(str(value))}</div>'
+        f'</div>'
+    )
+
+
+def _render_detail_modal_body(
+    pi, *, is_online, status_class, status_text, net_badge, app_name,
+    uptime, last_seen_str, cpu, mem, disk, mem_display, disk_display,
+    cpu_cls, mem_cls, disk_cls, card_id
+):
+    """Build untruncated HTML for the click-to-expand detail popup card."""
+    hostname = _html.escape(str(pi.get('hostname', 'unknown')))
+    local_ip = str(pi.get('local_ip', 'unknown'))
+    raw_model = pi.get('cpu_model', 'Unknown')
+    raw_os = pi.get('os_version', 'Unknown')
+    description = pi.get('description', '')
+    notes = pi.get('notes', '')
+
+    mem_used_mb = int(round(_num(pi.get('memory_used_mb', 0))))
+    mem_total_mb = int(round(_num(pi.get('memory_total_mb', 0))))
+    mem_detail = (
+        f"{mem}% ({mem_used_mb} / {mem_total_mb} MB)"
+        if mem_total_mb > 0 else f"{mem}%"
+    )
+
+    disk_used_gb = int(round(_num(pi.get('disk_used_gb', 0))))
+    disk_total_gb = int(round(_num(pi.get('disk_total_gb', 0))))
+    disk_detail = (
+        f"{disk}% ({disk_used_gb} / {disk_total_gb} GB)"
+        if disk_total_gb > 0 else f"{disk}%"
+    )
+
+    desc_html = (
+        f'<div class="detail-desc">{_html.escape(str(description))}</div>'
+        if description else ''
+    )
+
+    metrics_html = ''
+    if is_online:
+        metrics_html = f'''
+        <div class="detail-metrics">
+            <div class="metric">
+                <div class="metric-value {cpu_cls}">{cpu}%</div>
+                <div class="metric-bar"><div class="metric-fill {cpu_cls}" style="width: {min(cpu, 100)}%;"></div></div>
+                <div class="metric-label">CPU</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value {mem_cls}">{mem_detail}</div>
+                <div class="metric-bar"><div class="metric-fill {mem_cls}" style="width: {min(mem, 100)}%;"></div></div>
+                <div class="metric-label">Memory</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value {disk_cls}">{disk_detail}</div>
+                <div class="metric-bar"><div class="metric-fill {disk_cls}" style="width: {min(disk, 100)}%;"></div></div>
+                <div class="metric-label">Disk</div>
+            </div>
+        </div>
+        '''
+
+    rows = [
+        _detail_row("Local IP", local_ip),
+        _detail_row("App", app_name),
+        _detail_row("Uptime", uptime),
+        _detail_row("Last Seen", f"{last_seen_str} ({pi.get('last_seen', '')})"),
+        _detail_row("Model", raw_model, full=True),
+        _detail_row("OS", raw_os, full=True),
+    ]
+    if pi.get('wifi_interface'):
+        rows.append(_detail_row("WiFi", pi.get('wifi_interface'), full=True))
+    if pi.get('tunnel_active'):
+        bastion = pi.get('bastion_host', 'homepi')
+        rows.append(_detail_row("SSH Tunnel", f"Active — Port {pi.get('tunnel_port', 0)} via {bastion}", full=True))
+    elif pi.get('tunnel_port') and str(pi.get('bastion_host', 'none')) not in ('none', 'unknown', ''):
+        rows.append(_detail_row("SSH Tunnel", f"Inactive (port {pi.get('tunnel_port')})", full=False))
+    if card_id and card_id != 'unknown' and card_id != pi.get('hostname'):
+        rows.append(_detail_row("Card ID", card_id))
+    if pi.get('board_revision'):
+        rows.append(_detail_row("Board Rev", pi.get('board_revision')))
+    if pi.get('hardware_serial'):
+        rows.append(_detail_row("HW Serial", pi.get('hardware_serial')))
+    if pi.get('sd_cid'):
+        rows.append(_detail_row("SD CID", pi.get('sd_cid'), full=True))
+    if pi.get('boot_time'):
+        rows.append(_detail_row("Boot Time", pi.get('boot_time'), full=True))
+    if notes:
+        rows.append(_detail_row("Notes", notes, full=True))
+
+    extra_html = ''
+    boot_progress = pi.get('boot_progress') or pi.get('stage')
+    if boot_progress and str(boot_progress).startswith('boot'):
+        message = pi.get('message', 'Provisioning in progress...')
+        extra_html += f'''
+        <div class="boot-progress">
+            <strong>\U0001f504 Boot Progress:</strong> {_html.escape(str(boot_progress))} &mdash; {_html.escape(str(message))}
+        </div>
+        '''
+    error = pi.get('error')
+    if error:
+        extra_html += f'''
+        <div class="error-box">
+            <strong>\u26a0\ufe0f Error:</strong> {_html.escape(str(error))}
+        </div>
+        '''
+
+    return f'''
+        <div class="detail-header">
+            <div class="pi-title-group">
+                <div class="detail-hostname">{hostname}</div>
+                {net_badge}
+                <div class="pi-status {status_class}">{status_text} &bull; {last_seen_str}</div>
+            </div>
+            <button type="button" class="detail-close" onclick="closePiModal()" aria-label="Close">&times;</button>
+        </div>
+        {desc_html}
+        {metrics_html}
+        <div class="detail-grid">
+            {''.join(r for r in rows if r)}
+        </div>
+        {extra_html}
+    '''
+
+
 def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs):
-    """Build compact HTML for a single fleet host card."""
+    """Build compact HTML for a single fleet host card, with click-to-expand detail template."""
     hostname = pi.get('hostname', 'unknown')
     status_class = 'status-online' if is_online else 'status-offline'
     status_text = 'Online' if is_online else 'Offline'
@@ -136,9 +266,10 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
     disk_cls = _usage_class(disk)
 
     card_offline_cls = '' if is_online else ' pi-card-offline'
+    safe_host_attr = _html.escape(str(hostname), quote=True)
 
     html = f'''
-    <div class="pi-card{card_offline_cls}">
+    <div class="pi-card{card_offline_cls}" data-hostname="{safe_host_attr}" tabindex="0" role="button" aria-label="View details for {safe_host_attr}" onclick="openPiModal(this)" onkeydown="if(event.key==='Enter'||event.key===' '){{event.preventDefault();openPiModal(this);}}">
         <div class="pi-header">
             <div class="pi-title-group">
                 <div class="pi-hostname">{hostname}</div>
@@ -240,6 +371,26 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
         </div>
         '''
 
+    detail_body = _render_detail_modal_body(
+        pi,
+        is_online=is_online,
+        status_class=status_class,
+        status_text=status_text,
+        net_badge=net_badge,
+        app_name=app_name,
+        uptime=uptime,
+        last_seen_str=last_seen_str,
+        cpu=cpu,
+        mem=mem,
+        disk=disk,
+        mem_display=mem_display,
+        disk_display=disk_display,
+        cpu_cls=cpu_cls,
+        mem_cls=mem_cls,
+        disk_cls=disk_cls,
+        card_id=card_id,
+    )
+    html += f'<template class="pi-detail-tpl">{detail_body}</template>'
     html += '</div>'
     return html
 

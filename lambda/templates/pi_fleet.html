@@ -28,10 +28,11 @@
 
     /* Compact card grid tuned for half-width (~600-950px) full-height viewports */
     .pi-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 0.5rem; }}
-    .pi-card {{ background: var(--card-bg); border-radius: 10px; padding: 0.55rem 0.7rem; border: 1px solid var(--divider); display: flex; flex-direction: column; gap: 0.35rem; }}
+    .pi-card {{ background: var(--card-bg); border-radius: 10px; padding: 0.55rem 0.7rem; border: 1px solid var(--divider); display: flex; flex-direction: column; gap: 0.35rem; cursor: pointer; transition: border-color 0.15s; }}
+    .pi-card:hover, .pi-card:focus-visible {{ border-color: var(--accent); outline: none; }}
     .pi-card-offline {{ border-color: rgba(255,59,48,0.45); }}
     .pi-header {{ display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.3rem; border-bottom: 1px solid var(--divider); gap: 0.35rem; }}
-    .pi-title-group {{ display: flex; align-items: center; gap: 0.35rem; min-width: 0; }}
+    .pi-title-group {{ display: flex; align-items: center; gap: 0.35rem; min-width: 0; flex-wrap: wrap; }}
     .pi-hostname {{ font-size: 0.92rem; font-weight: 700; color: var(--text); white-space: nowrap; }}
     .net-badge {{ font-size: 0.62rem; font-weight: 600; padding: 0.08rem 0.35rem; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.02em; }}
     .net-tailnet {{ background: rgba(0,122,255,0.18); color: var(--accent); }}
@@ -64,7 +65,25 @@
     .error-box {{ padding: 0.35rem 0.5rem; background: rgba(255,59,48,0.15); border-left: 3px solid var(--error); border-radius: 4px; font-size: 0.72rem; color: var(--error); }}
     .empty-state {{ background: var(--card-bg); border-radius: 10px; padding: 2rem; text-align: center; border: 1px solid var(--divider); }}
     .empty-state h2 {{ color: var(--text-secondary); }}
-    @media (max-width: 440px) {{ .pi-grid {{ grid-template-columns: 1fr; }} }}
+
+    /* Click-to-expand detail modal */
+    .pi-modal-backdrop {{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }}
+    .pi-modal-backdrop.open {{ display: flex; }}
+    .pi-modal-card {{ background: var(--card-bg); border: 1px solid var(--accent); border-radius: 12px; padding: 1.1rem 1.25rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }}
+    .detail-header {{ display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 1px solid var(--divider); gap: 0.5rem; }}
+    .detail-hostname {{ font-size: 1.25rem; font-weight: 700; color: var(--text); }}
+    .detail-close {{ background: transparent; border: 1px solid var(--divider); color: var(--text-secondary); border-radius: 8px; width: 2rem; height: 2rem; font-size: 1.25rem; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }}
+    .detail-close:hover {{ color: var(--text); border-color: var(--text-secondary); }}
+    .detail-desc {{ font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; }}
+    .detail-metrics {{ display: flex; gap: 0.75rem; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--divider); border-radius: 10px; }}
+    .detail-metrics .metric-value {{ font-size: 0.95rem; white-space: normal; }}
+    .detail-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; }}
+    .detail-item {{ display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }}
+    .detail-span {{ grid-column: 1 / -1; }}
+    .detail-label {{ color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; font-weight: 500; }}
+    .detail-value {{ color: var(--text); font-size: 0.88rem; font-weight: 600; white-space: normal; word-break: break-word; line-height: 1.35; }}
+
+    @media (max-width: 440px) {{ .pi-grid {{ grid-template-columns: 1fr; }} .detail-grid {{ grid-template-columns: 1fr; }} }}
 </style>
 {theme_css_js}
 </head>
@@ -113,10 +132,47 @@
     {cards_html}
 </div>
 
+<div id="pi-modal" class="pi-modal-backdrop" onclick="if(event.target===this)closePiModal()">
+    <div id="pi-modal-content" class="pi-modal-card" role="dialog" aria-modal="true"></div>
+</div>
+
 <script>
-    // Auto-refresh with countdown
     let secondsLeft = 30;
     const countdownEl = document.getElementById('countdown');
+    const modalEl = document.getElementById('pi-modal');
+    const modalContentEl = document.getElementById('pi-modal-content');
+
+    function openPiModal(cardEl) {{
+        const tpl = cardEl.querySelector('.pi-detail-tpl');
+        if (!tpl) return;
+        modalContentEl.innerHTML = tpl.innerHTML;
+        modalEl.classList.add('open');
+        const host = cardEl.getAttribute('data-hostname');
+        if (host) {{
+            try {{ sessionStorage.setItem('piFleetOpenHost', host); }} catch (e) {{}}
+        }}
+    }}
+
+    function closePiModal() {{
+        modalEl.classList.remove('open');
+        modalContentEl.innerHTML = '';
+        try {{ sessionStorage.removeItem('piFleetOpenHost'); }} catch (e) {{}}
+    }}
+
+    document.addEventListener('keydown', function(e) {{
+        if (e.key === 'Escape' && modalEl.classList.contains('open')) {{
+            closePiModal();
+        }}
+    }});
+
+    // Restore open modal across auto-refresh
+    try {{
+        const savedHost = sessionStorage.getItem('piFleetOpenHost');
+        if (savedHost) {{
+            const card = document.querySelector(`.pi-card[data-hostname="${{CSS.escape(savedHost)}}"]`);
+            if (card) openPiModal(card);
+        }}
+    }} catch (e) {{}}
 
     function updateCountdown() {{
         countdownEl.textContent = `refresh in ${{secondsLeft}}s`;
@@ -127,10 +183,7 @@
         }}
     }}
 
-    // Update immediately
     updateCountdown();
-
-    // Update every second
     setInterval(updateCountdown, 1000);
 </script>
 </body>
