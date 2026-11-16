@@ -10,8 +10,86 @@ def _load_template(name):
         return f.read()
 
 
+def _num(val, default=0.0):
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _fmt_cap_mb(mb, format_to_sigfigs):
+    mb = _num(mb, 0)
+    if mb <= 0:
+        return ""
+    if mb < 1024:
+        val = format_to_sigfigs(mb, 3)
+        if isinstance(val, float) and val.is_integer():
+            val = int(val)
+        return f"{val}M"
+    val = format_to_sigfigs(mb / 1024, 3)
+    if isinstance(val, float) and val.is_integer():
+        val = int(val)
+    return f"{val}G"
+
+
+def _fmt_cap_gb(gb, format_to_sigfigs):
+    gb = _num(gb, 0)
+    if gb <= 0:
+        return ""
+    if gb < 1:
+        val = format_to_sigfigs(gb * 1024, 3)
+        if isinstance(val, float) and val.is_integer():
+            val = int(val)
+        return f"{val}M"
+    val = format_to_sigfigs(gb, 3)
+    if isinstance(val, float) and val.is_integer():
+        val = int(val)
+    return f"{val}G"
+
+
+def _usage_class(pct):
+    p = _num(pct, 0)
+    if p >= 85:
+        return "metric-crit"
+    if p >= 70:
+        return "metric-warn"
+    return ""
+
+
+def _net_badge(ip):
+    if not ip or ip == "unknown":
+        return ""
+    if ip.startswith("100."):
+        return '<span class="net-badge net-tailnet">tailnet</span>'
+    if ip.startswith("10."):
+        return '<span class="net-badge net-vcn">vcn</span>'
+    return ""
+
+
+def _short_os(os_ver):
+    if not os_ver or os_ver == "Unknown":
+        return "Unknown"
+    return (
+        os_ver.replace("GNU/Linux ", "")
+        .replace("Raspbian ", "Debian ")
+        .replace(" LTS", "")
+    )
+
+
+def _short_model(model):
+    if not model or model == "Unknown":
+        return "Unknown"
+    return (
+        model.replace("Raspberry Pi ", "Pi ")
+        .replace(" Model ", " ")
+        .replace(" Plus", "+")
+        .replace("11th Gen Intel(R) Core(TM) ", "Intel ")
+        .replace(" Processor", "")
+    )
+
+
 def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs):
-    """Build HTML for a single Pi card."""
+    """Build compact HTML for a single fleet host card."""
     hostname = pi.get('hostname', 'unknown')
     status_class = 'status-online' if is_online else 'status-offline'
     status_text = 'Online' if is_online else 'Offline'
@@ -25,110 +103,48 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
         else:
             card_id = 'unknown'
 
-    local_ip = pi.get('local_ip', 'unknown')
+    local_ip = str(pi.get('local_ip', 'unknown'))
+    expected_app = pi.get('expected_app')
     app_name = pi.get('app_name', 'unknown')
-    if app_name == 'unknown':
-        app_name = pi.get('expected_app', 'unknown')
-    uptime = format_uptime(pi.get('uptime_seconds', 0))
+    if expected_app and expected_app != 'unknown':
+        app_name = expected_app
+    elif app_name == 'unknown' and expected_app:
+        app_name = expected_app
 
-    cpu = pi.get('cpu_percent', 0)
-    mem = pi.get('memory_percent', 0)
-    disk = pi.get('disk_percent', 0)
+    uptime = format_uptime(int(_num(pi.get('uptime_seconds', 0))))
 
-    # Format memory with total
-    mem_total_mb = pi.get('memory_total_mb', 0)
-    if mem_total_mb > 0:
-        if mem_total_mb < 1024:
-            val = format_to_sigfigs(mem_total_mb, 3)
-            if isinstance(val, float) and val.is_integer():
-                val = int(val)
-            mem_display = f"{mem}%<br><span style='font-size: 0.7em; opacity: 0.8;'>of {val}M</span>"
-        else:
-            val = format_to_sigfigs(mem_total_mb / 1024, 3)
-            if isinstance(val, float) and val.is_integer():
-                val = int(val)
-            mem_display = f"{mem}%<br><span style='font-size: 0.7em; opacity: 0.8;'>of {val}G</span>"
-    else:
-        mem_display = f"{mem}%"
+    cpu = int(round(_num(pi.get('cpu_percent', 0))))
+    mem = int(round(_num(pi.get('memory_percent', 0))))
+    disk = int(round(_num(pi.get('disk_percent', 0))))
 
-    # Format disk with total
-    disk_total_gb = pi.get('disk_total_gb', 0)
-    if disk_total_gb > 0:
-        if disk_total_gb < 1:
-            val = format_to_sigfigs(disk_total_gb * 1024, 3)
-            if isinstance(val, float) and val.is_integer():
-                val = int(val)
-            disk_display = f"{disk}%<br><span style='font-size: 0.7em; opacity: 0.8;'>of {val}M</span>"
-        else:
-            val = format_to_sigfigs(disk_total_gb, 3)
-            if isinstance(val, float) and val.is_integer():
-                val = int(val)
-            disk_display = f"{disk}%<br><span style='font-size: 0.7em; opacity: 0.8;'>of {val}G</span>"
-    else:
-        disk_display = f"{disk}%"
+    mem_cap = _fmt_cap_mb(pi.get('memory_total_mb', 0), format_to_sigfigs)
+    mem_display = f"{mem}% <span class='metric-sub'>of {mem_cap}</span>" if mem_cap else f"{mem}%"
+
+    disk_cap = _fmt_cap_gb(pi.get('disk_total_gb', 0), format_to_sigfigs)
+    disk_display = f"{disk}% <span class='metric-sub'>of {disk_cap}</span>" if disk_cap else f"{disk}%"
 
     last_seen_str = format_age(pi.get('last_seen', 'Never'))
+    net_badge = _net_badge(local_ip)
+
+    raw_model = pi.get('cpu_model', 'Unknown')
+    short_model = _short_model(raw_model)
+    raw_os = pi.get('os_version', 'Unknown')
+    short_os = _short_os(raw_os)
+
+    cpu_cls = _usage_class(cpu)
+    mem_cls = _usage_class(mem)
+    disk_cls = _usage_class(disk)
+
+    card_offline_cls = '' if is_online else ' pi-card-offline'
 
     html = f'''
-    <div class="pi-card">
+    <div class="pi-card{card_offline_cls}">
         <div class="pi-header">
-            <div class="pi-hostname">{hostname}</div>
-            <div class="pi-status {status_class}">{status_text}</div>
-        </div>
-
-        <div class="pi-info">
-            <div class="info-item">
-                <div class="info-label">Model</div>
-                <div class="info-value" style="font-size: 0.75em;">{pi.get('cpu_model', 'Unknown')}</div>
+            <div class="pi-title-group">
+                <div class="pi-hostname">{hostname}</div>
+                {net_badge}
             </div>
-            <div class="info-item">
-                <div class="info-label">Card ID</div>
-                <div class="info-value">{card_id}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Local IP</div>
-                <div class="info-value">{local_ip}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">App</div>
-                <div class="info-value">{app_name}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Uptime</div>
-                <div class="info-value">{uptime}</div>
-            </div>
-            <div class="info-item" style="grid-column: 1 / -1;">
-                <div class="info-label">OS</div>
-                <div class="info-value" style="font-size: 0.75em;">{pi.get('os_version', 'Unknown')}</div>
-            </div>
-    '''
-
-    if pi.get('wifi_interface'):
-        html += f'''
-            <div class="info-item" style="grid-column: 1 / -1;">
-                <div class="info-label">WiFi</div>
-                <div class="info-value" style="font-size: 0.75em;">{pi.get('wifi_interface')}</div>
-            </div>
-        '''
-
-    tunnel_active = pi.get('tunnel_active', False)
-    if tunnel_active:
-        html += f'''
-            <div class="info-item">
-                <div class="info-label">SSH Tunnel</div>
-                <div class="info-value">Port {pi.get('tunnel_port', 0)}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Bastion</div>
-                <div class="info-value">{pi.get('bastion_host', 'unknown')}</div>
-            </div>
-        '''
-
-    html += f'''
-            <div class="info-item" style="grid-column: 1 / -1;">
-                <div class="info-label">Last Seen</div>
-                <div class="info-value">{last_seen_str}</div>
-            </div>
+            <div class="pi-status {status_class}" title="Last seen {last_seen_str}">{status_text} &bull; {last_seen_str}</div>
         </div>
     '''
 
@@ -136,27 +152,83 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
         html += f'''
         <div class="metrics">
             <div class="metric">
-                <div class="metric-value">{cpu}%</div>
+                <div class="metric-value {cpu_cls}">{cpu}%</div>
+                <div class="metric-bar"><div class="metric-fill {cpu_cls}" style="width: {min(cpu, 100)}%;"></div></div>
                 <div class="metric-label">CPU</div>
             </div>
             <div class="metric">
-                <div class="metric-value">{mem_display}</div>
+                <div class="metric-value {mem_cls}">{mem_display}</div>
+                <div class="metric-bar"><div class="metric-fill {mem_cls}" style="width: {min(mem, 100)}%;"></div></div>
                 <div class="metric-label">Memory</div>
             </div>
             <div class="metric">
-                <div class="metric-value">{disk_display}</div>
+                <div class="metric-value {disk_cls}">{disk_display}</div>
+                <div class="metric-bar"><div class="metric-fill {disk_cls}" style="width: {min(disk, 100)}%;"></div></div>
                 <div class="metric-label">Disk</div>
             </div>
         </div>
         '''
+
+    # Keep "Local IP" followed by the value on the next line for resolve-host's _pifleet parser
+    html += f'''
+        <div class="pi-info">
+            <div class="info-item">
+                <div class="info-label">Local IP</div>
+                <div class="info-value">{local_ip}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Uptime</div>
+                <div class="info-value">{uptime}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">App</div>
+                <div class="info-value" title="{app_name}">{app_name}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">OS</div>
+                <div class="info-value" title="{raw_os}">{short_os}</div>
+            </div>
+            <div class="info-item info-span-row">
+                <div class="info-label">Model</div>
+                <div class="info-value" title="{raw_model}">{short_model}</div>
+            </div>
+    '''
+
+    if card_id and card_id != 'unknown' and card_id != hostname:
+        html += f'''
+            <div class="info-item">
+                <div class="info-label">Card</div>
+                <div class="info-value">{card_id}</div>
+            </div>
+        '''
+
+    if pi.get('wifi_interface'):
+        wifi = pi.get('wifi_interface')
+        html += f'''
+            <div class="info-item">
+                <div class="info-label">WiFi</div>
+                <div class="info-value" title="{wifi}">{wifi}</div>
+            </div>
+        '''
+
+    tunnel_active = pi.get('tunnel_active', False)
+    if tunnel_active:
+        bastion = pi.get('bastion_host', 'homepi')
+        html += f'''
+            <div class="info-item info-span-row">
+                <div class="info-label">SSH Tunnel</div>
+                <div class="info-value">Port {pi.get('tunnel_port', 0)} ({bastion})</div>
+            </div>
+        '''
+
+    html += '</div>'
 
     boot_progress = pi.get('boot_progress') or pi.get('stage')
     if boot_progress and boot_progress.startswith('boot'):
         message = pi.get('message', 'Provisioning in progress...')
         html += f'''
         <div class="boot-progress">
-            <strong>\U0001f504 Boot Progress:</strong> {boot_progress}<br>
-            {message}
+            <strong>\U0001f504 Boot Progress:</strong> {boot_progress} &mdash; {message}
         </div>
         '''
 
@@ -164,8 +236,7 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
     if error:
         html += f'''
         <div class="error-box">
-            <strong>\u26a0\ufe0f Error:</strong><br>
-            {error[:200]}{'...' if len(error) > 200 else ''}
+            <strong>\u26a0\ufe0f Error:</strong> {error[:200]}{'...' if len(error) > 200 else ''}
         </div>
         '''
 
@@ -173,11 +244,109 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
     return html
 
 
+def _compute_fleet_stats(pis, *, is_pi_online, format_uptime):
+    """Aggregate fleet-wide metrics for the summary pane."""
+    online_pis = [p for p in pis if is_pi_online(p.get('last_seen'))]
+    active = online_pis if online_pis else pis
+
+    if not active:
+        return {
+            "avg_cpu": "0%",
+            "cpu_sub": "no hosts",
+            "mem_summary": "0%",
+            "mem_sub": "0 / 0 GB",
+            "disk_summary": "0%",
+            "disk_sub": "0 / 0 GB",
+            "uptime_summary": "—",
+            "uptime_sub": "no hosts",
+            "topology_sub": "0 LAN · 0 cloud",
+        }
+
+    # CPU stats
+    cpus = [(int(round(_num(p.get('cpu_percent', 0)))), p.get('hostname', '?')) for p in active]
+    avg_cpu = int(round(sum(c for c, _ in cpus) / len(cpus)))
+    max_cpu, max_cpu_host = max(cpus, key=lambda x: x[0])
+    cpu_sub = f"max {max_cpu}% ({max_cpu_host})"
+
+    # Memory stats (aggregate across fleet)
+    mem_total_mb = sum(_num(p.get('memory_total_mb', 0)) for p in active)
+    mem_used_mb = sum(
+        _num(p.get('memory_used_mb'), _num(p.get('memory_total_mb', 0)) * _num(p.get('memory_percent', 0)) / 100.0)
+        for p in active
+    )
+    mem_pcts = [(int(round(_num(p.get('memory_percent', 0)))), p.get('hostname', '?')) for p in active]
+    max_mem, max_mem_host = max(mem_pcts, key=lambda x: x[0])
+    if mem_total_mb > 0:
+        fleet_mem_pct = int(round(100.0 * mem_used_mb / mem_total_mb))
+        mem_summary = f"{fleet_mem_pct}%"
+        mem_sub = f"{mem_used_mb / 1024:.1f}/{mem_total_mb / 1024:.1f}G · max {max_mem}% ({max_mem_host})"
+    else:
+        avg_mem = int(round(sum(m for m, _ in mem_pcts) / len(mem_pcts)))
+        mem_summary = f"{avg_mem}%"
+        mem_sub = f"max {max_mem}% ({max_mem_host})"
+
+    # Disk stats (aggregate across fleet)
+    disk_total_gb = sum(_num(p.get('disk_total_gb', 0)) for p in active)
+    disk_used_gb = sum(
+        _num(p.get('disk_used_gb'), _num(p.get('disk_total_gb', 0)) * _num(p.get('disk_percent', 0)) / 100.0)
+        for p in active
+    )
+    disk_pcts = [(int(round(_num(p.get('disk_percent', 0)))), p.get('hostname', '?')) for p in active]
+    max_disk, max_disk_host = max(disk_pcts, key=lambda x: x[0])
+    if disk_total_gb > 0:
+        fleet_disk_pct = int(round(100.0 * disk_used_gb / disk_total_gb))
+        disk_summary = f"{fleet_disk_pct}%"
+        disk_sub = f"{int(round(disk_used_gb))}/{int(round(disk_total_gb))}G · max {max_disk}% ({max_disk_host})"
+    else:
+        avg_disk = int(round(sum(d for d, _ in disk_pcts) / len(disk_pcts)))
+        disk_summary = f"{avg_disk}%"
+        disk_sub = f"max {max_disk}% ({max_disk_host})"
+
+    # Uptime stats (shortest = most recent boot, longest = most stable)
+    uptimes = [
+        (int(_num(p.get('uptime_seconds', 0))), p.get('hostname', '?'))
+        for p in active
+        if _num(p.get('uptime_seconds', 0)) > 0
+    ]
+    if uptimes:
+        min_up, min_up_host = min(uptimes, key=lambda x: x[0])
+        max_up, max_up_host = max(uptimes, key=lambda x: x[0])
+        uptime_summary = format_uptime(min_up)
+        uptime_sub = f"newest: {min_up_host} · max {format_uptime(max_up)} ({max_up_host})"
+    else:
+        uptime_summary = "—"
+        uptime_sub = "unknown"
+
+    # Topology & tunnels
+    cloud_count = sum(
+        1 for p in pis
+        if str(p.get('local_ip', '')).startswith(('100.', '10.'))
+    )
+    lan_count = len(pis) - cloud_count
+    tunnels = sum(1 for p in active if p.get('tunnel_active'))
+    topology_sub = f"{lan_count} LAN · {cloud_count} cloud · {tunnels} tun"
+
+    return {
+        "avg_cpu": f"{avg_cpu}%",
+        "cpu_sub": cpu_sub,
+        "mem_summary": mem_summary,
+        "mem_sub": mem_sub,
+        "disk_summary": disk_summary,
+        "disk_sub": disk_sub,
+        "uptime_summary": uptime_summary,
+        "uptime_sub": uptime_sub,
+        "topology_sub": topology_sub,
+    }
+
+
 def render_pi_fleet_page(pis, *, is_pi_online, format_uptime, format_age,
                          format_to_sigfigs, theme_css_js):
     """Render the Pi Fleet dashboard HTML."""
     online_count = sum(1 for pi in pis if is_pi_online(pi.get('last_seen')))
     offline_count = len(pis) - online_count
+    stats = _compute_fleet_stats(
+        pis, is_pi_online=is_pi_online, format_uptime=format_uptime
+    )
 
     if not pis:
         cards_html = '''
@@ -206,4 +375,5 @@ def render_pi_fleet_page(pis, *, is_pi_online, format_uptime, format_age,
         offline_count=offline_count,
         total_count=len(pis),
         cards_html=cards_html,
+        **stats,
     )

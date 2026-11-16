@@ -135,3 +135,37 @@ class TestRenderPiFleetPage:
     def test_auto_refresh_script(self, pi_fleet, helpers):
         html = pi_fleet.render_pi_fleet_page([], **helpers)
         assert "setInterval(updateCountdown" in html
+
+    def test_summary_extended_stats(self, pi_fleet, helpers):
+        pis = [
+            _make_pi("homepi", cpu_percent=10, memory_percent=20, memory_total_mb=8192,
+                     disk_percent=50, disk_total_gb=32, uptime_seconds=86400 * 10, local_ip="192.168.0.53"),
+            _make_pi("ora", cpu_percent=30, memory_percent=40, memory_total_mb=12288,
+                     disk_percent=25, disk_total_gb=96, uptime_seconds=86400 * 2, local_ip="100.114.55.123"),
+            _make_pi("q", cpu_percent=5, memory_percent=30, memory_total_mb=1024,
+                     disk_percent=20, disk_total_gb=46, uptime_seconds=86400 * 5, local_ip="10.42.2.10"),
+        ]
+        html = pi_fleet.render_pi_fleet_page(pis, **helpers)
+        assert "Avg CPU" in html
+        assert "15%" in html
+        assert "max 30% (ora)" in html
+        assert "Fleet RAM" in html
+        assert "Fleet Disk" in html
+        assert "Min Uptime" in html
+        assert "newest: ora" in html
+        assert "1 LAN · 2 cloud" in html
+        assert "tailnet" in html
+        assert "vcn" in html
+
+    def test_resolve_host_html_compatibility(self, pi_fleet, helpers):
+        """Ensure resolve-host's _pifleet awk scraper still finds Local IP on the line after its label."""
+        pis = [_make_pi("astrocam", local_ip="192.168.0.67")]
+        html = pi_fleet.render_pi_fleet_page(pis, **helpers)
+        lines = [line.strip() for line in html.splitlines()]
+        assert any('pi-hostname' in line and '>astrocam<' in line for line in lines)
+        for i, line in enumerate(lines[:-1]):
+            if "Local IP" in line:
+                assert "192.168.0.67" in lines[i + 1]
+                break
+        else:
+            pytest.fail("Local IP label not found")
