@@ -3206,8 +3206,10 @@ NOTES_CSS = '''
     .chip:hover { opacity: 0.85; }
     .chip.on { color: var(--accent); }
     .chip .n { opacity: 0.6; font-size: 0.72rem; margin-left: 0.2rem; }
-    .n-list { display: flex; flex-direction: column; gap: 1rem; }
-    .n-card { margin: 0; background: var(--card-bg); border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); }
+    .n-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+    .n-card { margin: 0; background: var(--card-bg); border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); grid-column: 1 / -1; }
+    .n-card.n-text { grid-template-columns: minmax(0, 1fr); }
+    .n-card.n-half { grid-column: auto; }
     .n-shot { display: block; background: #000; overflow: hidden; }
     .n-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .n-body { padding: 0.85rem 1rem 0.95rem; display: flex; flex-direction: column; }
@@ -3227,7 +3229,7 @@ NOTES_CSS = '''
     code { font-size: 0.85em; }
     .footer { text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }
     .footer a { color: var(--accent); text-decoration: none; }
-    @media (max-width: 620px) { .n-card { grid-template-columns: 1fr; } .n-shot img { height: auto; } }
+    @media (max-width: 620px) { .n-list { grid-template-columns: 1fr; } .n-card { grid-template-columns: 1fr; } .n-shot img { height: auto; } }
 '''
 
 
@@ -3255,8 +3257,24 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
                 '<code>astro/notes/</code> and publish it with '
                 '<code>astro/bin/add-note</code>.</p>')
     else:
+        # A note with a picture takes a full row (picture left, text right).
+        # A note without one takes half a row, so two of them sit side by
+        # side, but only two in the same `series:` (or two in none): a lone
+        # text note at a series boundary takes the full row rather than
+        # splitting a pair. The manifest already keeps a series together.
+        text = [not e.get("thumb_url") for e in items]
+        half = [False] * len(items)
+        i = 0
+        while i < len(items):
+            if (i + 1 < len(items) and text[i] and text[i + 1]
+                    and (items[i].get("series") or "") == (items[i + 1].get("series") or "")):
+                half[i] = half[i + 1] = True
+                i += 2
+            else:
+                i += 1
         cards = []
-        for e in items:
+        for k, e in enumerate(items):
+            cls = "n-card" + (" n-text" if text[k] else "") + (" n-half" if half[k] else "")
             note_id = e.get("id") or ""
             href = f"/astro/notes/{note_id}" if note_id else ""
             thumb = e.get("thumb_url") or ""
@@ -3284,12 +3302,14 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
                     f'loading="lazy"></a>' if thumb else "")
             title = _esc(e.get("title") or "Untitled")
             title_html = f'<a href="{href}">{title}</a>' if href else title
+            sub = (f'<div class="n-sum">{_esc(e["subtitle"])}</div>'
+                   if e.get("subtitle") and not e.get("summary") else "")
             cards.append(
-                f'<figure class="n-card">{shot}'
+                f'<figure class="{cls}">{shot}'
                 f'<figcaption class="n-body">'
                 f'<div class="n-title">{title_html}</div>'
                 f'<div class="n-meta">{meta}</div>{shot_prov}'
-                f'{_paras(e.get("summary"), "n-sum", _md_inline)}'
+                f'{_paras(e.get("summary"), "n-sum", _md_inline)}{sub}'
                 f'{tags_html}'
                 f'<div class="n-links">{night_html}'
                 f'<a class="n-read" href="{href}">Read the note &rarr;</a>'
