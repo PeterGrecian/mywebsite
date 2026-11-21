@@ -172,7 +172,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
 <body>
   <div class="container">
     <h1>Too much light pollution for amateur astronomy where you live? Think again!</h1>
-    <div class="subtitle">And you can do it cheaply, without standing around outside</div>
+    <div class="subtitle">You can do it cheaply, without standing around outside</div>
     {trails}
     <p>Astrophotography advice starts with &ldquo;find a dark site&rdquo;. I live in leafy
     suburban south-west London; however, Heathrow and the M25/M4 motorways cause significant

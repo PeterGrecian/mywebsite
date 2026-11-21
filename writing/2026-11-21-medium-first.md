@@ -1,6 +1,6 @@
 # Too much light pollution for amateur astronomy where you live? Think again!
 
-*And you can do it cheaply, without standing around outside*
+*You can do it cheaply, without standing around outside*
 
 ![medium-startrails.jpg](medium-startrails.jpg)
 *One clear night over a London suburb, 7-8 October 2026: 662 one-minute
