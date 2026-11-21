@@ -15,7 +15,7 @@ while I sleep.
 
 ## A live project with daily updates
 
-Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
+Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
 ![medium-deep.jpg](medium-deep.jpg)
 *The same night with the sky's rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.*
@@ -23,22 +23,15 @@ Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.u
 ![medium-detail.jpg](medium-detail.jpg)
 *Detail of the Milky Way band from the stack above, enlarged two times.*
 
+## Results so far
+
+- **18.1 mag/arcsec²**: the brightness of the sky here, measured by comparing what I see with published catalogues.
+- **662 one-minute frames** in a single night, captured, stacked and published completely unattended. That is my record so far, and it will grow as the nights get longer.
+- **Stars down to magnitude 9.7** in one night's stack, far below what the eye can see from the garden.
+- **8 cameras** so far, from a £25 Pi camera to a Canon DSLR and a tabletop telescope.
+
 ## What next
 
-I am in the process of tidying the results: I think the proof-of-concept phase is complete, and I am now consolidating what I have. It has been quite a journey, and there is loads more I could show and explain. I have actually used 8 cameras now, and that is quite a story.
+The proof of concept is done, and I am now consolidating what I have. The next goal is the month-long stack: one picture built from every clear night in a month. Later posts will take the cameras, the computers and the software one at a time.
 
-Is there something that particularly interests you: the different cameras, the computer kit, the software or the observations? I can prioritise that part of the website.
-
-I am really looking forward to what I am going to see next. This has been something of a taster article: if you are interested in more, then join me on the next stage.
-
-## Where it stands
-
-A single night's stack already reaches stars around magnitude 9.7 near the
-pole, from a garden where you can see perhaps a few dozen by eye. The
-month-long stack is next.
-
-Every night's results are public, clear or cloudy:
-[www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium)
-
-If you are imaging from a city on a budget, I would love to hear what you are
-trying.
+A city sky is not a dead end. It just asks for patience and software. Every night's results go up each morning at [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium).
