@@ -185,40 +185,10 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     {deep}
     {detail}
 
-    <h2>The kit</h2>
-    <ul>
-      <li>Small Pi cameras on Raspberry Pis, in the garden and at a window, aimed near the
-      celestial pole</li>
-      <li>A home server that stacks each night's frames the next morning</li>
-      <li>Photos, stacks and a nightly &ldquo;how dark was it&rdquo; chart published on
-      this website</li>
-    </ul>
-
-    <h2>What the sky taught me first</h2>
-    <ul>
-      <li><b>Cloud is brighter than twilight here.</b> Low cloud lit from below by the town
-      outshines dusk, so my software was first picking the &ldquo;darkest&rdquo; part of the
-      night inside the evening twilight. It now looks only after the Sun is 18 degrees
-      down.</li>
-      <li><b>The stars turn.</b> Over a night everything rotates around the pole, so frames
-      must be de-rotated before they can be added. Across a month it is harder still,
-      because the cameras get nudged and the lens distortion has to be modelled.</li>
-      <li><b>A good night is worth recording.</b> I keep one clear July night as my
-      reference for how dark this sky can get, and every night since is charted against
-      it.</li>
-      <li><b>Hardware has opinions.</b> A month of frames is about half a terabyte, and my
-      stacking server once cut out because its fan had stopped and its CPU reached 97 C in
-      seconds.</li>
-    </ul>
-
-    <h2>Where it stands</h2>
-    <p>A single night's stack already reaches stars around magnitude 9.7 near the pole,
-    from a garden where you can see perhaps a few dozen by eye. The month-long stack is
-    next.</p>
-    <p>Every night's results are public, clear or cloudy, from the
-    <a href="/astro">Astro</a> page.</p>
-    <p>If you are imaging from a city on a budget, I would love to hear what you are
-    trying.</p>
+    <h2>What next</h2>
+    <p>I am in the process of tidying the results: I think the proof-of-concept phase is complete, and I am now consolidating what I have. It has been quite a journey, and there is loads more I could show and explain. I have actually used eight cameras now, and that is quite a story.</p>
+    <p>Is there something that particularly interests you: the different cameras, the computer kit, the software or the observations? I can prioritise that part of the website.</p>
+    <p>I am really looking forward to what I am going to see next, and you can join me on the adventure.</p>
 
     <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
