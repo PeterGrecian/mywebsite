@@ -13,14 +13,12 @@ constant sky glow. I also want to DIY as much as I can, and to spend money only 
 a dark sky, I can have a long one. The cameras run every night on their own
 while I sleep.
 
-## The idea: a long time baseline
+## A live project with daily updates
 
-A single exposure here is short, 12 to 60 seconds, before the town's glow
-fills it. But a camera that stays pointed at the same patch of sky every clear
-night for a month collects hundreds of hours of light. Stack all of it and the
-faint things the glow hides, one night at a time, start to show.
+Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
-The goal is one picture, made from a month of nights.
+![medium-deep.jpg](medium-deep.jpg)
+*The same night with the sky's rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.*
 
 ## The kit
 
@@ -49,9 +47,6 @@ The goal is one picture, made from a month of nights.
 
 ## Where it stands
 
-![medium-deep.jpg](medium-deep.jpg)
-*The same night with the sky's rotation removed and the frames stacked: far
-more stars than the orange glow lets you see by eye.*
 
 A single night's stack already reaches stars around magnitude 9.7 near the
 pole, from a garden where you can see perhaps a few dozen by eye. The
