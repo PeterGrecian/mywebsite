@@ -142,7 +142,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     trails = fig(startrails_url, "Star trails circling the pole over a London suburb",
                  "One clear night over a London suburb, 7-8 October 2026: "
                  "662 one-minute frames from a &pound;25 camera, combined into one picture. "
-                 "As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft.")
+                 "As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft. The field of view is about 75 by 42 degrees.")
     deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
                "The same night with the sky\'s rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.")
     detail = fig(detail_url, "Close-up of the Milky Way band with dark dust lanes",
@@ -186,9 +186,9 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     {detail}
 
     <h2>What next</h2>
-    <p>I am in the process of tidying the results: I think the proof-of-concept phase is complete, and I am now consolidating what I have. It has been quite a journey, and there is loads more I could show and explain. I have actually used eight cameras now, and that is quite a story.</p>
+    <p>I am in the process of tidying the results: I think the proof-of-concept phase is complete, and I am now consolidating what I have. It has been quite a journey, and there is loads more I could show and explain. I have actually used 8 cameras now, and that is quite a story.</p>
     <p>Is there something that particularly interests you: the different cameras, the computer kit, the software or the observations? I can prioritise that part of the website.</p>
-    <p>I am really looking forward to what I am going to see next, and you can join me on the adventure.</p>
+    <p>I am really looking forward to what I am going to see next. This has been something of a taster article: if you are interested in more, then join me on the next stage.</p>
 
     <h2>Where it stands</h2>
     <p>A single night's stack already reaches stars around magnitude 9.7 near the pole,
