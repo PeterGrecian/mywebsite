@@ -8,8 +8,8 @@ frames from a £25 camera, combined into one picture.*
 
 Astrophotography advice starts with "find a dark site". I live in leafy
 suburban south-west London; however, Heathrow and the M25/M4 motorways cause
-significant light pollution. Local street and house lights add to the
-constant sky glow. So I have set out to see what I can see: if I cannot have
+significant light pollution, and local street and house lights add to the
+constant sky glow. I also want to DIY as much as I can, and to spend money only where necessary. So I have set out to see what I can see: if I cannot have
 a dark sky, I can have a long one. The cameras run every night on their own
 while I sleep.
 
