@@ -6088,6 +6088,32 @@ def _route_ytpods_refresh(rq):
     every minute, recompiles and re-uploads ytpods/index.html. Debounced: a
     marker under 60 s old is left alone, so repeated clicks cost nothing.
     """
+    bad = _ytpods_post_guard(rq)
+    if bad:
+        return bad
+    key = 'ytpods/refresh-request'
+    now = datetime.now(timezone.utc)
+    s3 = s3_client()
+    try:
+        last = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)['LastModified']
+        fresh = (now - last).total_seconds() < 60
+    except Exception:
+        fresh = False
+    if not fresh:
+        ip = (rq.headers.get('X-Forwarded-For') or rq.headers.get('x-forwarded-for') or '').split(',')[0].strip()
+        s3.put_object(Bucket=GARDENCAM_BUCKET, Key=key,
+                      Body=json.dumps({'t': int(now.timestamp()), 'ip': ip,
+                                       'seen': _ytpods_ids((_ytpods_json(rq, 64 * 1024) or {}).get('seen'))}).encode(),
+                      ContentType='application/json')
+    return {'statusCode': 202, 'body': '{"ok": true}',
+            'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}}
+
+
+_YT_ID = re.compile(r'[A-Za-z0-9_-]{11}')
+
+
+def _ytpods_post_guard(rq):
+    """401 without the house password, 405 for anything but POST, else None."""
     event = rq.event
     if not check_basic_auth(event, GARDENCAM_PASSWORD):
         return {
@@ -6103,21 +6129,110 @@ def _route_ytpods_refresh(rq):
         return {'statusCode': 405, 'body': '{"ok": false}',
                 'headers': {'Content-Type': 'application/json', 'Allow': 'POST',
                             'Cache-Control': 'no-store'}}
-    key = 'ytpods/refresh-request'
-    now = datetime.now(timezone.utc)
+    return None
+
+
+def _ytpods_json(rq, limit):
+    """The POST body as a dict, or None if it is too big or not a JSON object."""
+    body = rq.event.get('body') or ''
+    try:
+        raw = base64.b64decode(body) if rq.event.get('isBase64Encoded') else body.encode('utf-8')
+        if len(raw) > limit:
+            return None
+        data = json.loads(raw.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _ytpods_ok(status=202):
+    return {'statusCode': status, 'body': '{"ok": true}' if status < 400 else '{"ok": false}',
+            'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}}
+
+
+def _ytpods_ids(v, cap=500):
+    """Valid YouTube video ids from a list, deduplicated, at most `cap`."""
+    if not isinstance(v, list):
+        return []
+    return list(dict.fromkeys(i for i in v if isinstance(i, str) and _YT_ID.fullmatch(i)))[:cap]
+
+
+def _route_ytpods_read(rq):
+    """POST {"seen": [videoId, ...], "t": ms}: union the ids into ytpods/seen.json.
+
+    The page beacons a single id when one is read and its whole localStorage
+    set (<= 500) on every open, so this is a set union and a no-op when nothing
+    is new. ytpods' compile on pip reads and rewrites the same object (also a
+    union), so a race between the two can only lose ids the page will resend.
+    """
+    bad = _ytpods_post_guard(rq)
+    if bad:
+        return bad
+    data = _ytpods_json(rq, 64 * 1024)
+    if data is None:
+        return _ytpods_ok(400)
+    ids = _ytpods_ids(data.get('seen'))
+    if not ids:
+        return _ytpods_ok()
+    key = 'ytpods/seen.json'
     s3 = s3_client()
     try:
-        last = s3.head_object(Bucket=GARDENCAM_BUCKET, Key=key)['LastModified']
-        fresh = (now - last).total_seconds() < 60
-    except Exception:
-        fresh = False
-    if not fresh:
-        ip = (rq.headers.get('X-Forwarded-For') or rq.headers.get('x-forwarded-for') or '').split(',')[0].strip()
+        stored = json.loads(s3.get_object(Bucket=GARDENCAM_BUCKET, Key=key)['Body'].read())
+    except s3.exceptions.NoSuchKey:
+        stored = []
+    except Exception as e:   # never overwrite the set with a partial one
+        print(f'ytpods seen.json read failed: {e}')
+        return _ytpods_ok(503)
+    if not isinstance(stored, list):
+        print('ytpods seen.json is not a list; leaving it alone')
+        return _ytpods_ok(503)
+    have = set(stored)
+    new = [i for i in ids if i not in have]
+    if new:
         s3.put_object(Bucket=GARDENCAM_BUCKET, Key=key,
-                      Body=json.dumps({'t': int(now.timestamp()), 'ip': ip}).encode(),
+                      Body=json.dumps(sorted(have | set(new)), indent=1).encode(),
+                      ContentType='application/json', CacheControl='no-store')
+    return _ytpods_ok()
+
+
+def _route_ytpods_rate(rq):
+    """POST {"ratings": {videoId: {"funny": 1-5, "bait": "yes"|"no", "t": ms}}}.
+
+    Each valid entry overwrites ytpods/ratings/<id>.json with {funny?, bait?, t};
+    ytpods' compile syncs that prefix. The page resends every rating on every
+    open, so an entry whose stored t equals the sent t is skipped.
+    """
+    bad = _ytpods_post_guard(rq)
+    if bad:
+        return bad
+    data = _ytpods_json(rq, 32 * 1024)
+    if data is None or not isinstance(data.get('ratings'), dict):
+        return _ytpods_ok(400)
+    s3 = s3_client()
+    for vid, r in list(data['ratings'].items())[:200]:
+        if not (isinstance(vid, str) and _YT_ID.fullmatch(vid) and isinstance(r, dict)):
+            continue
+        t = r.get('t')
+        if not isinstance(t, int) or isinstance(t, bool):
+            continue
+        out = {}
+        f = r.get('funny')
+        if isinstance(f, int) and not isinstance(f, bool) and 1 <= f <= 5:
+            out['funny'] = f
+        if r.get('bait') in ('yes', 'no'):
+            out['bait'] = r['bait']
+        if not out:
+            continue
+        out['t'] = t
+        key = f'ytpods/ratings/{vid}.json'
+        try:
+            if json.loads(s3.get_object(Bucket=GARDENCAM_BUCKET, Key=key)['Body'].read()).get('t') == t:
+                continue
+        except Exception:
+            pass
+        s3.put_object(Bucket=GARDENCAM_BUCKET, Key=key, Body=json.dumps(out).encode(),
                       ContentType='application/json')
-    return {'statusCode': 202, 'body': '{"ok": true}',
-            'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}}
+    return _ytpods_ok()
 
 
 _YTPODS_ASSETS = {
@@ -6234,6 +6349,8 @@ _ROUTES_EXACT = {
     '/groceries': _route_groceries,
     '/ytpods': _route_ytpods,
     '/ytpods/refresh': _route_ytpods_refresh,
+    '/ytpods/read': _route_ytpods_read,
+    '/ytpods/rate': _route_ytpods_rate,
     '/ytpods/radio': _route_ytpods_radio,
     '/ytpods/manifest.webmanifest': _route_ytpods_asset,
     '/ytpods/icon-192.png': _route_ytpods_asset,
