@@ -171,11 +171,11 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
     <h1>Too much light pollution for amateur astronomy where you live? Think again!</h1>
     <div class="subtitle">And you can do it cheaply, without standing around outside</div>
     {trails}
-    <p>Astrophotography advice starts with &ldquo;find a dark site&rdquo;. I live in suburban
-    London, where the sky glows orange, there are trees and house lights in the way, and I
-    have a budget closer to a Raspberry Pi than a remote observatory. So I am trying the
-    other way round: if I cannot have a dark sky, I can have a long one. And I do not have
-    to be out there: the cameras run every night on their own while I sleep.</p>
+    <p>Astrophotography advice starts with &ldquo;find a dark site&rdquo;. I live in leafy
+    suburban south-west London; however, Heathrow and the M25/M4 motorways cause significant
+    light pollution. Local street and house lights add to the constant sky glow. So I have
+    set out to see what I can see: if I cannot have a dark sky, I can have a long one. The
+    cameras run every night on their own while I sleep.</p>
 
     <h2>The idea: a long time baseline</h2>
     <p>A single exposure here is short, 12 to 60 seconds, before the town's glow fills it.
