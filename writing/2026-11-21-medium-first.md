@@ -4,12 +4,12 @@
 
 ![medium-startrails.jpg](medium-startrails.jpg)
 *One clear night over a London suburb, 7-8 October 2026: 662 one-minute
-frames from a £25 camera, combined into one picture.*
+frames from a £25 camera, combined into one picture. As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft.*
 
 Astrophotography advice starts with "find a dark site". I live in leafy
 suburban south-west London; however, Heathrow and the M25/M4 motorways cause
 significant light pollution, and local street and house lights add to the
-constant sky glow. I also want to DIY as much as I can, and to spend money only where necessary. So I have set out to see what I can see: if I cannot have
+constant sky glow. I also want to DIY as much as I can, and to spend money only where necessary. So back in the spring of 2026 I set out to see what I can see: if I cannot have
 a dark sky, I can have a long one. The cameras run every night on their own
 while I sleep.
 

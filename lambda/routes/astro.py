@@ -140,7 +140,8 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
 
     trails = fig(startrails_url, "Star trails circling the pole over a London suburb",
                  "One clear night over a London suburb, 7-8 October 2026: "
-                 "662 one-minute frames from a &pound;25 camera, combined into one picture.")
+                 "662 one-minute frames from a &pound;25 camera, combined into one picture. "
+                 "As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft.")
     deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
                "The same night with the sky's rotation removed and the frames "
                "stacked: far more stars than the orange glow lets you see by eye.")
@@ -173,7 +174,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
     {trails}
     <p>Astrophotography advice starts with &ldquo;find a dark site&rdquo;. I live in leafy
     suburban south-west London; however, Heathrow and the M25/M4 motorways cause significant
-    light pollution, and local street and house lights add to the constant sky glow. I also want to DIY as much as I can, and to spend money only where necessary. So I have
+    light pollution, and local street and house lights add to the constant sky glow. I also want to DIY as much as I can, and to spend money only where necessary. So back in the spring of 2026 I
     set out to see what I can see: if I cannot have a dark sky, I can have a long one. The
     cameras run every night on their own while I sleep.</p>
 
