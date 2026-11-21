@@ -6460,6 +6460,30 @@ _UNLOGGED_ROUTES = frozenset({
 })
 
 
+# Everything kept off the public /contents answers only to the password. The
+# flags in site-contents.json are navigation and enforce nothing, so this set is
+# the enforcement. It holds handlers, not paths, so every URL form that resolves
+# to one (stage prefix, subpath) is covered. Deliberately out: /pi-fleet (public
+# by decision) and /gotg/manifest.json (Chrome fetches a manifest without
+# credentials, so a locked one could not install). /rcr and /us-vs-the-machines
+# only redirect to their own Lambda URLs: this hides the link, not those apps.
+_PASSWORD_ROUTES = frozenset({
+    _route_cv,
+    _route_gotg,
+    _route_lambda_stats,
+    _route_lambda_stats_data,
+    _route_manim,
+    _route_rcr,
+    _route_site_test,
+    _route_springcam,
+    _route_springcam_fullres,
+    _route_springcam_gallery,
+    _route_springcam_play,
+    _route_springcam_videos,
+    _route_us_vs_the_machines,
+})
+
+
 def _resolve_route(route):
     """The route -> handler lookup. Returns None for an unclaimed path (404)."""
     handler = _ROUTES_EXACT.get(route)
@@ -6687,8 +6711,19 @@ def _dispatch(event, context):
     else:
         if handler not in _UNLOGGED_ROUTES:
             log_connection(event, context)
+        if handler in _PASSWORD_ROUTES and not check_basic_auth(event, GARDENCAM_PASSWORD):
+            return {
+                'statusCode': 401,
+                'body': '<html><body><h1>401 Unauthorized</h1></body></html>',
+                'headers': {'Content-Type': 'text/html',
+                            'Cache-Control': 'no-store',
+                            'WWW-Authenticate': 'Basic realm="petergrecian.co.uk"'},
+            }
         result = handler(rq)
         if isinstance(result, dict):     # handler built a complete response
+            if handler in _PASSWORD_ROUTES:
+                result = {**result, 'headers': {**(result.get('headers') or {}),
+                                                'Cache-Control': 'no-store'}}
             return result
         html += result                   # handler returned HTML for the epilogue
 
@@ -6711,6 +6746,8 @@ def _dispatch(event, context):
     resp_headers = {'Content-Type': 'text/html; charset=utf-8'}
     if status_code == 404:
         resp_headers['Cache-Control'] = 'public, max-age=300'
+    elif handler in _PASSWORD_ROUTES:
+        resp_headers['Cache-Control'] = 'no-store'
 
     return {
         'statusCode': status_code,
