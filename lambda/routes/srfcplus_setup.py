@@ -13,7 +13,7 @@ def render_srfcplus_setup_page(message=None, success=False):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRFC Plus — Setup</title>
+  <title>SRFC Plus: Setup</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {{ font-family: "Quicksand","Open Sans",Verdana,Arial,sans-serif; font-size:13px; background:#f5f7fa; color:#333; margin:0; }}
@@ -41,7 +41,7 @@ def render_srfcplus_setup_page(message=None, success=False):
     <a href="/contents">petergrecian.co.uk</a>
   </nav>
   <div class="container">
-    <h2 style="color:#23408f;margin-bottom:1.5rem;">SRFC Plus — Session Setup</h2>
+    <h2 style="color:#23408f;margin-bottom:1.5rem;">SRFC Plus: Session Setup</h2>
     {msg_html}
     <div class="panel">
       <div class="panel-heading">Portal Session Cookie</div>
@@ -55,7 +55,7 @@ def render_srfcplus_setup_page(message=None, success=False):
             <strong>www.mysurbitonracketfitness.com</strong>.<br>
             Copy <code>ASP.NET_SessionId</code> and <code>.ASPXAUTH</code> and paste as:<br>
             <code>ASP.NET_SessionId=abc123; .ASPXAUTH=xyz...</code><br>
-            Saved securely in AWS SSM — works from all devices.
+            Saved securely in AWS SSM: works from all devices.
           </p>
           <button type="submit" class="btn">Save Cookie</button>
         </form>

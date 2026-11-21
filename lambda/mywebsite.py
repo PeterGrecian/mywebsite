@@ -80,7 +80,7 @@ FAVICON_TAGS = f'''<link rel="icon" type="image/svg+xml" href="data:image/svg+xm
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/favicon.png">'''
 
-# Shared iOS theme CSS + JS — included in every page's <head>
+# Shared iOS theme CSS + JS: included in every page's <head>
 THEME_CSS_JS = FAVICON_TAGS + '''\n<script>
 (function(){
   var s=localStorage.getItem('theme');
@@ -179,7 +179,7 @@ _SSM_CLIENTS = {}
 
 
 def ssm_client(region=None):
-    """Cached SSM client, one per region — the sibling of s3_client().
+    """Cached SSM client, one per region: the sibling of s3_client().
 
     Same lesson, different service: boto3.client() costs ~0.14s (fresh
     Session, re-parse of the service model), and this module used to build
@@ -210,7 +210,7 @@ def get_parameters(parameter_names):
 
     SSM's GetParameters takes up to 10 names per call, so the cold-start set
     is one round trip rather than one per secret. Names that don't exist (or
-    that the role can't read) are simply absent from the result — callers
+    that the role can't read) are simply absent from the result: callers
     already treat a missing secret as "feature unavailable", so this keeps
     the same failure shape as the old per-parameter version.
     """
@@ -251,17 +251,17 @@ def get_parameter(parameter_name):
 SRFCPLUS_COOKIE_PARAM = '/srfcplus/session_cookie'
 
 # glacier-app: private archive contents page. Everything is private by
-# default (glacier-app DESIGN.md) — Basic Auth in front of the whole route.
+# default (glacier-app DESIGN.md): Basic Auth in front of the whole route.
 GLACIER_PARAMETER_NAME = "/glacier-app/page-password"
 GLACIER_BUCKET = "glacier-app-archive"
 GLACIER_REGION = "eu-west-2"
 GLACIER_PREFIX = "users/peter/"
 
-# calendaralarm webapp — Basic Auth in front of the whole /calendaralarm route.
+# calendaralarm webapp: Basic Auth in front of the whole /calendaralarm route.
 CALENDARALARM_PARAMETER_NAME = "/calendaralarm/page-password"
 
 # Initialize parameters from Parameter Store on cold start (FREE!).
-# ONE GetParameters call for all four — this used to be four get_parameter()
+# ONE GetParameters call for all four; this used to be four get_parameter()
 # calls, each building its own boto3 client (~0.14s apiece) and making its
 # own round trip, on every cold start of every route including /robots.txt.
 _COLD_START_PARAMS = get_parameters([
@@ -316,7 +316,7 @@ _DYNAMODB_RESOURCES = {}
 
 
 def dynamodb_resource(region=None):
-    """Cached DynamoDB resource, one per region — sibling of s3_client().
+    """Cached DynamoDB resource, one per region: sibling of s3_client().
 
     Same lesson a third time: boto3.resource() builds a fresh Session and
     re-parses the service model, and log_connection built one on EVERY
@@ -335,7 +335,7 @@ def log_connection(event, context):
     """Log connection details to DynamoDB.
 
     Called AFTER routing, and not at all for static assets or unclaimed
-    paths — see _UNLOGGED_ROUTES. CloudWatch still gets an access line for
+    paths: see _UNLOGGED_ROUTES. CloudWatch still gets an access line for
     every request via _access_log(), so nothing becomes invisible; this
     only decides which requests are worth a billed DynamoDB write.
     """
@@ -412,7 +412,7 @@ def parse_timestamp_from_key(key):
     """Extract UTC timestamp from filename and convert to Europe/London local time.
 
     Filenames prior to 2026-04-11 were written in local time; newer ones are UTC.
-    We apply BST conversion to all — for old files this double-counts during BST,
+    We apply BST conversion to all: for old files this double-counts during BST,
     but new files will be correct. Old images scroll off within days.
     """
     try:
@@ -1067,7 +1067,7 @@ def _date_from_key(key):
     The path layout wins when present. get_skycam_images_for_date() selects
     by folder prefix, so a frame written into skycam/2026/04/19/ with a
     post-midnight filename (sky_20260420_...) belongs to the 19th as far as
-    the gallery is concerned — there is one such frame in April 2026.
+    the gallery is concerned; there is one such frame in April 2026.
     Counting it on the 20th would make the month view disagree by one with
     the day page it links to.
     """
@@ -1079,7 +1079,7 @@ def _camera_period_prefixes(camera, period):
     """S3 bucket + key prefixes covering a whole period for one camera.
 
     period is 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD'. These are exactly the
-    prefixes the per-date lookups use, truncated — so the set of objects
+    prefixes the per-date lookups use, truncated, so the set of objects
     covered is identical, just gathered in one listing instead of per day.
     """
     parts = period.split('-')
@@ -1105,7 +1105,7 @@ def find_latest_objects(camera, min_count, day_probe=7, months_back=24):
     1. A few small per-day listings. An active camera stops on the first or
        second, which is what the old per-camera code optimised for.
     2. Then a month at a time. The old code instead probed 60 *days* and,
-       finding nothing, fell back to scanning the camera's whole prefix —
+       finding nothing, fell back to scanning the camera's whole prefix,
        so a dormant camera hit the worst case on every single request.
        springcam last captured 2026-05-17, so /springcam was paying 60 empty
        round trips plus a 5304-key scan to show three thumbnails.
@@ -1164,7 +1164,7 @@ def count_images_by_date(camera, period):
     """{date: n_images} for a whole period, in ONE listing per prefix.
 
     The gallery year/month/week views only ever needed counts, but they got
-    them by calling get_<cam>_images_for_date() once per day — a client
+    them by calling get_<cam>_images_for_date() once per day: a client
     build and an S3 round trip each. A year view meant ~365 of those and
     reliably blew the 30s Lambda timeout (503). One prefix listing gives the
     same numbers.
@@ -1803,7 +1803,7 @@ def get_astro_storage_data():
 
     capacity:  items from astro-host-capacity (one per host x filesystem).
     inventory: items from astro-storage-inventory (one per night x location).
-    Both scanned whole — the tables are tiny (handful of hosts, tens of
+    Both scanned whole: the tables are tiny (handful of hosts, tens of
     nights). Returns ([], []) on any error so the page still renders.
     """
     if not BOTO3_AVAILABLE:
@@ -1900,7 +1900,7 @@ def is_pi_online(last_seen):
 
 
 def render_pi_fleet_page(pis):
-    """Render the Pi Fleet dashboard HTML — delegated to routes/pi_fleet.py."""
+    """Render the Pi Fleet dashboard HTML: delegated to routes/pi_fleet.py."""
     from routes.pi_fleet import render_pi_fleet_page as _render
     return _render(
         pis,
@@ -1940,7 +1940,7 @@ T3_STOPS = {
 T3_STOP_INBOUND = T3_STOPS['parklands']['inbound']
 T3_STOP_OUTBOUND = T3_STOPS['parklands']['outbound']
 
-# In-Lambda cache: {stop_id: (timestamp, data)} — avoids hitting TfL more than once per TTL
+# In-Lambda cache: {stop_id: (timestamp, data)}: avoids hitting TfL more than once per TTL
 _t3_cache = {}
 T3_CACHE_TTL = 30  # seconds
 
@@ -2171,7 +2171,7 @@ MYWEBSITE_CONTENTS_TABLE = "mywebsite-contents"
 
 
 def get_srfcplus_cookie():
-    """Fetch the stored SRFC session cookie from SSM (not cached — user can update it)."""
+    """Fetch the stored SRFC session cookie from SSM (not cached: user can update it)."""
     return get_parameter(SRFCPLUS_COOKIE_PARAM)
 
 
@@ -2214,7 +2214,7 @@ def fetch_srfcplus_homepage(cookie):
     # Fix relative URLs: add <base> tag so images/CSS/JS load from the real site
     html = html.replace('<head>', '<head>\n  <base href="https://www.mysurbitonracketfitness.com/pages/">', 1)
 
-    # Remove financial / personal alert tiles — keep only the booking count tile
+    # Remove financial / personal alert tiles: keep only the booking count tile
     # Each tile: <div class="alerttile ...">...<div class="alerttextpanel ...">text</div></a></div>
     STRIP_KEYWORDS = ['invoice', 'virtual wallet', '£', 'profile image',
                       'bar will be closed', 'private function', 'closed from']
@@ -2226,7 +2226,7 @@ def fetch_srfcplus_homepage(cookie):
         return tile
 
     html = re.sub(r'<div class="alerttile[^"]*">.*?</a>\s*</div>', filter_tile, html, flags=re.DOTALL)
-    # Also strip plain message tiles (bar notices, announcements — no <a> wrapper)
+    # Also strip plain message tiles (bar notices, announcements: no <a> wrapper)
     html = re.sub(r'<div class="alerttile[^"]*">(?:(?!alerttile).)*alerttilemessage.*?</div>\s*</div>',
                   '', html, flags=re.DOTALL)
 
@@ -2274,12 +2274,12 @@ def fetch_srfcplus_bookings(cookie, sport=None):
         return {'error': str(e)}
 
     if 'login.aspx' in final_url.lower():
-        return {'error': 'Session expired — please refresh your cookie from the portal'}
+        return {'error': 'Session expired: please refresh your cookie from the portal'}
 
     # Extract DevExpress grid rows
     rows = re.findall(r'<tr[^>]*class="[^"]*dxgvDataRow[^"]*"[^>]*>(.*?)</tr>', body, re.DOTALL)
     if not rows:
-        return {'bookings': [], 'note': 'No data found — page structure may have changed'}
+        return {'bookings': [], 'note': 'No data found: page structure may have changed'}
 
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     bookings = []
@@ -2342,7 +2342,7 @@ def render_contents_page(private=False):
     return _f(theme_css_js=THEME_CSS_JS, private=private)
 
 def render_gotg_page():
-    """Render GOTG page — delegated to routes/gotg.py."""
+    """Render GOTG page: delegated to routes/gotg.py."""
     from routes.gotg import render_gotg_page as _render
     return _render(theme_css_js=THEME_CSS_JS)
 
@@ -2368,20 +2368,20 @@ def render_stereo_page(img_param=None, video_param=None, svideo_param=None,
 
 
 def render_manim_page():
-    """Render Manim animations page — delegated to routes/manim.py."""
+    """Render Manim animations page: delegated to routes/manim.py."""
     from routes.manim import render_manim_page as _render
     return _render(theme_css_js=THEME_CSS_JS)
 
 
 def render_site_test_page():
-    """Render the site test page — delegated to template."""
+    """Render the site test page: delegated to template."""
     _dir = os.path.join(os.path.dirname(__file__), "templates")
     with open(os.path.join(_dir, "site_test.html")) as f:
         return f.read().format(theme_css_js=THEME_CSS_JS)
 
 
 def render_privacy_page():
-    """Render the privacy policy — delegated to template.
+    """Render the privacy policy: delegated to template.
 
     Cited as the privacy policy of the `rclone-gdrive` Google OAuth client on
     its published consent screen, so this route must keep resolving to a real
@@ -2393,7 +2393,7 @@ def render_privacy_page():
 
 
 def render_biog_page():
-    """Biography — delegated to template. Prose is Peter's; nothing here is
+    """Biography: delegated to template. Prose is Peter's; nothing here is
     generated, which is why the template ships with a placeholder section
     rather than filler."""
     _dir = os.path.join(os.path.dirname(__file__), "templates")
@@ -2402,7 +2402,7 @@ def render_biog_page():
 
 
 def render_ai_memory_page():
-    """An introduction to strand methodology — delegated to template.
+    """An introduction to strand methodology: delegated to template.
 
     The subject belongs to the aifabric strand, not to this site's keeper;
     this page is a public rendering of it, and the wording was routed there
@@ -2442,7 +2442,7 @@ def render_404_page(path):
     return f"""<!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>404 &mdash; Not Found</title>
+    <title>404: Not Found</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <style>
@@ -2469,7 +2469,7 @@ def render_404_page(path):
 def _access_log(event, context, response, duration_ms, error=None):
     """Emit exactly one structured JSON line per request.
 
-    One line, one request, every field joinable without a second record —
+    One line, one request, every field joinable without a second record;
     the old free-text prints put path and source IP in separate CloudWatch
     records, joinable only on @requestId. Those prints are kept because
     tools/backfill_*.py still parse them; this is the format to query.
@@ -2673,7 +2673,7 @@ def _route_contents(rq):
 
 
 def _route_my_contents(rq):
-    """Private navigation — the same table as /contents, plus the entries
+    """Private navigation: the same table as /contents, plus the entries
     marked auth_required.
 
     Guarded by GARDENCAM_PASSWORD, the de-facto house password that already
@@ -2806,7 +2806,7 @@ def _route_glacier(rq):
     s3_glacier = s3_client(GLACIER_REGION)
     if subpath.startswith('/thumbs/'):
         rel = subpath[len('/thumbs/'):]
-        # users/peter/thumbs/<archive>/<nn>.jpg — refuse traversal
+        # users/peter/thumbs/<archive>/<nn>.jpg: refuse traversal
         if '..' in rel or not rel.endswith('.jpg'):
             return {'statusCode': 404, 'body': 'not found',
                     'headers': {'Content-Type': 'text/plain'}}
@@ -3885,7 +3885,7 @@ def _route_springcam_gallery(rq):
     if year_param:
         # Year view: list months
         months = _months_in_year(year_param, SPRINGCAM_EARLIEST_DATE)
-        # One listing for the whole year — this used to be one
+        # One listing for the whole year; this used to be one
         # S3 round trip per day and timed the Lambda out (503).
         counts = count_images_by_date('springcam', year_param)
         months_with_counts = []
@@ -3922,7 +3922,7 @@ def _route_springcam_gallery(rq):
     elif week_param:
         # Week view: list days in this week
         w_days = _days_in_week(week_param, SPRINGCAM_EARLIEST_DATE)
-        # A week can straddle a month boundary — one listing each.
+        # A week can straddle a month boundary: one listing each.
         counts = {}
         for _period in sorted({d[:7] for d in w_days}):
             counts.update(count_images_by_date('springcam', _period))
@@ -4437,7 +4437,7 @@ def _route_x54(rq):
         # publish-night-cam builds sweep-<n>-web.mp4 (1280-wide, denoised,
         # +faststart, ~4MB) precisely so the site serves that, keeping the
         # full-res as the download/archive copy. Listing both put every
-        # clip in the player twice, full-res first — a 162MB file whose
+        # clip in the player twice, full-res first: a 162MB file whose
         # moov atom is at the END, so it cannot start until fully loaded.
         web_stems = {k[:-len('-web.mp4')] for k in mp4_keys
                      if k.endswith('-web.mp4')}
@@ -4534,7 +4534,7 @@ def _route_x55(rq):
         if is_calendar:
             # Fast path: a precomputed manifest at <camera>/index.json
             # (written nightly by astro's build-calendar-index) lets us
-            # render the whole calendar from ONE S3 object — no per-night
+            # render the whole calendar from ONE S3 object: no per-night
             # list/get/presign, which used to make this page slower every
             # night. The manifest is keyed by the PUBLIC camera name and
             # already merges the v3w+v1 union for eclipticam. Falls back
@@ -4550,7 +4550,7 @@ def _route_x55(rq):
             from routes.astro import astro_calendar_window
 
             if want_index:
-                # Links only — no thumbnails, so no presigning at all.
+                # Links only: no thumbnails, so no presigning at all.
                 # One S3 read and the page size is independent of how
                 # many nights the camera has published.
                 all_nights = (
@@ -4615,7 +4615,7 @@ def _route_x55(rq):
                         'headers': {
                             'Content-Type': 'text/html; charset=utf-8'}}
                 # Slow fallback (pre-manifest): build calendar cards from
-                # the primary (night) camera per night — thumbnail
+                # the primary (night) camera per night: thumbnail
                 # (max.jpg, falling back to thumb.jpg) + summary.json for
                 # the "X of Y frames stacked" line. Filenames are
                 # un-prefixed post-split.
@@ -4919,7 +4919,7 @@ def _route_eclipticam_subpage(rq):
 
         html = render_eclipticam_v3w_page(
             theme_css_js=THEME_CSS_JS,
-            title='Ecliptic Camera: v3w Wide View — Peter Grecian',
+            title='Ecliptic Camera: v3w Wide View · Peter Grecian',
             nights_with_meta=nights_meta,
             comparison_url=comparison_url,
             combined_brightness_url=combined_url,
@@ -4971,7 +4971,7 @@ def _route_eclipticam_subpage(rq):
 
         html = render_eclipticam_hq16_page(
             theme_css_js=THEME_CSS_JS,
-            title='Ecliptic Camera: HQ16 Narrow View — Peter Grecian',
+            title='Ecliptic Camera: HQ16 Narrow View · Peter Grecian',
             first_light_url=first_light_url,
             nights_with_meta=nights_meta)
         return {'statusCode': 200,
@@ -4994,7 +4994,7 @@ def _route_eclipticam_subpage(rq):
 
         html = render_eclipticam_history_page(
             theme_css_js=THEME_CSS_JS,
-            title='Ecliptic Camera: History of the Cameras — Peter Grecian',
+            title='Ecliptic Camera: History of the Cameras · Peter Grecian',
             rig_new_url=rig_new_url,
             rig_old_url=rig_old_url)
         return {'statusCode': 200,
@@ -5113,7 +5113,7 @@ def _route_starcam_gallery(rq):
 
     if year_param:
         months = _months_in_year(year_param, STARCAM_EARLIEST_DATE)
-        # One listing for the whole year — this used to be one
+        # One listing for the whole year; this used to be one
         # S3 round trip per day and timed the Lambda out (503).
         counts = count_images_by_date('starcam', year_param)
         months_with_counts = []
@@ -5147,7 +5147,7 @@ def _route_starcam_gallery(rq):
 
     elif week_param:
         w_days = _days_in_week(week_param, STARCAM_EARLIEST_DATE)
-        # A week can straddle a month boundary — one listing each.
+        # A week can straddle a month boundary: one listing each.
         counts = {}
         for _period in sorted({d[:7] for d in w_days}):
             counts.update(count_images_by_date('starcam', _period))
@@ -5341,7 +5341,7 @@ def _route_skycam_gallery(rq):
 
     if year_param:
         months = _months_in_year(year_param, SKYCAM_EARLIEST_DATE)
-        # One listing for the whole year — this used to be one
+        # One listing for the whole year; this used to be one
         # S3 round trip per day and timed the Lambda out (503).
         counts = count_images_by_date('skycam', year_param)
         months_with_counts = []
@@ -5376,7 +5376,7 @@ def _route_skycam_gallery(rq):
 
     elif week_param:
         w_days = _days_in_week(week_param, SKYCAM_EARLIEST_DATE)
-        # A week can straddle a month boundary — one listing each.
+        # A week can straddle a month boundary: one listing each.
         counts = {}
         for _period in sorted({d[:7] for d in w_days}):
             counts.update(count_images_by_date('skycam', _period))
@@ -5805,7 +5805,7 @@ def _route_skycam_clouds(rq):
         for obj in resp.get("Contents", []):
             k = obj["Key"]
             name = k.rsplit("/", 1)[-1]
-            # sky_YYYYMMDD_HH.mp4 — the per-hour clips
+            # sky_YYYYMMDD_HH.mp4: the per-hour clips
             if not (name.startswith(f"sky_{ymd_flat}_") and name.endswith(".mp4")):
                 continue
             tag = name[len(f"sky_{ymd_flat}_"):-len(".mp4")]
@@ -5926,7 +5926,7 @@ def _route_srfcplus(rq):
     else:
         proxied, err = fetch_srfcplus_homepage(srfc_cookie)
         if err == 'expired':
-            html = render_srfcplus_setup_page('Session expired — please paste a fresh cookie.')
+            html = render_srfcplus_setup_page('Session expired: please paste a fresh cookie.')
         elif err:
             html = render_srfcplus_setup_page(f'Could not reach portal: {err}')
         else:
@@ -5953,7 +5953,7 @@ def _route_srfcplus_update_cookie(rq):
         if new_cookie:
             save_srfcplus_cookie(new_cookie)
             return {'statusCode': 302, 'body': '', 'headers': {'Location': '/srfcplus'}}
-        html = render_srfcplus_setup_page('No cookie provided — please paste the cookie string.')
+        html = render_srfcplus_setup_page('No cookie provided: please paste the cookie string.')
     else:
         html = render_srfcplus_setup_page()
     return html
@@ -5972,7 +5972,7 @@ def _route_srfcplus_bookings(rq):
         }
     srfc_cookie = get_srfcplus_cookie()
     if not srfc_cookie:
-        return {'statusCode': 200, 'body': json.dumps({'error': 'No session cookie — visit /srfcplus/update-cookie'}), 'headers': {'Content-Type': 'application/json'}}
+        return {'statusCode': 200, 'body': json.dumps({'error': 'No session cookie: visit /srfcplus/update-cookie'}), 'headers': {'Content-Type': 'application/json'}}
     return {
         'statusCode': 200,
         'body': json.dumps(fetch_srfcplus_bookings(srfc_cookie, sport='padel')),
@@ -6663,7 +6663,7 @@ def _dispatch(event, context):
 
     # `route` is `path` with the API Gateway stage prefix removed, and is the
     # ONLY thing the dispatch table matches on. Every branch used to spell its
-    # URL twice — `path == f'/{stage}/cv' or path == '/cv'` — because the site
+    # URL twice, `path == f'/{stage}/cv' or path == '/cv'`, because the site
     # is reachable both through the stage URL and through the Cloudflare
     # hostname. Normalising once here removes that duplication and the whole
     # class of bug where only one of the two forms got a new route.

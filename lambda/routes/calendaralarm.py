@@ -1,11 +1,11 @@
-"""calendaralarm — webapp + JSON API for standing-alarm rules.
+"""calendaralarm: webapp + JSON API for standing-alarm rules.
 
 Source of truth for the recurring meeting rules (successor to the pip-local
 rules.yaml). The pip poller (alarm.py) reads GET /calendaralarm/api/rules to
 fetch the live rule set; the HTML page is a Basic-Auth-gated CRUD UI.
 
 The whole /calendaralarm route is guarded by Basic Auth in mywebsite.py
-(check_basic_auth against the /calendaralarm/page-password SSM param) — this
+(check_basic_auth against the /calendaralarm/page-password SSM param); this
 module assumes the caller is already authorised.
 
 Rule item shape (DynamoDB table `calendaralarm-rules`, hash key `id`):
@@ -13,10 +13,10 @@ Rule item shape (DynamoDB table `calendaralarm-rules`, hash key `id`):
     name           label shown in the page (and the poller's de-dupe key)
     days           "Mon-Fri" | "Mon,Wed,Fri" | "Sat-Sun" | "daily"
     at             local (Europe/London) "HH:MM"
-    lead_minutes   int — page this many minutes before `at`
+    lead_minutes   int: page this many minutes before `at`
     severity       "info" | "xinfo" | "warn" | "critical"  (default critical)
-    skip_holidays  bool — skip england-and-wales bank holidays
-    enabled        bool — soft on/off without deleting
+    skip_holidays  bool: skip england-and-wales bank holidays
+    enabled        bool: soft on/off without deleting
     updated_at     ISO8601 UTC of last write
 
 The API returns *enabled* rules only from GET /api/rules (what the poller
@@ -34,7 +34,7 @@ TABLE_NAME = "calendaralarm-rules"
 
 # 'calendar' is calendaralarm's own tier: xMatters MEDIUM with a distinct,
 # app-configurable phone sound (see alerting/lambda/handler.py _PRESETS). It's
-# the sensible default for a calendar alarm — audible but not the HIGH klaxon.
+# the sensible default for a calendar alarm: audible but not the HIGH klaxon.
 VALID_SEVERITIES = ("calendar", "info", "xinfo", "warn", "critical")
 VALID_DAYS = ("Mon-Fri", "Mon,Wed,Fri", "Sat-Sun", "daily")
 
@@ -108,7 +108,7 @@ def api_list(enabled_only=False):
     items = _table().scan().get("Items", [])
     if enabled_only:
         items = [r for r in items if r.get("enabled", True)]
-    # DynamoDB numbers come back as Decimal — normalise for JSON + the poller.
+    # DynamoDB numbers come back as Decimal: normalise for JSON + the poller.
     for r in items:
         if "lead_minutes" in r:
             r["lead_minutes"] = int(r["lead_minutes"])
@@ -253,7 +253,7 @@ _PAGE_HTML = """<!doctype html>
 </head>
 <body>
   <h1>calendaralarm</h1>
-  <div class="sub">Standing alarm rules. The pip poller reads these every 5&nbsp;min and pages via xMatters. Default sound is <b>calendar</b> (xMatters MEDIUM — set its tone in the xMatters phone app); <b>critical</b> is the loud HIGH klaxon reserved for real incidents.</div>
+  <div class="sub">Standing alarm rules. The pip poller reads these every 5&nbsp;min and pages via xMatters. Default sound is <b>calendar</b> (xMatters MEDIUM: set its tone in the xMatters phone app); <b>critical</b> is the loud HIGH klaxon reserved for real incidents.</div>
 
   <div id="list"><div class="empty">Loading…</div></div>
   <button id="addBtn" class="primary">+ New alarm</button>

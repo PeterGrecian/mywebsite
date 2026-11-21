@@ -1,4 +1,4 @@
-"""Stereo photography — gallery and WebXR viewer."""
+"""Stereo photography: gallery and WebXR viewer."""
 
 import json
 import boto3
@@ -17,14 +17,14 @@ PLACE_LABELS = {
     "from-waterloo-bridge-bus-20260424-full": "From Waterloo Bridge (bus)",
     "kingston-1348": "Kingston by Bus (13:48)",
     "kingston-1356": "Kingston by Bus (13:56)",
-    "may1-1123": "May 1 — 11:23 set",
-    "may1-1223": "May 1 — 12:23 set",
+    "may1-1123": "May 1, 11:23 set",
+    "may1-1223": "May 1, 12:23 set",
     "nine-elms-20260424": "Nine Elms",
     "vauxhall": "Vauxhall",
 }
 
 
-# Beauty renders — finished pieces served from R2.
+# Beauty renders: finished pieces served from R2.
 # url is full https URL (R2 custom domain).
 # Structured pipeline metadata (source_fps, output_fps, source_mbps, output_mbps,
 # mci, baseline_s) is shown by the video viewers' info panel. baseline_s is in
@@ -34,7 +34,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-b4-1k-nomci-skymask",
         "url": R2_VIDEO_BASE + "clouds-train-2-b4-1k-nomci-skymask.mp4",
-        "title": "Clouds from train — 4s baseline + sky mask",
+        "title": "Clouds from train: 4s baseline + sky mask",
         "subtitle": "1:28 · 1K stereo · 30 fps native · 4.0s baseline · HSV-intersection sky mask",
         "notes": "Same 4s-baseline render as the adjacent variant, with a post-process sky mask: HSV-threshold per eye, intersect (parallax-aware so foreground clutter fails), feather, composite over a pale-blue sampled from the first frame's brightest agreed-sky pixels. Non-sky regions dissolve into uniform pale-blue, leaving the cloud composition unfought. Smaller file (10 MiB vs 15 MiB) because uniform fill compresses better.",
         "source_fps": 30, "output_fps": 30,
@@ -44,9 +44,9 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-b3-1k-nomci",
         "url": R2_VIDEO_BASE + "clouds-train-2-b3-1k-nomci.mp4",
-        "title": "Clouds from train — 3s baseline (no MCI)",
+        "title": "Clouds from train: 3s baseline (no MCI)",
         "subtitle": "1:29 · 1K stereo · 30 fps native · 3.0s baseline · single-stage Cloud Run",
-        "notes": "92s source rendered in one ffmpeg pass on Cloud Run (8 vCPU, 4 GiB, ~5 min wall). No motion-compensated interpolation — source 30 fps passes through unchanged. Single-stage pipeline (inline-v5-nomci.sh) skips the split-and-join because there's no slow stage to parallelise without MCI.",
+        "notes": "92s source rendered in one ffmpeg pass on Cloud Run (8 vCPU, 4 GiB, ~5 min wall). No motion-compensated interpolation: source 30 fps passes through unchanged. Single-stage pipeline (inline-v5-nomci.sh) skips the split-and-join because there's no slow stage to parallelise without MCI.",
         "source_fps": 30, "output_fps": 30,
         "source_mbps": 20, "output_mbps": 1.4,
         "mci": False, "baseline_s": 3.0,
@@ -54,7 +54,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-b4-1k-nomci",
         "url": R2_VIDEO_BASE + "clouds-train-2-b4-1k-nomci.mp4",
-        "title": "Clouds from train — 4s baseline (no MCI)",
+        "title": "Clouds from train: 4s baseline (no MCI)",
         "subtitle": "1:28 · 1K stereo · 30 fps native · 4.0s baseline · single-stage Cloud Run",
         "notes": "92s source rendered in one ffmpeg pass on Cloud Run (8 vCPU, 4 GiB). 4s baseline sits between the 3s and 5s variants for direct comparison of how baseline affects perceived cloud depth.",
         "source_fps": 30, "output_fps": 30,
@@ -64,7 +64,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-b10-1k",
         "url": R2_VIDEO_BASE + "clouds-train-2-b10-1k.mp4",
-        "title": "Clouds from train — 10s baseline",
+        "title": "Clouds from train: 10s baseline",
         "subtitle": "1:22 · 1K stereo · 30→60 fps mci · 10.0s baseline · 3-part join",
         "notes": "92s source rendered via the three-stage long-baseline pipeline: 3×31s prep-mci parts in parallel with seam-frame borrowing, mono concat, then 10s stereo offset. Wide baseline emphasises the depth of cloud layers.",
         "source_fps": 30, "output_fps": 60,
@@ -74,7 +74,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-b5-1k",
         "url": R2_VIDEO_BASE + "clouds-train-2-b5-1k.mp4",
-        "title": "Clouds from train — 5s baseline",
+        "title": "Clouds from train: 5s baseline",
         "subtitle": "1:27 · 1K stereo · 30→60 fps mci · 5.0s baseline · 3-part join",
         "notes": "Same 92s source as the 10s render, with a 5s baseline for comparison. Three-stage pipeline with bridge-frame-clean joins between parts.",
         "source_fps": 30, "output_fps": 60,
@@ -84,7 +84,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-test-0p5k-v3",
         "url": R2_VIDEO_BASE + "clouds-train-2-test-0p5k-v3.mp4",
-        "title": "Clouds from train — 9s seam test (0.5K)",
+        "title": "Clouds from train: 9s seam test (0.5K)",
         "subtitle": "0:07 · 0.5K stereo · 30→60 fps mci · 2.0s baseline · 3-part join",
         "notes": "Validation of the three-stage long-baseline pipeline. 9s source split into 3×3s parts, each prep-mci'd in parallel with seam-frame borrowing (option-2 fix from gardencam) so the two interior joins are bridge-frame-clean. Concat + symmetric head/tail trim for time-aligned stereo. End-to-end ~20 min, mostly VM allocation; ffmpeg work ~70s total.",
         "source_fps": 30, "output_fps": 60,
@@ -104,7 +104,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-2-1k",
         "url": R2_VIDEO_BASE + "clouds-train-2-1k.mp4",
-        "title": "Clouds from train — 92s split-and-join test",
+        "title": "Clouds from train: 92s split-and-join test",
         "subtitle": "1:32 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "1080p Top Shot source rendered as three parallel 30s parts on e2-standard-2 (2 vCPU, 8 GiB) with a fourth concat job polling GCS until all parts present. Total wall 29 min vs ~110 min sequential = 3.8× speedup. First run with STEREO_EYE_ORDER=right-early baked into the encode (no post-swap needed).",
         "source_fps": 30, "output_fps": 60,
@@ -114,7 +114,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-1-1k",
         "url": R2_VIDEO_BASE + "clouds-train-1-1k.mp4",
-        "title": "Clouds from train — 4K source at 1K",
+        "title": "Clouds from train: 4K source at 1K",
         "subtitle": "0:46 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "4K source downscaled in prep stage to 1K (1280×720) per eye before mci. CRF 28 single-pass on e2-standard-2 (2 vCPU, 8 GiB). Peak RAM 5.97 GiB, wall 48 min. Eyes swapped post-encode for right-to-left camera motion.",
         "source_fps": 30, "output_fps": 60,
@@ -124,7 +124,7 @@ BEAUTY_RENDERS = [
     {
         "slug": "clouds-train-3-1k",
         "url": R2_VIDEO_BASE + "clouds-train-3-1k.mp4",
-        "title": "Clouds from train — 1K test",
+        "title": "Clouds from train: 1K test",
         "subtitle": "0:18 · 1K stereo · 30→60 fps mci · 2.0s baseline",
         "notes": "First clouds-from-train experiment. 1080p Top Shot source downscaled to 1K (1280×720) per eye, mci interpolation, CRF 28. Eyes swapped post-encode for right-to-left camera motion.",
         "source_fps": 30, "output_fps": 60,
@@ -172,15 +172,15 @@ def _beauty_info_html(video_url):
     )
 
 
-# Manually curated video list — add entries here after uploading to S3
+# Manually curated video list: add entries here after uploading to S3
 # visible=False marks videos known to fail in the WebXR viewer (under investigation)
 STEREO_VIDEOS = [
-    {"file": "may1-105049-mb4.mp4", "label": "Railway 25s — motion blur 4×", "note": "2K · dormouse · optical-flow blur", "visible": False},
-    {"file": "may1-105132-mb4.mp4", "label": "Railway 64s — motion blur 4×", "note": "2K · ferret · optical-flow blur", "visible": True},
-    {"file": "may1-lift-mb4.mp4", "label": "LIFT TEST — motion blur 4×", "note": "Barbican view, rotated 90°, optical-flow blur", "visible": False},
+    {"file": "may1-105049-mb4.mp4", "label": "Railway 25s: motion blur 4×", "note": "2K · dormouse · optical-flow blur", "visible": False},
+    {"file": "may1-105132-mb4.mp4", "label": "Railway 64s: motion blur 4×", "note": "2K · ferret · optical-flow blur", "visible": True},
+    {"file": "may1-lift-mb4.mp4", "label": "LIFT TEST: motion blur 4×", "note": "Barbican view, rotated 90°, optical-flow blur", "visible": False},
     {"file": "may1-105249-2k.mp4", "label": "Arrival at Waterloo (4 min)", "note": "2K · 3840×1080 · 1-frame baseline · NO blur", "visible": True},
-    {"file": "may1-105132-2k.mp4", "label": "Railway 64s — May 2026", "note": "2K · 3840×1080 · squirrel · NO blur", "visible": False},
-    {"file": "may1-105049-2k.mp4", "label": "Railway 25s — May 2026", "note": "2K · 3840×1080 · magpie · NO blur", "visible": True},
+    {"file": "may1-105132-2k.mp4", "label": "Railway 64s: May 2026", "note": "2K · 3840×1080 · squirrel · NO blur", "visible": False},
+    {"file": "may1-105049-2k.mp4", "label": "Railway 25s: May 2026", "note": "2K · 3840×1080 · magpie · NO blur", "visible": True},
 ]
 
 
@@ -281,7 +281,7 @@ def render_index_page(*, theme_css_js):
 
 
 def render_beauty_page(*, theme_css_js):
-    """List of beauty renders — finished pieces served from R2."""
+    """List of beauty renders: finished pieces served from R2."""
     def beauty_card(b):
         # Each card has Sphere VR + Flat VR buttons that pass the full URL
         # as the video param (the viewer functions detect http:// and route).
@@ -315,7 +315,7 @@ def render_beauty_page(*, theme_css_js):
 <body>
   <div class="container">
     <h1>Beauty renders</h1>
-    <div class="subtitle">Finished pieces — served from Cloudflare R2</div>
+    <div class="subtitle">Finished pieces: served from Cloudflare R2</div>
     {cards}
     <div class="footer"><a href="/stereo">&#8592; Stereo Photography</a></div>
   </div>
@@ -390,7 +390,7 @@ def render_videos_page(*, theme_css_js, visibility):
 
     title = "Visible videos" if want_visible else "Invisible videos"
     sub   = "Tap to open in WebXR VR viewer" if want_visible \
-            else "Known not to display correctly — under investigation"
+            else "Known not to display correctly: under investigation"
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -584,7 +584,7 @@ def render_viewer_page(*, theme_css_js, img_param):
 
     swapBtn.addEventListener('click', flipSwap);
 
-    // Prev/next navigation — keeps the WebXR session alive by swapping the texture in-place.
+    // Prev/next navigation: keeps the WebXR session alive by swapping the texture in-place.
     // Falls back to URL navigation when not in VR.
     let neighbours = {{ prev: '{prev_param}', next: '{next_param}', current: {json.dumps(img_param)} }};
 
@@ -885,7 +885,7 @@ def render_viewer_page(*, theme_css_js, img_param):
       gl.uniform1f(sphere.uShiftU, shiftU * (eyeIsLeft ? 1.0 : -1.0));
       gl.uniform1f(sphere.uShiftV, shiftV);
 
-      // Disable depth test — sphere is the only object; back-face culling must be off
+      // Disable depth test: sphere is the only object; back-face culling must be off
       // so the inside of the sphere is visible.
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
@@ -899,7 +899,7 @@ def render_viewer_page(*, theme_css_js, img_param):
 
 
 def render_video_sphere_page(*, theme_css_js, video_file):
-    """Player 3 — sphere renderer (same as stills player) with per-frame video texture."""
+    """Player 3: sphere renderer (same as stills player) with per-frame video texture."""
     # video_file may be a bare filename (legacy S3 entries) or a full https URL
     # (beauty renders on R2). Detect and route accordingly.
     if video_file.startswith(("http://", "https://")):
@@ -1207,7 +1207,7 @@ def render_video_sphere_page(*, theme_css_js, video_file):
 
 
 def render_video_viewer_page(*, theme_css_js, video_file):
-    """SBS video viewer — slate visible on load, fullscreen + WebXR options."""
+    """SBS video viewer: slate visible on load, fullscreen + WebXR options."""
     import random as _r
     # video_file may be a bare filename (legacy S3) or a full https URL (R2 beauty render)
     if video_file.startswith(("http://", "https://")):
@@ -1216,7 +1216,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
     else:
         video_url = S3_VIDEO_BASE + video_file
         label = next((v["label"] for v in STEREO_VIDEOS if v["file"] == video_file), video_file)
-    # Build pet — random per cold-start of the Lambda. Stable within a Lambda
+    # Build pet: random per cold-start of the Lambda. Stable within a Lambda
     # container (free CloudFront cache hits), changes after deploy/cold-start.
     if not hasattr(render_video_viewer_page, "_pet"):
         pets = ["badger","otter","heron","fox","squirrel","wren","hare","stoat",
@@ -1279,7 +1279,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
   </div>
   {info_html}
   <div class="hint">
-    <strong>Quest: </strong>tap <strong>Play</strong> then <strong>Fullscreen</strong> — press <strong>O</strong> to push to background for stereo.<br>
+    <strong>Quest: </strong>tap <strong>Play</strong> then <strong>Fullscreen</strong>: press <strong>O</strong> to push to background for stereo.<br>
     Or tap <strong>Enter VR</strong> for WebXR mode.
   </div>
   <div class="btn-row">
@@ -1357,7 +1357,7 @@ def render_video_viewer_page(*, theme_css_js, video_file):
       session.addEventListener('end', onSessionEnded);
       const mediaFactory = new XRMediaBinding(session);
 
-      // Wait for xrVideo to have decoded a frame before creating the layer —
+      // Wait for xrVideo to have decoded a frame before creating the layer;
       // otherwise the compositor renders an empty texture.
       const ready = xrVideo.readyState >= 2  // HAVE_CURRENT_DATA
         ? Promise.resolve()

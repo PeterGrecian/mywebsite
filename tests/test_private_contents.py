@@ -107,7 +107,7 @@ class TestMyContentsRoute:
                        headers={"Authorization": f"Basic {cred}"}),
             make_context())
         assert r["statusCode"] == 200
-        assert "Peter Grecian — private" in r["body"]
+        assert "Peter Grecian · private" in r["body"]
 
     def test_never_cached(self, mywebsite, make_event, make_context):
         """/contents is edge-cached for 1h. An authenticated page must say

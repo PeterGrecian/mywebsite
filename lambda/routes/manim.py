@@ -1,4 +1,4 @@
-"""Manim animations page — videos rendered locally and uploaded to S3."""
+"""Manim animations page: videos rendered locally and uploaded to S3."""
 
 S3_BASE = "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/manim"
 
@@ -7,7 +7,7 @@ S3_BASE = "https://s3-eu-west-1.amazonaws.com/www.petergrecian.co.uk/assets/mani
 SCENES = [
     {
         "class": "PlanetsAndStarsIntro",
-        "title": "Planets and Stars — Intro",
+        "title": "Planets and Stars: Intro",
         "desc": "Telling planets from stars at a glance. The first rule: planets don't twinkle.",
     },
 ]
@@ -32,7 +32,7 @@ def render_manim_page(*, theme_css_js):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Manim — Animations</title>
+  <title>Manim: Animations</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}

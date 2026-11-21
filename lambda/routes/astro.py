@@ -1,4 +1,4 @@
-"""Astro hub page — lists the project's astronomy cameras."""
+"""Astro hub page: lists the project's astronomy cameras."""
 
 import base64
 import html
@@ -22,7 +22,7 @@ CAMERAS = [
     {
         "path": "/astro/firstscope",
         "title": "FirstScope",
-        "desc": "Celestron 76/300 tabletop Newtonian at prime focus \u2014 pointed at the pole, no tracking, frames de-rotated and stacked afterwards.",
+        "desc": "Celestron 76/300 tabletop Newtonian at prime focus: pointed at the pole, no tracking, frames de-rotated and stacked afterwards.",
         "status": "live",
     },
     {
@@ -34,37 +34,37 @@ CAMERAS = [
 ]
 
 
-# Non-camera destinations under /astro — collections that cut ACROSS the
+# Non-camera destinations under /astro: collections that cut ACROSS the
 # cameras rather than belonging to one of them.
 COLLECTIONS = [
     {
         "path": "/astro/notes",
         "title": "Field Notes",
-        "desc": "The logbook \u2014 what an instrument showed on a given night and what we concluded from it, tagged by instrument and linked to the pages of the instruments themselves.",
+        "desc": "The logbook: what an instrument showed on a given night and what we concluded from it, tagged by instrument and linked to the pages of the instruments themselves.",
         "status": "live",
     },
     {
         "path": "/astro/transients",
         "title": "Transients",
-        "desc": "Curated one-off captures — meteors and fireballs, lightning, aircraft, satellites, odd frames caught mid-inspection, and daylight test shots.",
+        "desc": "Curated one-off captures: meteors and fireballs, lightning, aircraft, satellites, odd frames caught mid-inspection, and daylight test shots.",
         "status": "live",
     },
 ]
 
 
-# Retired instruments. Their pages stay up — the data is still there and still
-# linked from the nights — but they are no longer taking frames.
+# Retired instruments. Their pages stay up: the data is still there and still
+# linked from the nights, but they are no longer taking frames.
 HISTORICAL = [
     {
         "path": "/astro/canon",
         "title": "EOS Camera",
-        "desc": "Canon EOS 2000D DSLR — 30 s ISO-1600 fixed-focus subs, fixed mount. Nightly short-trail star-field stacks with hot/cold pixel masking.",
+        "desc": "Canon EOS 2000D DSLR: 30 s ISO-1600 fixed-focus subs, fixed mount. Nightly short-trail star-field stacks with hot/cold pixel masking.",
         "status": "live",
     },
     {
         "path": "/starcam",
         "title": "Star Camera",
-        "desc": "Zenith-pointing OV5647 — nightly stacks, plate-solved frames, derotation experiments.",
+        "desc": "Zenith-pointing OV5647: nightly stacks, plate-solved frames, derotation experiments.",
         "status": "live",
     },
 ]
@@ -158,7 +158,7 @@ def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None, subn
 <body>
   <div class="container">
     <h1>{title}</h1>
-    <div class="tag">coming soon — sample frame</div>
+    <div class="tag">coming soon: sample frame</div>
     {subnav_part}{image_html}
     <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
@@ -168,7 +168,7 @@ def render_astro_stub(*, theme_css_js, title, image_url=None, caption=None, subn
 
 # ---------------------------------------------------------------------------
 # Live per-camera night pages (unify-cameras deliverables).
-# Reads astro-berrylands-eu-west-1/<camera>/nights/<night>/ — summary.json
+# Reads astro-berrylands-eu-west-1/<camera>/nights/<night>/: summary.json
 # (schema 2 from astro/present/summary.py), brightness.png, max.jpg,
 # derot.jpg; eclipticam files carry a v1_/v3w_ stem.
 
@@ -762,7 +762,7 @@ def _section(sec):
 
 
 def _short_date(d):
-    """'17 Aug' — %-d is glibc-only, so build the day number by hand."""
+    """'17 Aug': %-d is glibc-only, so build the day number by hand."""
     return f'{d.day} {d.strftime("%b")}'
 
 
@@ -771,7 +771,7 @@ def astro_calendar_window(nights, *, week=None, month=None, show_all=False):
 
     The calendar used to render every published night at once, which meant a
     presigned thumbnail per night and a page that got slower every night.
-    It now shows one window at a time — the last 7 days by default — and
+    It now shows one window at a time, the last 7 days by default, and
     links to the rest.
 
     nights: all published nights as 'YYYY-MM-DD' (any order).
@@ -887,7 +887,7 @@ def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title} &mdash; all nights</title>
+  <title>{title}: all nights</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
@@ -1042,11 +1042,11 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
     nights_with_meta: list of {"night": "YYYY-MM-DD", "thumb_url": ...|None,
                                "summary": dict|None}
     combined_brightness_url: presigned URL of the multi-night overlay
-        plot (or None — section is hidden if absent).
+        plot (or None: section is hidden if absent).
     moon_net_url: presigned URL of the accumulated moon-net image
-        (or None — section is hidden if absent).
+        (or None: section is hidden if absent).
     sun_net_url: presigned URL of the accumulated sun-net image
-        (or None — section is hidden if absent).
+        (or None: section is hidden if absent).
     Each card links to /astro/<camera>/night/<night>.
     Mirrors /starcam's per-night index in spirit but smaller scope.
     """
@@ -1092,7 +1092,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'<a href="{moon_net_url}">'
             f'<img class="moon-net" src="{moon_net_url}" '
             f'alt="accumulated moon tracks across the fixed field"></a>'
-            f'<div class="caption">{cam_prov}moon net &mdash; each clear night the '
+            f'<div class="caption">{cam_prov}moon net; each clear night the '
             f'moon traces a different known-position track across the fixed '
             f'sensor; the threads accumulate into a self-scanning '
             f'astrometric net</div>')
@@ -1103,7 +1103,7 @@ def render_astro_camera_calendar(*, theme_css_js, title, camera,
             f'<a href="{sun_net_url}">'
             f'<img class="sun-net" src="{sun_net_url}" '
             f'alt="accumulated sun tracks across the fixed field"></a>'
-            f'<div class="caption">{cam_prov}sun net &mdash; daytime solar tracks '
+            f'<div class="caption">{cam_prov}sun net: daytime solar tracks '
             f'(ND-filtered) across the same fixed sensor; a wide-baseline '
             f'companion to the moon net for pinning pointing &amp; '
             f'distortion</div>')
@@ -1614,7 +1614,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     capacity:  [{host, fs, size_gb, used_gb, avail_gb, pct, updated_at}]
     inventory: [{night, loc, camera, host, path, storage_class, online,
                  bytes:{...}, verdict?, updated_at?, ...}]
-    Both come straight from DynamoDB (numbers are Decimal — coerce to int).
+    Both come straight from DynamoDB (numbers are Decimal: coerce to int).
 
     month: 'YYYY-MM' to show only that month's calendar/detail, or None for
     the latest month. Capacity/tiers/keepers are global on every page.
@@ -1630,8 +1630,8 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
 
     # Not shown here (the reporter stopped emitting these 2026-07-05, but
     # rows linger until each host has pruned): skycam (not astro data),
-    # day-mode frames and the date-level deliverables (derived/disposable
-    # — they stay on disk but are storage-page noise, peter 2026-07-05).
+    # day-mode frames and the date-level deliverables (derived/disposable;
+    # they stay on disk but are storage-page noise, peter 2026-07-05).
     inventory = [it for it in inventory
                  if it.get("camera") != "skycam"
                  and it.get("layout") != "mode:day"
@@ -1674,7 +1674,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     # Data-format legend for the starcam CSV/cold rows, whose `bytes` map
     # carries per-product keys instead of a scanner `fmt`. Dims/cadence are
     # starcam's (OV5647, raw ~3 s cadence measured from frame timestamps;
-    # sum8 = 8 summed raws, sum2 = 2 summed 2x2-binned — see COLD_STORAGE.md).
+    # sum8 = 8 summed raws, sum2 = 2 summed 2x2-binned: see COLD_STORAGE.md).
     PRODUCT_DESC = {
         "raw_bayer": "raw mosaic 2592×1944 fits.fz ≈3 s",
         "binned": "bin2 1296×972 fits.fz ≈3 s",
@@ -1844,7 +1844,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     # The page's job (peter 2026-07-29): answer "which filesystem is this
     # night on?" at a glance. Each column is one filesystem, abbreviated;
     # a row ticks the columns where that (night,camera) actually lives.
-    # Columns are matched in order — first match wins — so every location
+    # Columns are matched in order, first match wins, so every location
     # maps to exactly one column. `col` values are short abbreviations;
     # hover (title) gives the full host:path and storage class.
     #
@@ -1880,11 +1880,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             if cprefix is not None and not path.startswith(cprefix):
                 continue
             return col
-        return None  # unmatched — surfaces as an "other" tick
+        return None  # unmatched: surfaces as an "other" tick
 
     # Show ALL defined location columns, always (peter 2026-07-29: "we need
     # more columns for the locations"). With abbreviations the full set fits,
-    # and an always-present column makes a MISSING copy visible — the point of
+    # and an always-present column makes a MISSING copy visible: the point of
     # the grid. Unused-this-month columns get a dim header.
     used_cols = set()
     for night, cam, kind in month_groups:
@@ -1919,14 +1919,14 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
                 sc = col_meta[c][1]
                 cells.append(
                     f'<td class="mx-hit mx-{sc} {zb}" '
-                    f'title="{col_meta[c][0]} — {_gib(col_bytes[c])}">✓</td>')
+                    f'title="{col_meta[c][0]}: {_gib(col_bytes[c])}">✓</td>')
             else:
                 cells.append(f'<td class="mx-miss {zb}">·</td>')
-        # one-copy nights are the fragile ones — flag the row
+        # one-copy nights are the fragile ones: flag the row
         lonely = ' mx-lonely' if n_copies <= 1 else ''
         biggest = _night_bytes(locs)
         status = _status_flags(night, cam, kind, locs)
-        # night column: just the day-of-month — the month is fixed by the
+        # night column: just the day-of-month: the month is fixed by the
         # selector/radio above, so 'YYYY-MM-' is redundant. Full date on hover.
         # The day cell rowspans across all that day's camera rows (emit once).
         day = night[8:10] if len(night) >= 10 else night
@@ -1994,11 +1994,11 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
             parts.append(str(f["ext"]).lstrip("."))
         sizes = spec.get("sizes") or []
         typ = _gib(int(_stats.median(sizes))) if sizes else ""
-        spec_txt = " · ".join(parts) if parts else "—"
+        spec_txt = " · ".join(parts) if parts else "–"
         return f"{spec_txt}{(' · ~' + typ + '/night') if typ else ''}"
 
     cam_notes = "".join(
-        f'<div class="cam-note"><b>{dcam}</b> — {_cam_spec_line(dcam)}</div>'
+        f'<div class="cam-note"><b>{dcam}</b>: {_cam_spec_line(dcam)}</div>'
         for dcam in cams_this_month)
     cam_notes_html = (f'<div class="cam-notes">{cam_notes}</div>'
                       if cam_notes else "")
@@ -2051,7 +2051,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro — Storage</title>
+  <title>Astro: Storage</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
@@ -2088,7 +2088,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
     .sc-deep-archive {{ background: #1f2f3a; color: #6ab0ff; }}
     .flag {{ display: inline-block; padding: 0.05rem 0.4rem; font-size: 0.68rem; border-radius: 6px; }}
     .flag-drift {{ background: #3a2f1f; color: #d6a04a; }}
-    /* filesystem matrix — tuned for horizontal density */
+    /* filesystem matrix: tuned for horizontal density */
     .mx {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
     .mx th {{ color: var(--text-secondary); font-weight: 500; font-size: 0.64rem; padding: 0.18rem 0.2rem; border-bottom: 1px solid var(--divider, #2C2C2E); }}
     .mx th:nth-child(1), .mx th:nth-child(2) {{ text-align: left; }}
@@ -2132,7 +2132,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
 <body>
   <div class="container">
     <h1>Storage</h1>
-    <div class="subtitle">where the astro data lives — capacity, location, and archive tier</div>
+    <div class="subtitle">where the astro data lives: capacity, location, and archive tier</div>
     <div class="updated">last updated {updated_str}</div>
 
     <h2>Capacity</h2>
@@ -2145,7 +2145,7 @@ def render_astro_storage(*, theme_css_js, capacity, inventory, month=None,
       <div class="tier"><div class="tier-v">{n_cold}</div><div class="tier-l">Deep Archive</div></div>
     </div>
 
-    <h2>Where each night lives — {cur_month or "—"}</h2>
+    <h2>Where each night lives: {cur_month or "–"}</h2>
     {month_nav}
     {cal_html}
     {cam_notes_html}
@@ -2161,7 +2161,7 @@ def render_astro_disks(*, theme_css_js, capacity, inventory):
 
     Complements /astro/storage (by-night). Groups the inventory by filesystem
     and, within a disk, one line per camera with a compressed date-range and
-    night count — e.g. "av2  0608-0727  (46)". Peter 2026-07-29.
+    night count: e.g. "av2  0608-0727  (46)". Peter 2026-07-29.
     """
     import re as _re
 
@@ -2263,7 +2263,7 @@ def render_astro_disks(*, theme_css_js, capacity, inventory):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro — Disks</title>
+  <title>Astro: Disks</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
@@ -2287,7 +2287,7 @@ def render_astro_disks(*, theme_css_js, capacity, inventory):
 <body>
   <div class="container">
     <h1>Disks</h1>
-    <div class="subtitle">what astro data lives on each filesystem — camera · date range · nights</div>
+    <div class="subtitle">what astro data lives on each filesystem: camera · date range · nights</div>
     {disks_html}
     <div class="footer"><a href="/astro/storage">by night &rarr;</a> &middot; <a href="/astro">Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
@@ -2303,7 +2303,7 @@ def render_astro_player(*, camera, night, sources):
     source picker are derived from the URL filename by the underlying
     player (e.g. 'sweep-colour.mp4', 'mci-colour-60.mp4').
 
-    Delegates to render_skycam_player from routes.gardencam — same
+    Delegates to render_skycam_player from routes.gardencam: same
     code, same affordances (scrub, frame-step, clip in/out, speed,
     loop, share-URL, fullscreen, PIP, AirPlay, Cast). Per the
     astro-website-player project memory we reuse skycam patterns
@@ -2330,7 +2330,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
     player_link = (
         f'<div class="player-link">'
         f'<a href="/astro/{camera}/night/{night}/player">'
-        f'⚙ advanced player &mdash; frame-step, clip, compare</a>'
+        f'⚙ advanced player: frame-step, clip, compare</a>'
         f'</div>')
 
     subnav_html = render_firstscope_subnav("results") if camera == "firstscope" else ""
@@ -2342,7 +2342,7 @@ def render_astro_camera_page(*, theme_css_js, title, camera, night,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title} — {night}</title>
+  <title>{title}: {night}</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
@@ -2519,7 +2519,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro — Colour Max Stack Evaluation</title>
+  <title>Astro: Colour Max Stack Evaluation</title>
   {theme_css_js}
   <style>
     body {{ font-family: var(--font, system-ui, sans-serif); background: var(--bg, #111); color: var(--text, #eee); margin: 0; padding: 1rem; }}
@@ -2545,7 +2545,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
       Comparing <strong>Raw Luminance Max</strong> vs <strong>Frame-Average Normalised Max</strong> (where a pixel must be outstanding relative to the frame background: <code>L / mean(L)</code>) vs <strong>Per-Channel Max</strong>.
     </div>
 
-    <h2>1. Eclipticam-v3w (Full Night — 2026-08-22)</h2>
+    <h2>1. Eclipticam-v3w (Full Night: 2026-08-22)</h2>
     <div class="grid">
       <div class="card">
         <a href="{urls.get('eclipticam-v3w_2026-08-22_2_ratio_mean.jpg', '')}" target="_blank">
@@ -2553,7 +2553,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
         </a>
         <div class="caption">
           {provenance('eclipticam-v3w', '2026-08-22', night=True)}
-          <div class="title">Frame-Average Normalised Max (L / mean) &mdash; Best!</div>
+          <div class="title">Frame-Average Normalised Max (L / mean): Best!</div>
           <div class="desc">Pixel must be outstanding relative to the frame average. Star trails extend right across the sky without being washed out by dawn/dusk sky brightness! Garden colours preserved.</div>
         </div>
       </div>
@@ -2579,7 +2579,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
       </div>
     </div>
 
-    <h2>2. Astrocam (Full Night — 2026-08-22)</h2>
+    <h2>2. Astrocam (Full Night: 2026-08-22)</h2>
     <div class="grid">
       <div class="card">
         <a href="{urls.get('astrocam_2026-08-22_2_ratio_mean.jpg', '')}" target="_blank">
@@ -2654,7 +2654,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
 
 
 # ---------------------------------------------------------------------------
-# Transients — the curated general collection.
+# Transients: the curated general collection.
 #
 # Not a pipeline output: meteors, lightning, aircraft, satellites, screen
 # grabs, and the daytime frames from the Canon focus work, published by
@@ -2664,7 +2664,7 @@ def render_colour_max_test(theme_css_js="", urls=None):
 
 # Chip order + display labels for the categories the collection knows
 # about. An unknown category still renders (titlecased, appended after
-# these) — the gallery is meant to grow a category the day something new
+# these): the gallery is meant to grow a category the day something new
 # turns up in a frame.
 TRANSIENT_CATEGORIES = [
     ("meteor", "Meteors"),
@@ -2697,7 +2697,7 @@ def _transient_label(cat):
 
 def transient_category_counts(items):
     """[(slug, label, count)] in chip order, known categories first,
-    unknown ones appended alphabetically. Empty categories are dropped —
+    unknown ones appended alphabetically. Empty categories are dropped:
     a chip that filters to nothing is just a dead end."""
     counts = {}
     for e in items:
@@ -2733,7 +2733,7 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
     if not items:
         body = ('<p class="empty">Nothing in this category yet.</p>'
                 if selected else
-                '<p class="empty">The collection is empty &mdash; '
+                '<p class="empty">The collection is empty: '
                 'publish one with <code>astro/bin/add-transient</code>.</p>')
     else:
         cards = []
@@ -2776,7 +2776,7 @@ def render_astro_transients(*, theme_css_js, items, counts, selected=None):
         body = f'<div class="n-list">{"".join(cards)}</div>'
 
     heading = ("Transients" if not selected
-               else f"Transients &mdash; {_transient_label(selected)}")
+               else f"Transients: {_transient_label(selected)}")
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -3132,7 +3132,7 @@ def render_astro_transient_detail(*, theme_css_js, item, prev_item=None, next_it
 # The logbook: what an instrument showed on a given night and what we concluded
 # from it, tagged by instrument so Polecam, eclipticam and the FirstScope land
 # in one dated stream. Reads ONE S3 object (notes/index.json, written by
-# astro/bin/add-note) and presigns only the figures it draws — the same
+# astro/bin/add-note) and presigns only the figures it draws: the same
 # discipline the transients gallery and the calendar manifest follow.
 #
 # Entries are written as Markdown cards in ~/astro/notes/ and the figures are
@@ -3150,7 +3150,7 @@ NOTE_INSTRUMENTS = [
 ]
 
 # Instruments with a page of their own. An entry's instrument tag links here
-# when it is listed, and is plain text when it is not — so adding a note about
+# when it is listed, and is plain text when it is not, so adding a note about
 # something that has no page yet is not a broken link.
 INSTRUMENT_PAGES = {"firstscope": "/astro/firstscope"}
 
@@ -3176,7 +3176,7 @@ def _note_label(slug):
 
 def note_instrument_counts(items):
     """[(slug, label, count)] in chip order, known instruments first, unknown
-    ones appended alphabetically. Empty instruments are dropped — a chip that
+    ones appended alphabetically. Empty instruments are dropped: a chip that
     filters to nothing is a dead end."""
     counts = {}
     for e in items:
@@ -3289,7 +3289,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
     if not items:
         body = ('<p class="empty">No entries for this instrument yet.</p>'
                 if selected else
-                '<p class="empty">The logbook is empty &mdash; write a card in '
+                '<p class="empty">The logbook is empty: write a card in '
                 '<code>astro/notes/</code> and publish it with '
                 '<code>astro/bin/add-note</code>.</p>')
     else:
@@ -3353,7 +3353,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
         body = f'<div class="n-list">{"".join(cards)}</div>'
 
     heading = ("Field Notes" if not selected
-               else f"Field Notes &mdash; {_note_label(selected)}")
+               else f"Field Notes: {_note_label(selected)}")
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3380,7 +3380,7 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
 # --- a very small Markdown subset, for Field Notes section bodies ----------
 #
 # Entries are written as Markdown cards and the interesting ones argue with
-# TABLES — astro-capture's sky-brightness note has four. Rendering sections as
+# TABLES: astro-capture's sky-brightness note has four. Rendering sections as
 # plain paragraphs turned those into rows of pipe characters, so the site
 # renders the subset a logbook actually uses and nothing else: h3/h4 headings,
 # pipe tables, bullet and numbered lists, 4-space indented blocks (a formula,
@@ -3461,7 +3461,7 @@ def _md(text):
             i += 1
             html.append(f'<div class="md-math">$${_esc(chr(10).join(tex))}$$</div>')
             continue
-        # Indented block — a formula or a snippet.
+        # Indented block: a formula or a snippet.
         if line.startswith("    ") or line.startswith("\t"):
             block = []
             while i < len(lines) and (lines[i].startswith("    ")
@@ -3654,7 +3654,7 @@ def render_astro_note_detail(*, theme_css_js, item, prev_item=None,
 # ---------------------------------------------------------------------------
 # Instrument pages. One page per physical instrument, NOT per Pi: the
 # FirstScope rode starcam from 2026-09-08 and moved to xoverpi on 2026-09-14,
-# and it is the same tube either way — naming the page for the host would
+# and it is the same tube either way: naming the page for the host would
 # split one instrument's story across two pages and rename it whenever it is
 # re-mounted.
 #

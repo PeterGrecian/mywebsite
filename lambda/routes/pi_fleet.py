@@ -167,7 +167,7 @@ def _render_detail_modal_body(
         rows.append(_detail_row("WiFi", pi.get('wifi_interface'), full=True))
     if pi.get('tunnel_active'):
         bastion = pi.get('bastion_host', 'homepi')
-        rows.append(_detail_row("SSH Tunnel", f"Active — Port {pi.get('tunnel_port', 0)} via {bastion}", full=True))
+        rows.append(_detail_row("SSH Tunnel", f"Active: Port {pi.get('tunnel_port', 0)} via {bastion}", full=True))
     elif pi.get('tunnel_port') and str(pi.get('bastion_host', 'none')) not in ('none', 'unknown', ''):
         rows.append(_detail_row("SSH Tunnel", f"Inactive (port {pi.get('tunnel_port')})", full=False))
     if card_id and card_id != 'unknown' and card_id != pi.get('hostname'):
@@ -189,7 +189,7 @@ def _render_detail_modal_body(
         message = pi.get('message', 'Provisioning in progress...')
         extra_html += f'''
         <div class="boot-progress">
-            <strong>\U0001f504 Boot Progress:</strong> {_html.escape(str(boot_progress))} &mdash; {_html.escape(str(message))}
+            <strong>\U0001f504 Boot Progress:</strong> {_html.escape(str(boot_progress))}: {_html.escape(str(message))}
         </div>
         '''
     error = pi.get('error')
@@ -359,7 +359,7 @@ def _render_card(pi, *, is_online, format_uptime, format_age, format_to_sigfigs)
         message = pi.get('message', 'Provisioning in progress...')
         html += f'''
         <div class="boot-progress">
-            <strong>\U0001f504 Boot Progress:</strong> {boot_progress} &mdash; {message}
+            <strong>\U0001f504 Boot Progress:</strong> {boot_progress}: {message}
         </div>
         '''
 
@@ -408,7 +408,7 @@ def _compute_fleet_stats(pis, *, is_pi_online, format_uptime):
             "mem_sub": "0 / 0 GB",
             "disk_summary": "0%",
             "disk_sub": "0 / 0 GB",
-            "uptime_summary": "—",
+            "uptime_summary": "–",
             "uptime_sub": "no hosts",
             "topology_sub": "0 LAN · 0 cloud",
         }
@@ -465,7 +465,7 @@ def _compute_fleet_stats(pis, *, is_pi_online, format_uptime):
         uptime_summary = format_uptime(min_up)
         uptime_sub = f"newest: {min_up_host} · max {format_uptime(max_up)} ({max_up_host})"
     else:
-        uptime_summary = "—"
+        uptime_summary = "–"
         uptime_sub = "unknown"
 
     # Topology & tunnels

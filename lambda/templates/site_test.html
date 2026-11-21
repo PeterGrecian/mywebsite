@@ -61,7 +61,7 @@
 
       <div class="stats">
         <div class="stat-box">
-          <div class="stat-value" id="avgTime">&mdash;</div>
+          <div class="stat-value" id="avgTime">–</div>
           <div class="stat-label">Avg Load Time</div>
         </div>
         <div class="stat-box">
@@ -96,7 +96,7 @@
       pages.forEach(page => {{
         const tr = document.createElement('tr');
         tr.id = `row-${{page.id}}`;
-        tr.innerHTML = `<td class="page-name"><a href="${{page.path}}" target="_blank">${{page.label}}</a></td><td class="loading">pending...</td><td class="time">&mdash;</td>`;
+        tr.innerHTML = `<td class="page-name"><a href="${{page.path}}" target="_blank">${{page.label}}</a></td><td class="loading">pending...</td><td class="time">–</td>`;
         tbody.appendChild(tr);
       }});
 
@@ -139,7 +139,7 @@
           }} else {{
             statusCell.className = 'error';
             statusCell.textContent = error.message;
-            timeCell.textContent = '&mdash;';
+            timeCell.textContent = '–';
             return {{ status: 'error', time: 0 }};
           }}
         }}
@@ -157,12 +157,12 @@
         const protected_pages = results.filter(r => r.status === 'protected').length;
         const errors = results.filter(r => r.status === 'error' || r.status === 'timeout').length;
         const successfulTimes = results.filter(r => r.status === 'success').map(r => r.time);
-        const avgTime = successfulTimes.length > 0 ? (successfulTimes.reduce((a, b) => a + b) / successfulTimes.length).toFixed(0) : '&mdash;';
+        const avgTime = successfulTimes.length > 0 ? (successfulTimes.reduce((a, b) => a + b) / successfulTimes.length).toFixed(0) : '–';
 
         document.getElementById('successCount').textContent = successful;
         document.getElementById('protectedCount').textContent = protected_pages;
         document.getElementById('errorCount').textContent = errors;
-        document.getElementById('avgTime').textContent = avgTime + (avgTime !== '&mdash;' ? ' ms' : '');
+        document.getElementById('avgTime').textContent = avgTime + (avgTime !== '–' ? ' ms' : '');
 
         btn.disabled = false;
         btn.textContent = 'Start Tests';
@@ -174,9 +174,9 @@
           const timeCell = row.cells[2];
           statusCell.className = 'loading';
           statusCell.textContent = 'pending...';
-          timeCell.textContent = '&mdash;';
+          timeCell.textContent = '–';
         }});
-        document.getElementById('avgTime').textContent = '&mdash;';
+        document.getElementById('avgTime').textContent = '–';
         document.getElementById('successCount').textContent = '0';
         document.getElementById('protectedCount').textContent = '0';
         document.getElementById('errorCount').textContent = '0';

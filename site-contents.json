@@ -30,7 +30,7 @@
   {
     "path": "springcam",
     "title": "Spring Camera",
-    "description": "spring timelapse \u2014 every 20 minutes",
+    "description": "spring timelapse, every 20 minutes",
     "color": "pastel-green",
     "sort_order": 5,
     "visible": true,
@@ -110,7 +110,7 @@
   {
     "path": "us-vs-the-machines",
     "title": "Us vs the Machines",
-    "description": "predict F1 results \u2014 humans vs AI",
+    "description": "predict F1 results: humans vs AI",
     "color": "pastel-peach",
     "sort_order": 14,
     "visible": true,
@@ -120,7 +120,7 @@
     "path": "betterverse",
     "external_url": "https://192.168.7.253:8443/?v=13",
     "title": "Betterverse v13",
-    "description": "VR particle demo \u2014 Quest 2 + nanoKONTROL2 (LAN only)",
+    "description": "VR particle demo: Quest 2 + nanoKONTROL2 (LAN only)",
     "color": "pastel-lavender",
     "sort_order": 15,
     "visible": true,
@@ -138,7 +138,7 @@
   {
     "path": "srfcplus",
     "title": "SRFC Plus",
-    "description": "surbiton racket & fitness club \u2014 bookings",
+    "description": "surbiton racket & fitness club: bookings",
     "color": "pastel-blue",
     "sort_order": 17,
     "visible": true,

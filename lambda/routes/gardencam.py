@@ -657,7 +657,7 @@ def _list_rerender_days(max_days=30):
 def build_cloudcam_links_block():
     """Two links from /skycam: Timelapse videos (the working hierarchical
     page) and vplayer (stub for the future custom player). No per-repo tags
-    here — the top bar carries the single deploy pet name."""
+    here: the top bar carries the single deploy pet name."""
     return (
         '<div style="background: var(--card-bg); border: 1px solid var(--divider); '
         'border-radius: 12px; padding: 1rem; margin-bottom: 1rem; max-width: 900px; '
@@ -674,7 +674,7 @@ def build_cloudcam_links_block():
 def build_skycam_top_bar():
     """The cache-fingerprint bar at the top of /skycam.
 
-    The pet name is the human-friendly identifier for THIS Lambda deploy —
+    The pet name is the human-friendly identifier for THIS Lambda deploy;
     its only job is letting the eye spot a stale CDN copy. The 'deployed Xm Ys
     ago' counter ticks live in the browser; if it freezes the page is frozen.
     Versions for individual components (gardencam, vplay, etc) live on the
@@ -688,7 +688,7 @@ def build_skycam_top_bar():
         '<a href="/contents" style="color: var(--accent);">Home</a>'
         f'<span>☁ <strong style="color: var(--text);">{pn}</strong></span>'
         f'<span id="deployed-ago" data-deployed="{_MW_DEPLOY_TIME}">'
-        'deployed —</span>'
+        'deployed…</span>'
         '<a href="/skycam/build-info" style="color: var(--accent);">build info</a>'
         '</div>'
         '<script>(function(){'
@@ -715,7 +715,7 @@ def build_skycam_top_bar():
 
 
 def render_build_info_page():
-    """Stub build-info page — lists the components that make up the skycam
+    """Stub build-info page: lists the components that make up the skycam
     homepage. Currently just shows what mywebsite's deploy can see; will grow
     when vplay is hosted and gardencam emits its own build manifest."""
     rows = [
@@ -749,7 +749,7 @@ def render_build_info_page():
 </style></head><body>
 <div class="nav"><a href="/skycam">← Skycam</a></div>
 <h1>Build info</h1>
-<p class="stub">Stub — components of the skycam homepage. Will fill out as
+<p class="stub">Stub: components of the skycam homepage. Will fill out as
 gardencam / vplay grow their own build manifests.</p>
 <table>
 <tr><th>Component</th><th>Version</th><th>Commit</th><th>Commit time</th><th>Deploy</th></tr>
@@ -771,10 +771,10 @@ def _list_video_tree(bucket="gardencam-berrylands-eu-west-1",
     Prefers rerender/ entries when both exist for the same day.
 
     Filename conventions handled (after the camera-name prefix):
-      <name>_YYYYMMDD_HH.mp4       — live hourly
-      <name>_YYYYMMDD_daily.mp4    — live day
-      <name>_YYYYMMDD_night.mp4    — night
-      <name>_YYYYMMDD[_HH]_rerender.mp4 — post-processed rerender
+      <name>_YYYYMMDD_HH.mp4: live hourly
+      <name>_YYYYMMDD_daily.mp4: live day
+      <name>_YYYYMMDD_night.mp4: night
+      <name>_YYYYMMDD[_HH]_rerender.mp4: post-processed rerender
     The split-on-underscore tree-builder only inspects seg[2] for the tag,
     so it works for any camera-name prefix (sky/starcam/etc.).
 
@@ -906,7 +906,7 @@ def _render_sightings_strip(y, m, dd, camera):
 
     # Group sightings by source frame (epoch_ms). One tile per frame
     # uses the *composite* image we write alongside the per-sighting
-    # crops — shows every trigger on that frame painted at its real
+    # crops: shows every trigger on that frame painted at its real
     # bbox so you can see spatial relationships at a glance.
     by_frame: dict[int, list[dict]] = {}
     for s in sightings:
@@ -944,7 +944,7 @@ def _render_sightings_strip(y, m, dd, camera):
 
         # Click target: the puppy-sightings viewer (LAN-only). Evidence
         # packs live on puppy's local disk and are served by
-        # ~/super/services/puppy_sightings.py over plain HTTP — this is
+        # ~/super/services/puppy_sightings.py over plain HTTP; this is
         # diagnostic data so home-network-only is by design.
         # Note: browsers may flag the http→ link from this HTTPS page as
         # mixed-content on first click; that's acceptable for the LAN
@@ -1228,7 +1228,7 @@ def render_timelapse_day_fragment(date_str, camera="skycam"):
 
 
 def render_player_poc_landing():
-    """Landing page at /skycam/player-poc — lists the most recent day's MP4s,
+    """Landing page at /skycam/player-poc: lists the most recent day's MP4s,
     each link goes to /skycam/player?key=... (the custom POC player)."""
     from urllib.parse import quote
     days = _list_rerender_days(max_days=7)
@@ -1368,7 +1368,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
 <html lang="en"><head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {_THEME_CSS_JS}
-<title>Sky Camera — {title}</title>
+<title>Sky Camera: {title}</title>
 <style>
   body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 0.4rem; }}
   .top {{ display: flex; gap: 1rem; align-items: center; margin-bottom: 0.4rem; }}
@@ -1402,7 +1402,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   .help {{ max-width: 1200px; margin: 0.5rem auto; color: var(--text-secondary); font-size: 0.8rem; text-align: center; }}
   /* The video is a frame-stepping surface on touch: a horizontal drag steps
      frames (see the drag block in the script). `pan-y` tells the browser to
-     keep the vertical axis — page scroll stays native — and hand us the
+     keep the vertical axis, page scroll stays native, and hand us the
      horizontal one. Without it the browser claims horizontal drags too and
      the gesture never reaches us. */
   video {{ touch-action: pan-y; }}
@@ -1483,9 +1483,9 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   <div id="stats" style="max-width:1200px; margin:0.25rem auto;
        color:var(--text-secondary); font-size:0.8rem; text-align:center;
        font-variant-numeric: tabular-nums;">
-    <span id="wallTime">—</span> ·
-    frame <span id="frameCur">—</span>/<span id="frameTot">—</span> ·
-    fps <span id="fpsActual">—</span>/60 ·
+    <span id="wallTime">–</span> ·
+    frame <span id="frameCur">–</span>/<span id="frameTot">–</span> ·
+    fps <span id="fpsActual">–</span>/60 ·
     dropped <span id="dropped">0</span>
     <span id="bufferWarn" style="display:none; color:#FF9500;"> ⚠ buffering</span>
   </div>
@@ -1530,7 +1530,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   // the user opened the player and immediately pressed an arrow
   // without playing first.
   //
-  // NEVER use getVideoPlaybackQuality().totalVideoFrames here — that's
+  // NEVER use getVideoPlaybackQuality().totalVideoFrames here; that's
   // a running count of frames rendered so far, not a per-file frame
   // count.
   let FPS = 60;
@@ -1577,7 +1577,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
       : Math.max(lo(), v.currentTime - step);
     v.currentTime = t;
     // requestVideoFrameCallback fires after the seek's new frame is
-    // composited — repaint then so HUD reflects the displayed frame,
+    // composited: repaint then so HUD reflects the displayed frame,
     // not the requested time.
     if (hasRVFC) v.requestVideoFrameCallback(() => repaint());
     else repaint();
@@ -1613,7 +1613,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   function lo() {{ return loOf(clip(activeClip)); }}
   function hi() {{ return hiOf(clip(activeClip)); }}
 
-  function fmt(t) {{ if (!isFinite(t)) return "—"; return t.toFixed(3) + "s"; }}
+  function fmt(t) {{ if (!isFinite(t)) return "–"; return t.toFixed(3) + "s"; }}
   function repaint() {{
     const D = dur(); if (!D) return;
     head.style.left = (v.currentTime / D * 100) + "%";
@@ -1822,7 +1822,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
 
   // Timeline: click to seek; drag the bar to scrub.
   // Two-layer pattern:
-  //  - Visual head moves IMMEDIATELY on every pointermove (sync — the
+  //  - Visual head moves IMMEDIATELY on every pointermove (sync: the
   //    user sees the scrub even before the video catches up).
   //  - Actual seek is rAF-throttled (pointermove fires hundreds of
   //    times/sec; each currentTime= triggers a fresh decode). Use
@@ -1867,7 +1867,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   }});
   bar.addEventListener("pointercancel", () => {{ scrubbing = false; }});
 
-  // Frame stepping by drag — the phone's ← →. A phone has no keyboard, so
+  // Frame stepping by drag: the phone's ← →. A phone has no keyboard, so
   // the video surface itself is the control: a horizontal drag moves one
   // frame per DRAG_PX_PER_FRAME px, which makes a short flick exactly one
   // frame and a long drag a ripple through a sequence. Same two-layer
@@ -1878,7 +1878,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   // video gives the browser the vertical axis (it sends a pointercancel
   // when it claims a gesture as a scroll). Mouse pointers ignore
   // touch-action entirely, so the axis is also decided explicitly here,
-  // before any frame moves — and once it resolves to "y" the drag is
+  // before any frame moves, and once it resolves to "y" the drag is
   // dropped rather than captured.
   const DRAG_PX_PER_FRAME = 24;
   const DRAG_SLACK_PX = 10;     // so a tap is never a step
@@ -1999,7 +1999,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     v.style.filter = bright === 1.0 ? "" : `brightness(${{bright}})`;
   }}
   function setZoom(target, ox, oy) {{
-    // target: "fit" | 1 | 2 — scale relative to fit. (CSS already
+    // target: "fit" | 1 | 2: scale relative to fit. (CSS already
     // displays video at "fit" size; 1 here means "1×fit" not 1px=1px.
     // True 1:1 would need knowing the native size; defer.)
     const r = v.getBoundingClientRect();
@@ -2122,7 +2122,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
   }});
   // Browser fires `ended` and pauses the <video> on natural EOF. If
   // timeupdate didn't catch the wrap first (it can lag), the video
-  // sits paused with `playing` still true — the play glyph stays as
+  // sits paused with `playing` still true: the play glyph stays as
   // pause and nothing happens. Run the same loop logic from `ended`.
   v.addEventListener("ended", () => {{
     if (playing && dir > 0) enforceLoopAtEnd();
@@ -2153,7 +2153,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
     if (cur && cur.hourEpoch != null) {{
       wallEl.textContent = fmtWall(cur.hourEpoch + v.currentTime * WALLCLOCK_PER_VIDEO_SEC);
     }} else {{
-      wallEl.textContent = "—";
+      wallEl.textContent = "–";
     }}
   }}
 

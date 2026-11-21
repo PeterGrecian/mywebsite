@@ -1,4 +1,4 @@
-"""Astro Photos Showcase — high-resolution curated astrophotography gallery.
+"""Astro Photos Showcase: high-resolution curated astrophotography gallery.
 
 Text and metadata live in Git (Markdown cards with YAML frontmatter).
 High-resolution images and thumbnails live in S3 (s3://.../showcase/).
@@ -543,7 +543,7 @@ def render_astro_showcase_gallery(*, theme_css_js, items, counts, selected=None)
         cards_html = ('<div class="empty-state"><p>No photos in this category yet.</p>'
                       '<p><a href="/astro/photos">&larr; Back to all photos</a></p></div>'
                       if selected else
-                      '<div class="empty-state"><p>The showcase collection is empty &mdash; '
+                      '<div class="empty-state"><p>The showcase collection is empty: '
                       'publish photos with <code>astro/bin/add-showcase</code>.</p></div>')
     else:
         cards = []
@@ -596,7 +596,7 @@ def render_astro_showcase_gallery(*, theme_css_js, items, counts, selected=None)
         cards_html = f'<div class="p-grid">{"".join(cards)}</div>'
 
     heading = ("Astrophotography Showcase" if not selected
-               else f"Astrophotography &mdash; {SHOWCASE_CATEGORIES.get(selected, selected.title())}")
+               else f"Astrophotography: {SHOWCASE_CATEGORIES.get(selected, selected.title())}")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -615,7 +615,7 @@ def render_astro_showcase_gallery(*, theme_css_js, items, counts, selected=None)
     <header class="site-header">
       <span class="header-badge">Observational Astronomy</span>
       <h1>{heading}</h1>
-      <p class="subtitle">Deep-sky stacks, widefield Milky Way, polar derotations, and star trails &mdash; calibrated visual captures with complete equipment and exposure metadata.</p>
+      <p class="subtitle">Deep-sky stacks, widefield Milky Way, polar derotations, and star trails: calibrated visual captures with complete equipment and exposure metadata.</p>
     </header>
 
     {chips_html}

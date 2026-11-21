@@ -7,7 +7,7 @@ def render_srfcplus_page():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Bookings — Surbiton Racket &amp; Fitness Club</title>
+  <title>My Bookings: Surbiton Racket &amp; Fitness Club</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -101,7 +101,7 @@ def render_srfcplus_page():
 
   <div class="container">
     <div class="page-title">My Padel Bookings</div>
-    <div class="page-subtitle">Padel court reservations — loaded directly from the portal</div>
+    <div class="page-subtitle">Padel court reservations: loaded directly from the portal</div>
 
     <div class="panel">
       <div class="panel-heading">
@@ -133,7 +133,7 @@ def render_srfcplus_page():
   </div>
 
   <div class="footer">
-    SRFC Plus — faster view of <a href="https://www.mysurbitonracketfitness.com" target="_blank">mysurbitonracketfitness.com</a>
+    SRFC Plus: faster view of <a href="https://www.mysurbitonracketfitness.com" target="_blank">mysurbitonracketfitness.com</a>
   </div>
 
   <script>
@@ -217,7 +217,7 @@ def render_srfcplus_page():
       if (saved) {
         loadBookings(saved);
       } else {
-        showStatus('No cookie saved yet — click <strong>⚙ Cookie settings</strong> above to get started.');
+        showStatus('No cookie saved yet: click <strong>⚙ Cookie settings</strong> above to get started.');
         document.getElementById('configPanel').classList.add('open');
       }
     });

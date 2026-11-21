@@ -354,7 +354,7 @@ def render_gallery_week(camera_name, week_iso, days_with_counts, *,
         iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
         monday = date.fromisocalendar(iso_year, iso_week, 1)
         sunday = date.fromisocalendar(iso_year, iso_week, 7)
-        week_label = f"Week of {monday.strftime('%d %B')} — {sunday.strftime('%d %B %Y')}"
+        week_label = f"Week of {monday.strftime('%d %B')} to {sunday.strftime('%d %B %Y')}"
     except (ValueError, IndexError):
         week_label = week_iso
 
@@ -379,7 +379,7 @@ def render_gallery_month(camera_name, month_str, weeks_with_days, *,
             iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
             monday = date.fromisocalendar(iso_year, iso_week, 1)
             sunday = date.fromisocalendar(iso_year, iso_week, 7)
-            week_label = f"{monday.strftime('%d %b')} — {sunday.strftime('%d %b')}"
+            week_label = f"{monday.strftime('%d %b')} to {sunday.strftime('%d %b')}"
         except (ValueError, IndexError):
             week_label = week_iso
 
@@ -488,7 +488,7 @@ def render_camera_videos(camera_name, recent_videos, *, latest_path, gallery_pat
             <a href="{latest_path}">Latest</a> |
             <a href="{gallery_path}">Gallery</a>
         </div>
-        <h1>{camera_name} — Timelapse Videos</h1>
+        <h1>{camera_name}: Timelapse Videos</h1>
         <div class="video-grid">{cards}</div>'''
 
 
@@ -581,7 +581,7 @@ def render_videos_week(camera_name, week_iso, days_with_counts, *,
         iso_year, iso_week = int(week_iso[:4]), int(week_iso.split('W')[1])
         monday = date.fromisocalendar(iso_year, iso_week, 1)
         sunday = date.fromisocalendar(iso_year, iso_week, 7)
-        week_label = f"Week of {monday.strftime('%d %B')} — {sunday.strftime('%d %B %Y')}"
+        week_label = f"Week of {monday.strftime('%d %B')} to {sunday.strftime('%d %B %Y')}"
     except (ValueError, IndexError):
         week_label = week_iso
 
@@ -1341,7 +1341,7 @@ def render_starcam_nights_index(nights, *, weeks_limit=None, hero_url=None,
                          ) if moon_str else ''
             day_label = f'{d.day}'
             if d > today:
-                # Future day — placeholder.
+                # Future day: placeholder.
                 rows.append(
                     f'<div style="position:relative;aspect-ratio:1;'
                     f'background:#050505;border-radius:8px;padding:6px;'
@@ -1413,7 +1413,7 @@ def render_starcam_nights_index(nights, *, weeks_limit=None, hero_url=None,
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Star Camera — Nights</title>
+<title>Star Camera: Nights</title>
 <style>
   body {{ background: #000; color: #E0E0E0;
     font-family: -apple-system, 'SF Pro Display', 'Inter', 'Roboto', sans-serif;
@@ -1466,7 +1466,7 @@ def render_starcam_night_results(night_str, summary, urls):
         mean = dark_entry.get("mean_brightness") if dark_entry else None
         mean_str = f" · mean {mean:.3f}" if mean is not None else ""
         derot_img = (
-            f'<h2>Darkest hour — {dark_hh}:00 UTC{mean_str}</h2>'
+            f'<h2>Darkest hour: {dark_hh}:00 UTC{mean_str}</h2>'
             f'<img src="{dark_url}" alt="darkest hour stack" '
             f'style="width:100%;max-width:960px;background:#000;">{prov}')
     elif urls.get("all-night-derot.jpg"):
@@ -1489,7 +1489,7 @@ def render_starcam_night_results(night_str, summary, urls):
             thumb = ('<div style="height:120px;background:#161616;'
                      'border-radius:8px;"></div>')
         mean = h.get("mean_brightness")
-        mean_str = f"{mean:.2f}" if mean is not None else "—"
+        mean_str = f"{mean:.2f}" if mean is not None else "–"
         status = h.get("status", "")
         status_colour = ("#34C759" if status == "ok"
                          else "#FF9500" if status == "skipped-bright"
@@ -1508,17 +1508,17 @@ def render_starcam_night_results(night_str, summary, urls):
             f'</div></div>')
 
     wall = summary.get("wall_seconds") or 0
-    wall_str = f"{wall // 60}m {wall % 60}s" if wall else "—"
+    wall_str = f"{wall // 60}m {wall % 60}s" if wall else "–"
     moon_up = _MOON_UP.get(night_str)
     moon_str = f"Moon up {moon_up}" if moon_up else "Moon-free"
     spread = agg.get("pole_spread_px")
-    spread_str = f"{spread:.0f} px" if spread is not None else "—"
+    spread_str = f"{spread:.0f} px" if spread is not None else "–"
 
     return f'''<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Star Camera — {night_str}</title>
+<title>Star Camera: {night_str}</title>
 <style>
   :root {{
     --bg: #000; --card-bg: #161616; --text: #E0E0E0;
@@ -1543,7 +1543,7 @@ def render_starcam_night_results(night_str, summary, urls):
 </style>
 </head><body>
 <div class="nav"><a href="/starcam">← Star Camera</a> · <a href="/contents">Home</a></div>
-<h1>Star Camera — {night_str}</h1>
+<h1>Star Camera: {night_str}</h1>
 <div class="verdict">{glyph} {label}</div>
 <div style="color:#8E8E93;font-size:0.85rem;margin-top:0.4rem;font-family:monospace;">{moon_str}</div>
 <div class="stats">
@@ -1566,7 +1566,7 @@ def render_skycam_player(video_url, title, hours=None):
     hours_json = json.dumps(hours or [])
 
     return f'''
-        <title>Sky Camera — {title}</title>
+        <title>Sky Camera: {title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: #000; color: #fff; }}
@@ -1659,7 +1659,7 @@ def render_skycam_player(video_url, title, hours=None):
                 }}
             }};
 
-            // Loop via one-item Queue + REPEAT_ALL — the only loop method
+            // Loop via one-item Queue + REPEAT_ALL: the only loop method
             // that worked on the test Chromecast. Trade-off: the Default
             // Media Receiver shows an "up next in N seconds…" overlay near
             // the end of each loop, with the filename. Annoying on short
@@ -1668,7 +1668,7 @@ def render_skycam_player(video_url, title, hours=None):
                 if (!castSession) return;
                 const mediaInfo = new chrome.cast.media.MediaInfo(VIDEO_URL, 'video/mp4');
                 mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
-                mediaInfo.metadata.title = 'Sky Camera — ' + VIDEO_TITLE;
+                mediaInfo.metadata.title = 'Sky Camera: ' + VIDEO_TITLE;
                 const queueItem = new chrome.cast.media.QueueItem(mediaInfo);
                 const request = new chrome.cast.media.LoadRequest(mediaInfo);
                 request.queueData = new chrome.cast.media.QueueData();
@@ -1697,7 +1697,7 @@ def render_clouds_movie(days):
 
     Cast: a sliding window of CAST_QUEUE_SIZE items. As the cast playhead
     nears the end of the loaded queue, the page calls queueInsertItems()
-    to append more — so playback continues forever without the receiver
+    to append more, so playback continues forever without the receiver
     LOAD-message size limit ever biting.
     """
     import json
@@ -2161,7 +2161,7 @@ def render_starcam_night(evening_date, images, brightness_data=None):
             </div>'''
 
     return f'''{_GALLERY_STYLE}
-        <title>Starcam — {label}</title>
+        <title>Starcam: {label}</title>
         <div class="nav">
             <a href="../../contents">Home</a> |
             <a href="..">Sky Camera</a> |
@@ -2273,7 +2273,7 @@ def render_starcam_night(evening_date, images, brightness_data=None):
                 ctx.fillText('target', pad.left + 3, refY - 4);
             }}
 
-            // X labels — hourly ticks
+            // X labels: hourly ticks
             ctx.fillStyle = '#888';
             ctx.textAlign = 'center';
             var firstHour = Math.ceil(xMin);

@@ -8,8 +8,8 @@ def render_contents_page(*, theme_css_js, private=False):
 
     Two audiences, one table, two independent flags:
 
-      visible=False       retired or broken — off BOTH pages.
-      auth_required=True  private — shown only on /my-contents, never on the
+      visible=False       retired or broken: off BOTH pages.
+      auth_required=True  private: shown only on /my-contents, never on the
                           public /contents.
 
     `auth_required` used to only add a PRIVATE badge, which left the public
@@ -36,14 +36,14 @@ def render_contents_page(*, theme_css_js, private=False):
     # Sort by sort_order
     items.sort(key=lambda x: int(x.get('sort_order', 999)))
 
-    # visible=False is retirement — off both pages.
+    # visible=False is retirement: off both pages.
     items = [i for i in items if i.get('visible', True)]
-    # auth_required is privacy — private page only.
+    # auth_required is privacy: private page only.
     if not private:
         items = [i for i in items if not i.get('auth_required')]
 
     # header_link entries are not projects, so they are not cards: they are
-    # links under the name. Biography is the case that prompted it — a card
+    # links under the name. Biography is the case that prompted it: a card
     # in a list of things I built reads as another project.
     header_items = [i for i in items if i.get('header_link')]
     items = [i for i in items if not i.get('header_link')]
@@ -105,7 +105,7 @@ def render_contents_page(*, theme_css_js, private=False):
 
     # noindex on the private page: it is behind Basic Auth, so a crawler
     # cannot read it, but there is no reason for the URL itself to be indexed.
-    page_title = "Peter Grecian — private" if private else "Peter Grecian"
+    page_title = "Peter Grecian · private" if private else "Peter Grecian"
     robots_meta = ('\n    <meta name="robots" content="noindex,nofollow">'
                    if private else "")
 
