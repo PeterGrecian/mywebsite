@@ -28,10 +28,10 @@ Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.u
 - **18.1 mag/arcsec²**: the brightness of the sky here, measured by comparing what I see with published catalogues.
 - **662 one-minute frames** in a single night, captured, stacked and published completely unattended. That is my record so far, and it will grow as the nights get longer.
 - **Stars down to magnitude 9.7** in one night's stack, far below what the eye can see from the garden.
-- **8 cameras** so far, from a £25 Pi camera to a Canon DSLR and a tabletop telescope.
+- **8 cameras** experimented with so far, from a £25 Pi camera to a Canon DSLR and a tabletop telescope.
 
 ## What next
 
-The proof of concept is done, and I am now consolidating what I have. The next goal is the month-long stack: one picture built from every clear night in a month. Later posts will take the cameras, the computers and the software one at a time.
+The proof of concept is done, and I am now consolidating what I have. I want to see how far I can take this concept.
 
 A city sky is not a dead end. It just asks for patience and software. Every night's results go up each morning at [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium).

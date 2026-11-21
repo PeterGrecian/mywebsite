@@ -190,10 +190,10 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
       <li><b>18.1 mag/arcsec&sup2;</b>: the brightness of the sky here, measured by comparing what I see with published catalogues.</li>
       <li><b>662 one-minute frames</b> in a single night, captured, stacked and published completely unattended. That is my record so far, and it will grow as the nights get longer.</li>
       <li><b>Stars down to magnitude 9.7</b> in one night&#39;s stack, far below what the eye can see from the garden.</li>
-      <li><b>8 cameras</b> so far, from a &pound;25 Pi camera to a Canon DSLR and a tabletop telescope.</li>
+      <li><b>8 cameras</b> experimented with so far, from a &pound;25 Pi camera to a Canon DSLR and a tabletop telescope.</li>
     </ul>
     <h2>What next</h2>
-    <p>The proof of concept is done, and I am now consolidating what I have. The next goal is the month-long stack: one picture built from every clear night in a month. Later posts will take the cameras, the computers and the software one at a time.</p>
+    <p>The proof of concept is done, and I am now consolidating what I have. I want to see how far I can take this concept.</p>
     <p>A city sky is not a dead end. It just asks for patience and software. Every night&#39;s results go up each morning at <a href="/astro">www.petergrecian.co.uk/astro</a>.</p>
 
     <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
