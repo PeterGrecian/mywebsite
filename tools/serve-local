@@ -2,7 +2,8 @@
 """Serve the mywebsite Lambda locally so a page can be edited and refreshed.
 
 The fast loop for site work: run this, open http://localhost:8321/astro in
-ChromeOS Chrome (Crostini listeners are port-forwarded), edit
+ChromeOS Chrome (Crostini listeners are port-forwarded; from a session on ora,
+open http://ora:8321/astro, which zog reaches over the tailnet), edit
 lambda/routes/*.py, hit refresh. Every request re-imports the handler if any
 source file changed, so there is no restart and no ./deploy in the loop.
 

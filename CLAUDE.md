@@ -105,6 +105,13 @@ terraform -chdir=terraform apply   # Apply infrastructure changes
 python tools/sync-contents.py      # Sync navigation data to DynamoDB
 ```
 
+**Preview before deploying:** `tools/serve-local` (port 8321) serves the Lambda
+with real AWS reads, hot-reloads on every source edit, and stubs the per-request
+DynamoDB log writes (`--log` lets them through). On zog open
+`http://localhost:8321/<path>`; from a session on ora open `http://ora:8321/<path>`
+(tailnet; `100.114.55.123` if MagicDNS is off). Password routes ask for the
+house password, as live. Run it in the background and stop it when done.
+
 ## mywebsite vs cv — Don't Confuse Them
 
 These are two separate repos running in parallel during migration:
