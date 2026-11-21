@@ -1,5 +1,7 @@
 """Shared camera page renderers for springcam and skycam."""
 
+from presign import stable_expires
+
 
 def render_camera_latest(camera_name, images, *, theme_css_js, gallery_path, fullres_path, videos_path=None, starcam_path=None, advanced_videos_path=None):
     """Render a camera latest-images page."""
@@ -107,7 +109,7 @@ def _presign_thumbs(images, thumb_key_fn):
         return s3.generate_presigned_url(
             'get_object',
             Params={'Bucket': bucket, 'Key': key},
-            ExpiresIn=3600,
+            ExpiresIn=stable_expires(3600),
         )
 
     keys = [img['key'] for img in images]

@@ -10,6 +10,7 @@ import math
 import re
 
 import visitor_alert
+from presign import stable_expires
 
 try:
     import boto3
@@ -472,7 +473,7 @@ def get_presigned_url(key, expires_in=3600, bucket=None):
     return s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': bucket or GARDENCAM_BUCKET, 'Key': key},
-        ExpiresIn=expires_in
+        ExpiresIn=stable_expires(expires_in)
     )
 
 
@@ -2125,7 +2126,7 @@ def get_memspeed_download_url(key, expires_in=3600):
     return s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-        ExpiresIn=expires_in
+        ExpiresIn=stable_expires(expires_in)
     )
 
 
@@ -4006,7 +4007,7 @@ def _route_springcam_play(rq):
         s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
         video_url = s3.generate_presigned_url(
             'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
-            ExpiresIn=7200)
+            ExpiresIn=stable_expires(7200))
         basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
         from routes.camera import render_skycam_player
         html += render_skycam_player(video_url, basename, hours=[])
@@ -5297,7 +5298,7 @@ def _route_starcam_play(rq):
         s3.head_object(Bucket=STARCAM_BUCKET, Key=video_key)
         video_url = s3.generate_presigned_url(
             'get_object', Params={'Bucket': STARCAM_BUCKET, 'Key': video_key},
-            ExpiresIn=7200)
+            ExpiresIn=stable_expires(7200))
         basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '')
         from routes.camera import render_skycam_player
         html += render_skycam_player(video_url, basename, hours=[])
@@ -5444,7 +5445,7 @@ def _route_skycam_videos(rq):
 
     def _presign_vid(key):
         return s3.generate_presigned_url(
-            'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=3600)
+            'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key}, ExpiresIn=stable_expires(3600))
 
     def _list_videos_for_prefix(prefix):
         """List mp4 videos under an S3 prefix, return sorted newest-first."""
@@ -5719,7 +5720,7 @@ def _route_skycam_starcam_night(rq):
                                 local_ts = ts.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/London"))
                                 url = s3.generate_presigned_url(
                                     'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': key},
-                                    ExpiresIn=7200)
+                                    ExpiresIn=stable_expires(7200))
                                 # Read S3 metadata for stats
                                 meta = {}
                                 try:
@@ -5815,7 +5816,7 @@ def _route_skycam_clouds(rq):
                 "url":     s3.generate_presigned_url(
                               'get_object',
                               Params={'Bucket': GARDENCAM_BUCKET, 'Key': k},
-                              ExpiresIn=14400),
+                              ExpiresIn=stable_expires(14400)),
                 "size_mb": round(obj["Size"] / 1024 / 1024, 1),
             })
         if hours:
@@ -5864,7 +5865,7 @@ def _route_skycam_play(rq):
         s3.head_object(Bucket=GARDENCAM_BUCKET, Key=video_key)
         video_url = s3.generate_presigned_url(
             'get_object', Params={'Bucket': GARDENCAM_BUCKET, 'Key': video_key},
-            ExpiresIn=7200)
+            ExpiresIn=stable_expires(7200))
         basename = video_key.rsplit('/', 1)[-1].replace('.mp4', '').replace('sky_', '')
 
         # Find the hourly segments for the clock overlay (convert UTC → London)

@@ -2,6 +2,8 @@
 
 import json
 
+from presign import stable_expires
+
 try:
     from petname import pet_name
 except Exception:
@@ -926,7 +928,7 @@ def _render_sightings_strip(y, m, dd, camera):
             url = s3.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": bucket, "Key": composite_key},
-                ExpiresIn=3600,
+                ExpiresIn=stable_expires(3600),
             )
         except Exception:
             continue
@@ -1323,7 +1325,7 @@ def render_skycam_player(key, in_sec=None, out_sec=None, src=None, srcs=None, cl
         s3 = boto3.client("s3", region_name="eu-west-1")
         try:
             url = s3.generate_presigned_url(
-                "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600)
+                "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=stable_expires(3600))
         except Exception:
             return None
         sources.append((url, key.rsplit("/", 1)[-1]))
