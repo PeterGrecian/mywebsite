@@ -112,7 +112,7 @@ def render_astro_hub(*, theme_css_js):
   <div class="container">
     <h1>Astro</h1>
     <div class="subtitle">Long exposure, wide angle, automated astronomy.</div>
-    <p class="intro">Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky. I should have a bumper sticker saying &ldquo;urban astronomers do it all night every night, and then do it in software.&rdquo;</p>
+    <p class="intro">Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky. I should have a bumper sticker saying &ldquo;urban astronomers do it all night every night, and then do it in software.&rdquo; <a href="/astro/project" style="color: var(--accent);">The project explained</a></p>
 {cards}
 {collections}
 {historical}
@@ -120,6 +120,107 @@ def render_astro_hub(*, theme_css_js):
       <a href="/astro/storage">Storage status</a> &middot;
       <a href="/contents">Home</a>
     </div>
+  </div>
+</body>
+</html>'''
+
+
+def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
+    """/astro/project: the project explained, an article (also on Medium).
+
+    Source text: writing/2026-11-21-medium-first.md. Images are presigned
+    from ASTRO_BUCKET site/project-*.jpg by the caller; a missing one is
+    left out rather than drawn broken.
+    """
+    def fig(url, alt, cap):
+        if not url:
+            return ""
+        return (f'<figure><img src="{url}" alt="{alt}" loading="lazy">'
+                f'<figcaption>{cap}</figcaption></figure>')
+
+    trails = fig(startrails_url, "Star trails circling the pole over a London suburb",
+                 "One clear night over a London suburb, 13-14 November 2026: "
+                 "3,080 frames from a &pound;25 camera, combined into one picture.")
+    deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
+               "The same night with the sky's rotation removed and the frames "
+               "stacked: far more stars than the orange glow lets you see by eye.")
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The project explained</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 760px; margin: 0 auto; }}
+    h1 {{ font-size: 1.6rem; margin: 1.5rem 0 0.4rem; line-height: 1.25; }}
+    .subtitle {{ color: var(--text-secondary); font-size: 1rem; font-style: italic; margin-bottom: 1.2rem; }}
+    h2 {{ font-size: 1.15rem; margin: 1.8rem 0 0.5rem; }}
+    p, li {{ line-height: 1.6; font-size: 0.95rem; }}
+    ul {{ padding-left: 1.2rem; }}
+    figure {{ margin: 1.2rem 0; }}
+    figure img {{ width: 100%; height: auto; display: block; border-radius: 12px; }}
+    figcaption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; line-height: 1.4; }}
+    a {{ color: var(--accent); text-decoration: none; }}
+    .nav {{ text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin: 2rem 0 1rem; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Too much light pollution for amateur astronomy where you live? Think again!</h1>
+    <div class="subtitle">And you can do it cheaply, without standing around outside</div>
+    {trails}
+    <p>Astrophotography advice starts with &ldquo;find a dark site&rdquo;. I live in suburban
+    London, where the sky glows orange, there are trees and house lights in the way, and I
+    have a budget closer to a Raspberry Pi than a remote observatory. So I am trying the
+    other way round: if I cannot have a dark sky, I can have a long one. And I do not have
+    to be out there: the cameras run every night on their own while I sleep.</p>
+
+    <h2>The idea: a long time baseline</h2>
+    <p>A single exposure here is short, 12 to 60 seconds, before the town's glow fills it.
+    But a camera that stays pointed at the same patch of sky every clear night for a month
+    collects hundreds of hours of light. Stack all of it and the faint things the glow
+    hides, one night at a time, start to show.</p>
+    <p>The goal is one picture, made from a month of nights.</p>
+
+    <h2>The kit</h2>
+    <ul>
+      <li>Small Pi cameras on Raspberry Pis, in the garden and at a window, aimed near the
+      celestial pole</li>
+      <li>A home server that stacks each night's frames the next morning</li>
+      <li>Photos, stacks and a nightly &ldquo;how dark was it&rdquo; chart published on
+      this website</li>
+    </ul>
+
+    <h2>What the sky taught me first</h2>
+    <ul>
+      <li><b>Cloud is brighter than twilight here.</b> Low cloud lit from below by the town
+      outshines dusk, so my software was first picking the &ldquo;darkest&rdquo; part of the
+      night inside the evening twilight. It now looks only after the Sun is 18 degrees
+      down.</li>
+      <li><b>The stars turn.</b> Over a night everything rotates around the pole, so frames
+      must be de-rotated before they can be added. Across a month it is harder still,
+      because the cameras get nudged and the lens distortion has to be modelled.</li>
+      <li><b>A good night is worth recording.</b> I keep one clear July night as my
+      reference for how dark this sky can get, and every night since is charted against
+      it.</li>
+      <li><b>Hardware has opinions.</b> A month of frames is about half a terabyte, and my
+      stacking server once cut out because its fan had stopped and its CPU reached 97 C in
+      seconds.</li>
+    </ul>
+
+    <h2>Where it stands</h2>
+    {deep}
+    <p>A single night's stack already reaches stars around magnitude 9.7 near the pole,
+    from a garden where you can see perhaps a few dozen by eye. The month-long stack is
+    next.</p>
+    <p>Every night's results are public, clear or cloudy, from the
+    <a href="/astro">Astro</a> page.</p>
+    <p>If you are imaging from a city on a budget, I would love to hear what you are
+    trying.</p>
+
+    <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>
 </html>'''

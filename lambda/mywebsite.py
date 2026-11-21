@@ -4048,6 +4048,25 @@ def _route_astro(rq):
     }
 
 
+def _route_astro_project(rq):
+    """/astro/project: the project explained (article, also on Medium)."""
+    from routes.astro import render_astro_project
+    urls = {}
+    for name in ('startrails', 'deep'):
+        try:
+            urls[name] = get_presigned_url(f'site/project-{name}.jpg',
+                                           bucket=ASTRO_BUCKET)
+        except Exception:
+            urls[name] = None
+    return {
+        'statusCode': 200,
+        'body': render_astro_project(theme_css_js=THEME_CSS_JS,
+                                     startrails_url=urls['startrails'],
+                                     deep_url=urls['deep']),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
 def _route_x48(rq):
     event, context, path, route = rq.event, rq.context, rq.path, rq.route
     stage, host, root, ip = rq.stage, rq.host, rq.root, rq.ip
@@ -6381,6 +6400,7 @@ _ROUTES_EXACT = {
     '/t3': _route_t3,
     '/springcam': _route_springcam,
     '/astro': _route_astro,
+    '/astro/project': _route_astro_project,
     '/astro/starcam': _route_astro_starcam,
     '/starcam': _route_starcam,
     '/starcam/nights': _route_starcam,
