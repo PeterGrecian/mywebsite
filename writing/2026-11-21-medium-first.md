@@ -15,10 +15,13 @@ while I sleep.
 
 ## A live project with daily updates
 
-Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
+Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
 ![medium-deep.jpg](medium-deep.jpg)
 *The same night with the sky's rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.*
+
+![medium-detail.jpg](medium-detail.jpg)
+*Detail of the Milky Way band from the stack above, enlarged two times.*
 
 ## The kit
 

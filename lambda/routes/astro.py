@@ -125,7 +125,8 @@ def render_astro_hub(*, theme_css_js):
 </html>'''
 
 
-def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
+def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
+                         detail_url=None):
     """/astro/project: the project explained, an article (also on Medium).
 
     Source text: writing/2026-11-21-medium-first.md. Images are presigned
@@ -144,6 +145,8 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
                  "As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft.")
     deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
                "The same night with the sky\'s rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.")
+    detail = fig(detail_url, "Close-up of the Milky Way band with dark dust lanes",
+                 "Detail of the Milky Way band from the stack above, enlarged two times.")
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -178,8 +181,9 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
     cameras run every night on their own while I sleep.</p>
 
     <h2>A live project with daily updates</h2>
-    <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
+    <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. I am really pleased with them. Considering it took two weeks to see my first star, I am blown away by the photo below showing the northern Milky Way: the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
     {deep}
+    {detail}
 
     <h2>The kit</h2>
     <ul>

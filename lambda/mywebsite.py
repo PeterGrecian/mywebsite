@@ -4052,7 +4052,7 @@ def _route_astro_project(rq):
     """/astro/project: the project explained (article, also on Medium)."""
     from routes.astro import render_astro_project
     urls = {}
-    for name in ('startrails', 'deep'):
+    for name in ('startrails', 'deep', 'detail'):
         try:
             urls[name] = get_presigned_url(f'site/project-{name}.jpg',
                                            bucket=ASTRO_BUCKET)
@@ -4062,7 +4062,8 @@ def _route_astro_project(rq):
         'statusCode': 200,
         'body': render_astro_project(theme_css_js=THEME_CSS_JS,
                                      startrails_url=urls['startrails'],
-                                     deep_url=urls['deep']),
+                                     deep_url=urls['deep'],
+                                     detail_url=urls['detail']),
         'headers': {'Content-Type': 'text/html; charset=utf-8'}
     }
 
