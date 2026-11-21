@@ -12,6 +12,7 @@ render when the manifest is missing, because the instrument facts do not
 come from it.
 """
 import io
+import pytest
 import json
 from unittest.mock import MagicMock, patch
 
@@ -363,3 +364,35 @@ class TestInstrumentQuest:
         assert "Polaris B" in html
         assert "Herschel" in html and "1779" in html
         assert html.index('class="i-quest"') < html.index('class="i-stat"')
+
+
+class TestNoteBlurb:
+    """#424: the list view shows a short blurb, not the whole summary."""
+
+    @pytest.fixture
+    def blurb(self, mywebsite):
+        from routes.astro import _note_blurb, BLURB_CHARS
+        return _note_blurb, BLURB_CHARS
+
+    def test_explicit_blurb_wins(self, blurb):
+        f, _ = blurb
+        assert f({"blurb": " Short. ", "summary": "Long " * 200}) == "Short."
+
+    def test_short_summary_is_its_first_paragraph(self, blurb):
+        f, _ = blurb
+        assert f({"summary": "One para.\n\nTwo para."}) == "One para."
+
+    def test_long_paragraph_keeps_whole_sentences(self, blurb):
+        f, n = blurb
+        text = " ".join(f"Sentence number {i} says a little." for i in range(30))
+        out = f({"summary": text})
+        assert len(out) <= n and out.endswith(".") and out.startswith("Sentence number 0")
+
+    def test_one_huge_sentence_is_cut_with_ellipsis(self, blurb):
+        f, n = blurb
+        out = f({"summary": "word " * 100 + "[a link](https://x.y/" + "z" * 300 + ")"})
+        assert out.endswith("…") and len(out) <= n + 1 and "[" not in out
+
+    def test_no_summary_no_blurb(self, blurb):
+        f, _ = blurb
+        assert f({}) == ""

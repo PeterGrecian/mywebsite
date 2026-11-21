@@ -3196,6 +3196,42 @@ def _paras(text, cls, inline=None):
     return "".join(f'<p class="{cls}">{fmt(p)}</p>' for p in out)
 
 
+_SENT_END = re.compile(r'(?<=[.!?])\s+')
+BLURB_CHARS = 250
+
+
+def _note_blurb(e):
+    """The list-view blurb for a note card.
+
+    An explicit 'blurb' in the card's index entry wins, verbatim. Otherwise
+    the summary's first paragraph, clamped to whole sentences within
+    BLURB_CHARS; a first sentence longer than that is cut at a word with an
+    ellipsis, backing off any markdown link or code span it would split. The
+    card's 'Read the note' link carries the rest.
+    """
+    if e.get("blurb"):
+        return str(e["blurb"]).strip()
+    paras = [p.strip() for p in str(e.get("summary") or "").split("\n\n") if p.strip()]
+    if not paras:
+        return ""
+    first = paras[0]
+    if len(first) <= BLURB_CHARS:
+        return first
+    out = ""
+    for sent in _SENT_END.split(first):
+        if len(out) + len(sent) + 1 > BLURB_CHARS:
+            break
+        out = f"{out} {sent}".strip()
+    if out:
+        return out
+    cut = first[:BLURB_CHARS].rsplit(" ", 1)[0]
+    for o, c in (("[", "]("), ("`", "`")):
+        i = cut.rfind(o)
+        if i >= 0 and (cut.count(o) > cut.count(c) if o != "`" else cut.count("`") % 2):
+            cut = cut[:i]
+    return cut.rstrip(" ,;:-") + "\u2026"
+
+
 NOTES_CSS = '''
     body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
     .container { max-width: 1100px; margin: 0 auto; }
@@ -3303,13 +3339,13 @@ def render_astro_notes(*, theme_css_js, items, counts, selected=None):
             title = _esc(e.get("title") or "Untitled")
             title_html = f'<a href="{href}">{title}</a>' if href else title
             sub = (f'<div class="n-sum">{_esc(e["subtitle"])}</div>'
-                   if e.get("subtitle") and not e.get("summary") else "")
+                   if e.get("subtitle") and not _note_blurb(e) else "")
             cards.append(
                 f'<figure class="{cls}">{shot}'
                 f'<figcaption class="n-body">'
                 f'<div class="n-title">{title_html}</div>'
                 f'<div class="n-meta">{meta}</div>{shot_prov}'
-                f'{_paras(e.get("summary"), "n-sum", _md_inline)}{sub}'
+                f'{_paras(_note_blurb(e), "n-sum", _md_inline)}{sub}'
                 f'{tags_html}'
                 f'<div class="n-links">{night_html}'
                 f'<a class="n-read" href="{href}">Read the note &rarr;</a>'
