@@ -139,8 +139,8 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None):
                 f'<figcaption>{cap}</figcaption></figure>')
 
     trails = fig(startrails_url, "Star trails circling the pole over a London suburb",
-                 "One clear night over a London suburb, 13-14 November 2026: "
-                 "3,080 frames from a &pound;25 camera, combined into one picture.")
+                 "One clear night over a London suburb, 7-8 October 2026: "
+                 "662 one-minute frames from a &pound;25 camera, combined into one picture.")
     deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
                "The same night with the sky's rotation removed and the frames "
                "stacked: far more stars than the orange glow lets you see by eye.")

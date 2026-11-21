@@ -3,8 +3,8 @@
 *And you can do it cheaply, without standing around outside*
 
 ![medium-startrails.jpg](medium-startrails.jpg)
-*One clear night over a London suburb, 13-14 November 2026: 3,080 frames
-from a £25 camera, combined into one picture.*
+*One clear night over a London suburb, 7-8 October 2026: 662 one-minute
+frames from a £25 camera, combined into one picture.*
 
 Astrophotography advice starts with "find a dark site". I live in suburban
 London, where the sky glows orange, there are trees and house lights in the
