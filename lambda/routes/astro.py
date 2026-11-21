@@ -190,6 +190,15 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     <p>Is there something that particularly interests you: the different cameras, the computer kit, the software or the observations? I can prioritise that part of the website.</p>
     <p>I am really looking forward to what I am going to see next, and you can join me on the adventure.</p>
 
+    <h2>Where it stands</h2>
+    <p>A single night's stack already reaches stars around magnitude 9.7 near the pole,
+    from a garden where you can see perhaps a few dozen by eye. The month-long stack is
+    next.</p>
+    <p>Every night's results are public, clear or cloudy, from the
+    <a href="/astro">Astro</a> page.</p>
+    <p>If you are imaging from a city on a budget, I would love to hear what you are
+    trying.</p>
+
     <div class="nav"><a href="/astro">&larr; Astro</a> &middot; <a href="/contents">Home</a></div>
   </div>
 </body>

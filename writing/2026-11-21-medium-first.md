@@ -30,3 +30,15 @@ I am in the process of tidying the results: I think the proof-of-concept phase i
 Is there something that particularly interests you: the different cameras, the computer kit, the software or the observations? I can prioritise that part of the website.
 
 I am really looking forward to what I am going to see next, and you can join me on the adventure.
+
+## Where it stands
+
+A single night's stack already reaches stars around magnitude 9.7 near the
+pole, from a garden where you can see perhaps a few dozen by eye. The
+month-long stack is next.
+
+Every night's results are public, clear or cloudy:
+[www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium)
+
+If you are imaging from a city on a budget, I would love to hear what you are
+trying.
