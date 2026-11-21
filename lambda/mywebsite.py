@@ -6030,6 +6030,22 @@ def _route_ytpods_back(rq):
     return _serve_ytpods(rq, f'ytpods/back/{n}.html')
 
 
+def _route_ytpods_radio(rq):
+    """PVG Radio: BBC Radio 3 Unwind picks, rendered and uploaded from ora by
+    ~/ytpods/radio/render.py to ytpods/radio/index.html. Deliberately not under
+    ytpods/back/, which pip syncs with --delete."""
+    return _serve_ytpods(rq, 'ytpods/radio/index.html')
+
+
+_YTPODS_RADIO_DAY = re.compile(r'/ytpods/radio/(20[0-9]{2}-[01][0-9]-[0-3][0-9])')
+
+
+def _route_ytpods_radio_day(rq):
+    """A past day of PVG Radio, /ytpods/radio/YYYY-MM-DD."""
+    d = _YTPODS_RADIO_DAY.fullmatch(rq.route).group(1)
+    return _serve_ytpods(rq, f'ytpods/radio/{d}.html')
+
+
 def _serve_ytpods(rq, key):
     if not check_basic_auth(rq.event, GARDENCAM_PASSWORD):
         return {
@@ -6218,6 +6234,7 @@ _ROUTES_EXACT = {
     '/groceries': _route_groceries,
     '/ytpods': _route_ytpods,
     '/ytpods/refresh': _route_ytpods_refresh,
+    '/ytpods/radio': _route_ytpods_radio,
     '/ytpods/manifest.webmanifest': _route_ytpods_asset,
     '/ytpods/icon-192.png': _route_ytpods_asset,
     '/ytpods/icon-512.png': _route_ytpods_asset,
@@ -6269,6 +6286,7 @@ for _section, _app in _APP_SECTIONS.items():
 
 _ROUTES_PATTERN = [
     (_PRED, lambda route: _YTPODS_BACK.fullmatch(route), _route_ytpods_back),
+    (_PRED, lambda route: _YTPODS_RADIO_DAY.fullmatch(route), _route_ytpods_radio_day),
     (_PREFIX, '/calendaralarm', _route_calendaralarm),
     (_PREFIX, '/glacier', _route_glacier),
     (_PREFIX, '/gardencam/capture', _route_gardencam_capture),
