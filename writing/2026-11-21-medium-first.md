@@ -34,12 +34,12 @@ The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole night. 
 ![project-ba-close-night.jpg](project-ba-close-night.jpg)
 *The Milky Way close-up at each step. The short dashes are stars moving during each 60-second exposure: the camera is fixed.*
 
-![project-ba-wide-1.jpg](project-ba-wide-1.jpg)
-![project-ba-wide-3.jpg](project-ba-wide-3.jpg)
-![project-ba-wide-10.jpg](project-ba-wide-10.jpg)
-![project-ba-wide-30.jpg](project-ba-wide-30.jpg)
-![project-ba-wide-night.jpg](project-ba-wide-night.jpg)
-*The whole field at each step, with the close-up outlined in orange.*
+![project-fan-f1.jpg](project-fan-f1.jpg)
+![project-fan-p25.jpg](project-fan-p25.jpg)
+![project-fan-p50.jpg](project-fan-p50.jpg)
+![project-fan-p75.jpg](project-fan-p75.jpg)
+![project-fan-night.jpg](project-fan-night.jpg)
+*One frame, then the first quarter, half and three quarters of the night, then all 533 frames, on one sky canvas and one stretch. Each frame covers only a small patch of sky. Stacking 10 hours of frames onto one sky canvas sweeps that patch round the pole and averages away the noise.*
 
 
 ## Results so far

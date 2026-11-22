@@ -162,9 +162,17 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
                              f'alt="{kind} view after {label}" loading="lazy"></a>')
         return f'<div class="ba-grid">{"".join(cells)}</div>' if cells else ""
 
-    ba_close, ba_wide = grid("close"), grid("wide")
+    ba_close = grid("close")
+    fan_steps = [("f1", "one frame"), ("p25", "a quarter of the night"),
+                 ("p50", "half the night"), ("p75", "three quarters of the night"),
+                 ("night", "the whole night")]
+    fan_cells = [f'<a href="{ba_urls[f"fan-{k}"]}"><img src="{ba_urls[f"fan-{k}"]}" '
+                 f'alt="sky canvas after {lab}" loading="lazy"></a>'
+                 for k, lab in fan_steps if ba_urls.get(f"fan-{k}")]
+    ba_fan = (f'<div class="ba-grid fan">{"".join(fan_cells)}</div>'
+              if fan_cells else "")
     ba_section = ""
-    if ba_close or ba_wide:
+    if ba_close or ba_fan:
         ba_section = (
             "<h2>From one minute to a whole night</h2>\n"
             "    <p>The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole "
@@ -176,9 +184,12 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
             f"    {ba_close}\n"
             '    <p class="cap">The Milky Way close-up at each step. The short dashes are stars '
             "moving during each 60-second exposure: the camera is fixed.</p>\n"
-            f"    {ba_wide}\n"
-            '    <p class="cap">The whole field at each step, with the close-up outlined in '
-            "orange. Tap a panel to see it full size.</p>")
+            f"    {ba_fan}\n"
+            '    <p class="cap">One frame, then the first quarter, half and three quarters '
+            "of the night, then all 533 frames, on one sky canvas and one stretch. Each frame "
+            "covers only a small patch of sky. Stacking 10 hours of frames onto one sky canvas "
+            "sweeps that patch round the pole and averages away the noise. "
+            "Tap a panel to see it full size.</p>")
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -198,6 +209,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     figure img {{ width: 100%; height: auto; display: block; border-radius: 12px; }}
     figcaption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; line-height: 1.4; }}
     .ba-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin: 1rem 0 0.3rem; }}
+    .ba-grid.fan {{ grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }}
     .ba-grid img {{ width: 100%; height: auto; display: block; border-radius: 8px; }}
     .cap {{ color: var(--text-secondary); font-size: 0.8rem; line-height: 1.4; margin: 0 0 1.2rem; }}
     a {{ color: var(--accent); text-decoration: none; }}

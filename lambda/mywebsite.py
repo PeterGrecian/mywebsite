@@ -4066,6 +4066,12 @@ def _route_astro_project(rq):
                     f'site/project-ba-{kind}-{step}.jpg', bucket=ASTRO_BUCKET)
             except Exception:
                 pass
+    for step in ('f1', 'p25', 'p50', 'p75', 'night'):
+        try:
+            ba[f'fan-{step}'] = get_presigned_url(
+                f'site/project-fan-{step}.jpg', bucket=ASTRO_BUCKET)
+        except Exception:
+            pass
     return {
         'statusCode': 200,
         'body': render_astro_project(theme_css_js=THEME_CSS_JS,
