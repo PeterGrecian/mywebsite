@@ -866,6 +866,19 @@ def _section(sec):
             cards.append(_story_card(
                 n, title, f'<a href="{url}"><img src="{url}" alt="{alt}"></a>',
                 cap, prov))
+    fan = urls.get("fan-labelled.jpg")
+    if fan:
+        # astro-pipeline's whole-night sky canvas (astro-science #1107)
+        n += 1
+        web = urls.get("fan-labelled-web.jpg") or fan
+        cards.append(_story_card(
+            n, "The whole night on the sky",
+            f'<a href="{fan}"><img src="{web}" alt="every frame of the night '
+            f'placed on one map of the sky round Polaris"></a>',
+            "Every frame of the night stacked onto one map of the sky. As "
+            "the sky turns, the camera's view sweeps round Polaris, so the "
+            "frame's edges draw arcs. The middle, seen all night, is the "
+            "deepest. Tap for the full size.", prov))
     for key, poster_key, title, cap in _STEPS:
         c = video_card(n + 1, key, poster_key, title, cap)
         if c:
