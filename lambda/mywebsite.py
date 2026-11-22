@@ -4058,12 +4058,21 @@ def _route_astro_project(rq):
                                            bucket=ASTRO_BUCKET)
         except Exception:
             urls[name] = None
+    ba = {}
+    for kind in ('close', 'wide'):
+        for step in ('1', '3', '10', '30', 'night'):
+            try:
+                ba[f'{kind}-{step}'] = get_presigned_url(
+                    f'site/project-ba-{kind}-{step}.jpg', bucket=ASTRO_BUCKET)
+            except Exception:
+                pass
     return {
         'statusCode': 200,
         'body': render_astro_project(theme_css_js=THEME_CSS_JS,
                                      startrails_url=urls['startrails'],
                                      deep_url=urls['deep'],
-                                     detail_url=urls['detail']),
+                                     detail_url=urls['detail'],
+                                     ba_urls=ba),
         'headers': {'Content-Type': 'text/html; charset=utf-8'}
     }
 

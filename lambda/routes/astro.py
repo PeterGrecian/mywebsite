@@ -126,7 +126,7 @@ def render_astro_hub(*, theme_css_js):
 
 
 def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
-                         detail_url=None):
+                         detail_url=None, ba_urls=None):
     """/astro/project: the project explained, an article (also on Medium).
 
     Source text: writing/2026-11-21-medium-first.md. Images are presigned
@@ -144,9 +144,41 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
                  "662 one-minute frames from a &pound;25 camera, combined into one picture. "
                  "As the Earth rotates, the stars trace concentric circular arcs, with Polaris near the pole. The dotted lines are aircraft. The field of view is about 75 by 42 degrees.")
     deep = fig(deep_url, "The same night derotated and stacked: many point-like stars",
-               "The same night with the sky\'s rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.")
+               "The whole night with the sky's rotation removed: all 533 dark frames aligned and "
+               "stacked. The northern Milky Way crosses the frame.")
     detail = fig(detail_url, "Close-up of the Milky Way band with dark dust lanes",
-                 "Detail of the Milky Way band from the stack above, enlarged two times.")
+                 "Detail of the Milky Way band from the whole night's stack, enlarged two times.")
+
+    ba_urls = ba_urls or {}
+    steps = [("1", "1 minute"), ("3", "3 minutes"), ("10", "10 minutes"),
+             ("30", "30 minutes"), ("night", "the whole night")]
+
+    def grid(kind):
+        cells = []
+        for key, label in steps:
+            url = ba_urls.get(f"{kind}-{key}")
+            if url:
+                cells.append(f'<a href="{url}"><img src="{url}" '
+                             f'alt="{kind} view after {label}" loading="lazy"></a>')
+        return f'<div class="ba-grid">{"".join(cells)}</div>' if cells else ""
+
+    ba_close, ba_wide = grid("close"), grid("wide")
+    ba_section = ""
+    if ba_close or ba_wide:
+        ba_section = (
+            "<h2>From one minute to a whole night</h2>\n"
+            "    <p>The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole "
+            "night. Every panel is processed and stretched identically, so only the number of "
+            "frames changes. As frames add up, the speckle of noise fades and fainter stars "
+            "appear. Beyond about ten minutes the speckle stops shrinking as fast as you would "
+            "expect, because what remains is not noise: it is the combined glow of countless "
+            "stars too faint to pick out singly, which more frames reveal rather than remove.</p>\n"
+            f"    {ba_close}\n"
+            '    <p class="cap">The Milky Way close-up at each step. The short dashes are stars '
+            "moving during each 60-second exposure: the camera is fixed.</p>\n"
+            f"    {ba_wide}\n"
+            '    <p class="cap">The whole field at each step, with the close-up outlined in '
+            "orange. Tap a panel to see it full size.</p>")
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -165,6 +197,9 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     figure {{ margin: 1.2rem 0; }}
     figure img {{ width: 100%; height: auto; display: block; border-radius: 12px; }}
     figcaption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; line-height: 1.4; }}
+    .ba-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin: 1rem 0 0.3rem; }}
+    .ba-grid img {{ width: 100%; height: auto; display: block; border-radius: 8px; }}
+    .cap {{ color: var(--text-secondary); font-size: 0.8rem; line-height: 1.4; margin: 0 0 1.2rem; }}
     a {{ color: var(--accent); text-decoration: none; }}
     .nav {{ text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin: 2rem 0 1rem; }}
   </style>
@@ -184,6 +219,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
     {deep}
     {detail}
+    {ba_section}
 
     <h2>Results so far</h2>
     <ul>

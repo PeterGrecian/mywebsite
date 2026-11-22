@@ -18,10 +18,29 @@ while I sleep.
 Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
 ![medium-deep.jpg](medium-deep.jpg)
-*The same night with the sky's rotation removed and the frames stacked: the northern Milky Way runs down the right-hand side.*
+*The whole night with the sky's rotation removed: all 533 dark frames aligned and stacked. The northern Milky Way crosses the frame.*
 
 ![medium-detail.jpg](medium-detail.jpg)
-*Detail of the Milky Way band from the stack above, enlarged two times.*
+*Detail of the Milky Way band from the whole night's stack, enlarged two times.*
+
+## From one minute to a whole night
+
+The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole night. Every panel is processed and stretched identically, so only the number of frames changes. As frames add up, the speckle of noise fades and fainter stars appear. Beyond about ten minutes the speckle stops shrinking as fast as you would expect, because what remains is not noise: it is the combined glow of countless stars too faint to pick out singly, which more frames reveal rather than remove.
+
+![project-ba-close-1.jpg](project-ba-close-1.jpg)
+![project-ba-close-3.jpg](project-ba-close-3.jpg)
+![project-ba-close-10.jpg](project-ba-close-10.jpg)
+![project-ba-close-30.jpg](project-ba-close-30.jpg)
+![project-ba-close-night.jpg](project-ba-close-night.jpg)
+*The Milky Way close-up at each step. The short dashes are stars moving during each 60-second exposure: the camera is fixed.*
+
+![project-ba-wide-1.jpg](project-ba-wide-1.jpg)
+![project-ba-wide-3.jpg](project-ba-wide-3.jpg)
+![project-ba-wide-10.jpg](project-ba-wide-10.jpg)
+![project-ba-wide-30.jpg](project-ba-wide-30.jpg)
+![project-ba-wide-night.jpg](project-ba-wide-night.jpg)
+*The whole field at each step, with the close-up outlined in orange.*
+
 
 ## Results so far
 
