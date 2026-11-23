@@ -4048,6 +4048,49 @@ def _route_astro(rq):
     }
 
 
+def _latest_fan(prefix, look=12):
+    """Newest night under <prefix>/nights/ with a fan-labelled.jpg: (night, web, full)."""
+    s3 = s3_client()
+    nights = []
+    for page in s3.get_paginator('list_objects_v2').paginate(
+            Bucket=ASTRO_BUCKET, Prefix=f'{prefix}/nights/', Delimiter='/'):
+        nights += [c['Prefix'].rstrip('/').rsplit('/', 1)[1]
+                   for c in page.get('CommonPrefixes', [])]
+    for n in sorted(nights, reverse=True)[:look]:
+        keys = {o['Key'].rsplit('/', 1)[1] for o in s3.list_objects_v2(
+            Bucket=ASTRO_BUCKET, Prefix=f'{prefix}/nights/{n}/fan').get('Contents', [])}
+        if 'fan-labelled.jpg' in keys:
+            full = get_presigned_url(f'{prefix}/nights/{n}/fan-labelled.jpg', bucket=ASTRO_BUCKET)
+            web = (get_presigned_url(f'{prefix}/nights/{n}/fan-labelled-web.jpg', bucket=ASTRO_BUCKET)
+                   if 'fan-labelled-web.jpg' in keys else full)
+            return n, web, full
+    return None, None, None
+
+
+def _route_astro_latest(rq):
+    """/astro/latest: the newest whole-night fan from each camera, and all together."""
+    from routes.astro import render_astro_latest, LATEST_FAN_CAMERAS
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(4) as ex:
+        found = list(ex.map(lambda c: _latest_fan(c[0]), LATEST_FAN_CAMERAS))
+    fans = [(title, blurb, n, (page.format(n=n) if n else None), web, full)
+            for (_, title, page, blurb), (n, web, full) in zip(LATEST_FAN_CAMERAS, found)]
+    together = None
+    try:
+        s3 = s3_client()
+        meta = json.loads(s3.get_object(Bucket=ASTRO_BUCKET, Key='site/latest-fans-together.json')['Body'].read())
+        full = get_presigned_url('site/latest-fans-together.jpg', bucket=ASTRO_BUCKET)
+        web = get_presigned_url('site/latest-fans-together-web.jpg', bucket=ASTRO_BUCKET)
+        together = (web, full, __import__('html').escape(meta.get('caption', '')))
+    except Exception:
+        pass
+    return {
+        'statusCode': 200,
+        'body': render_astro_latest(theme_css_js=THEME_CSS_JS, fans=fans, together=together),
+        'headers': {'Content-Type': 'text/html; charset=utf-8'}
+    }
+
+
 def _route_astro_project(rq):
     """/astro/project: the project explained (article, also on Medium)."""
     from routes.astro import render_astro_project
@@ -6418,6 +6461,7 @@ _ROUTES_EXACT = {
     '/springcam': _route_springcam,
     '/astro': _route_astro,
     '/astro/project': _route_astro_project,
+    '/astro/latest': _route_astro_latest,
     '/astro/starcam': _route_astro_starcam,
     '/starcam': _route_starcam,
     '/starcam/nights': _route_starcam,

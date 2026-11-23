@@ -14,6 +14,12 @@ import re
 # them (Peter, 2026-08-28).
 CAMERAS = [
     {
+        "path": "/astro/latest",
+        "title": "Latest Results",
+        "desc": "The newest whole-night fan from each camera: every clear frame of a night placed on one map of the sky round Polaris. Each camera on its own, then all of them together.",
+        "status": "live",
+    },
+    {
         "path": "/astro/astrocam",
         "title": "Astro Camera",
         "desc": "Pi 4 + Camera Module 3 (IMX708). Nightly star-trail and pole-derotated stacks with hot/cold pixel masking.",
@@ -77,6 +83,83 @@ def _card(cam):
   <p class="cam-desc">{cam["desc"]}</p>
 </a>
 '''
+
+
+# /astro/latest: the newest fan per camera (Peter, 2026-11-23).
+# (S3 prefix, title, night-page URL pattern, one-line blurb)
+LATEST_FAN_CAMERAS = [
+    ("astrocam", "Astro Camera", "/astro/astrocam/night/{n}",
+     "Camera Module 3 pointed at the pole."),
+    ("eclipticam-v3w", "Ecliptic Camera: v3 Wide", "/astro/eclipticam/night/{n}#v3w",
+     "Camera Module 3 Wide, looking south along the ecliptic."),
+    ("eclipticam-hq16", "Ecliptic Camera: HQ 16 mm", "/astro/eclipticam/night/{n}#hq16",
+     "HQ Camera with a 16 mm lens: the narrow, deep view."),
+    ("xoverpi", "FirstScope", "/astro/firstscope/night/{n}",
+     "Celestron 76/300 at prime focus, on the pole."),
+]
+
+
+def _fmt_night(n):
+    from datetime import date, timedelta
+    d = date.fromisoformat(n)
+    e = d + timedelta(days=1)
+    return (f"{d.day}&ndash;{e.day} {e:%b %Y}" if d.month == e.month
+            else f"{d.day} {d:%b} &ndash; {e.day} {e:%b %Y}")
+
+
+def render_astro_latest(*, theme_css_js, fans, together=None):
+    """fans: [(title, blurb, night or None, page_url, web_url, full_url)];
+    together: (web_url, full_url, caption) or None."""
+    def fig(web, full, alt):
+        return (f'<a href="{full}"><img src="{web}" alt="{html.escape(alt)}" '
+                f'loading="lazy"></a>')
+    parts = []
+    if together:
+        web, full, cap = together
+        parts.append(f'''<section class="card"><h2>All the cameras together</h2>
+{fig(web, full, "every camera's fan on one map of the sky")}
+<p class="cap">{cap}</p></section>''')
+    else:
+        parts.append('''<section class="card"><h2>All the cameras together</h2>
+<p class="cap">Coming: every camera's fan placed on one map of the sky.</p></section>''')
+    for title, blurb, night, page, web, full in fans:
+        if night:
+            body = (fig(web, full, f"{title}: the whole night on the sky")
+                    + f'<p class="cap">{blurb} Night of <a href="{page}">{_fmt_night(night)}</a>. '
+                    'Tap the picture for the full size.</p>')
+        else:
+            body = f'<p class="cap">{blurb} No fan yet.</p>'
+        parts.append(f'<section class="card"><h2>{title}</h2>{body}</section>')
+    cards = "\n".join(parts)
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Latest Results</title>
+  {theme_css_js}
+  <style>
+    body {{ font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }}
+    .container {{ max-width: 1000px; margin: 0 auto; }}
+    h1 {{ text-align: center; font-size: 1.6rem; margin: 1.5rem 0 0.3rem; }}
+    .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; }}
+    .card {{ background: var(--card-bg); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }}
+    .card h2 {{ font-size: 1.05rem; color: var(--accent); margin: 0 0 0.6rem; }}
+    .card img {{ width: 100%; height: auto; display: block; border-radius: 8px; }}
+    .cap {{ font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin: 0.6rem 0 0; }}
+    .cap a, .back a {{ color: var(--accent); text-decoration: none; }}
+    .back {{ text-align: center; font-size: 0.8rem; margin: 1.5rem 0; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Latest Results</h1>
+    <div class="subtitle">Each camera's newest whole-night fan: every clear frame of the night stacked onto one map of the sky. As the sky turns, the camera's view sweeps round Polaris, so the frame's edges draw arcs, and the middle, seen all night, is the deepest.</div>
+{cards}
+    <div class="back"><a href="/astro">&larr; Astro</a></div>
+  </div>
+</body>
+</html>'''
 
 
 def render_astro_hub(*, theme_css_js):
