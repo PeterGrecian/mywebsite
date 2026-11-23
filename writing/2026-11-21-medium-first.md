@@ -17,6 +17,21 @@ while I sleep.
 
 Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
+![project-fan-f1.jpg](project-fan-f1.jpg)
+*One 60-second frame. Even a single minute's exposure shows far more stars than you can see with the naked eye.*
+
+![project-fan-p25.jpg](project-fan-p25.jpg)
+*Then the next 132 frames are added, each one rotated back to the starting position to undo the turning of the Earth: the first quarter of the night, 133 frames.*
+
+![project-fan-p50.jpg](project-fan-p50.jpg)
+*And so on: half the night, 263 frames. The patch of sky the camera covers sweeps round Polaris as the night goes on, and the noise falls.*
+
+![project-fan-p75.jpg](project-fan-p75.jpg)
+*Three quarters of the night, 399 frames.*
+
+![project-fan-night.jpg](project-fan-night.jpg)
+*The whole night, 533 frames: almost nine hours of exposure.*
+
 ![medium-deep.jpg](medium-deep.jpg)
 *The whole night with the sky's rotation removed: all 533 dark frames aligned and stacked. The northern Milky Way crosses the frame.*
 
@@ -34,12 +49,6 @@ The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole night. 
 ![project-ba-close-night.jpg](project-ba-close-night.jpg)
 *The Milky Way close-up at each step. The short dashes are stars moving during each 60-second exposure: the camera is fixed.*
 
-![project-fan-f1.jpg](project-fan-f1.jpg)
-![project-fan-p25.jpg](project-fan-p25.jpg)
-![project-fan-p50.jpg](project-fan-p50.jpg)
-![project-fan-p75.jpg](project-fan-p75.jpg)
-![project-fan-night.jpg](project-fan-night.jpg)
-*One frame, then the first quarter, half and three quarters of the night, then all 533 frames, on one sky canvas and one stretch. Each frame covers only a small patch of sky. Stacking 10 hours of frames onto one sky canvas sweeps that patch round the pole and averages away the noise.*
 
 
 ## Results so far

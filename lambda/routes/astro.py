@@ -246,16 +246,22 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
         return f'<div class="ba-grid">{"".join(cells)}</div>' if cells else ""
 
     ba_close = grid("close")
-    fan_steps = [("f1", "one frame"), ("p25", "a quarter of the night"),
-                 ("p50", "half the night"), ("p75", "three quarters of the night"),
-                 ("night", "the whole night")]
-    fan_cells = [f'<a href="{ba_urls[f"fan-{k}"]}"><img src="{ba_urls[f"fan-{k}"]}" '
-                 f'alt="sky canvas after {lab}" loading="lazy"></a>'
-                 for k, lab in fan_steps if ba_urls.get(f"fan-{k}")]
-    ba_fan = (f'<div class="ba-grid fan">{"".join(fan_cells)}</div>'
-              if fan_cells else "")
+    fan_caps = [
+        ("f1", "One 60-second frame. Even a single minute's exposure shows far more stars "
+               "than you can see with the naked eye."),
+        ("p25", "Then the next 132 frames are added, each one rotated back to the starting "
+                "position to undo the turning of the Earth: the first quarter of the night, "
+                "133 frames."),
+        ("p50", "And so on: half the night, 263 frames. The patch of sky the camera covers "
+                "sweeps round Polaris as the night goes on, and the noise falls."),
+        ("p75", "Three quarters of the night, 399 frames."),
+        ("night", "The whole night, 533 frames: almost nine hours of exposure."),
+    ]
+    fan_figs = "\n    ".join(
+        fig(ba_urls[f"fan-{k}"], f"Stacked sky, step {i + 1} of 5", cap)
+        for i, (k, cap) in enumerate(fan_caps) if ba_urls.get(f"fan-{k}"))
     ba_section = ""
-    if ba_close or ba_fan:
+    if ba_close:
         ba_section = (
             "<h2>From one minute to a whole night</h2>\n"
             "    <p>The same patch of sky after 1, 3, 10 and 30 minutes, and after the whole "
@@ -266,13 +272,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
             "stars too faint to pick out singly, which more frames reveal rather than remove.</p>\n"
             f"    {ba_close}\n"
             '    <p class="cap">The Milky Way close-up at each step. The short dashes are stars '
-            "moving during each 60-second exposure: the camera is fixed.</p>\n"
-            f"    {ba_fan}\n"
-            '    <p class="cap">One frame, then the first quarter, half and three quarters '
-            "of the night, then all 533 frames, on one sky canvas and one stretch. Each frame "
-            "covers only a small patch of sky. Stacking 10 hours of frames onto one sky canvas "
-            "sweeps that patch round the pole and averages away the noise. "
-            "Tap a panel to see it full size.</p>")
+            "moving during each 60-second exposure: the camera is fixed.</p>\n")
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -312,6 +312,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
 
     <h2>A live project with daily updates</h2>
     <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
+    {fan_figs}
     {deep}
     {detail}
     {ba_section}
