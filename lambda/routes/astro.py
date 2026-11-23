@@ -246,20 +246,22 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
         return f'<div class="ba-grid">{"".join(cells)}</div>' if cells else ""
 
     ba_close = grid("close")
-    fan_caps = [
-        ("f1", "One 60-second frame. Even a single minute's exposure shows far more stars "
-               "than you can see with the naked eye."),
-        ("p25", "Then the next 132 frames are added, each one rotated back to the starting "
-                "position to undo the turning of the Earth: the first quarter of the night, "
-                "133 frames."),
-        ("p50", "And so on: half the night, 263 frames. The patch of sky the camera covers "
-                "sweeps round Polaris as the night goes on, and the noise falls."),
-        ("p75", "Three quarters of the night, 399 frames."),
-        ("night", "The whole night, 533 frames: almost nine hours of exposure."),
-    ]
-    fan_figs = "\n    ".join(
-        fig(ba_urls[f"fan-{k}"], f"Stacked sky, step {i + 1} of 5", cap)
-        for i, (k, cap) in enumerate(fan_caps) if ba_urls.get(f"fan-{k}"))
+    fan = {k: ba_urls.get(f"fan-{k}") for k in ("f1", "p25", "p50", "p75", "night")}
+    strip_cells = "".join(
+        f'<a href="{fan[k]}"><img src="{fan[k]}" alt="Stack after {lab} of the night" loading="lazy"></a>'
+        for k, lab in (("p25", "a quarter"), ("p50", "half"), ("p75", "three quarters")) if fan[k])
+    fan_figs = "\n    ".join(x for x in (
+        fig(fan["f1"], "A single one-minute frame",
+            "The first frame of the night, 60 seconds long. Even a single minute's exposure "
+            "shows far more stars than you can see with the naked eye."),
+        (f'<div class="ba-grid fan3">{strip_cells}</div>'
+         '<p class="cap">Then each following frame is rotated back to undo the turning of the '
+         "Earth and added in: after a quarter, half and three quarters of the night (133, 263 "
+         "and 399 frames). The patch of sky covered sweeps round Polaris, and the noise falls."
+         "</p>") if strip_cells else "",
+        fig(fan["night"], "The whole night stacked",
+            "The whole night: 533 frames, almost nine hours of exposure."),
+    ) if x)
     ba_section = ""
     if ba_close:
         ba_section = (
@@ -292,7 +294,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     figure img {{ width: 100%; height: auto; display: block; border-radius: 12px; }}
     figcaption {{ color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; line-height: 1.4; }}
     .ba-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin: 1rem 0 0.3rem; }}
-    .ba-grid.fan {{ grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }}
+    .ba-grid.fan3 {{ grid-template-columns: repeat(3, 1fr); }}
     .ba-grid img {{ width: 100%; height: auto; display: block; border-radius: 8px; }}
     .cap {{ color: var(--text-secondary); font-size: 0.8rem; line-height: 1.4; margin: 0 0 1.2rem; }}
     a {{ color: var(--accent); text-decoration: none; }}
