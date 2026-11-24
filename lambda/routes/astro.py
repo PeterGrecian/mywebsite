@@ -315,7 +315,6 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     <h2>A live project with daily updates</h2>
     <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
     {fan_figs}
-    {deep}
     {detail}
     {ba_section}
 

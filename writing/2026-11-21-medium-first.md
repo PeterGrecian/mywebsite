@@ -28,9 +28,6 @@ Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.u
 ![project-fan-night.jpg](project-fan-night.jpg)
 *The whole night: 533 frames, almost nine hours of exposure.*
 
-![medium-deep.jpg](medium-deep.jpg)
-*The whole night with the sky's rotation removed: all 533 dark frames aligned and stacked. The northern Milky Way crosses the frame.*
-
 ![medium-detail.jpg](medium-detail.jpg)
 *Detail of the Milky Way band from the whole night's stack, enlarged two times.*
 
