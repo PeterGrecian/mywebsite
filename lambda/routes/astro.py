@@ -264,13 +264,12 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
         for k, lab in (("p25", "a quarter"), ("p50", "half"), ("p75", "three quarters")) if fan[k])
     fan_figs = "\n    ".join(x for x in (
         fig(fan["f1"], "A single one-minute frame",
-            "The first frame of the night, 60 seconds long. Even a single minute's exposure "
+            "The first frame is a 60-second exposure, and it is very grainy: the gain is "
+            "turned right up. Even a single minute's exposure "
             "shows far more stars than you can see with the naked eye."),
         (f'<div class="ba-grid fan3">{strip_cells}</div>'
-         '<p class="cap">Then each following frame is rotated back to undo the turning of the '
-         "Earth and added in: after a quarter, half and three quarters of the night (133, 263 "
-         "and 399 frames). The patch of sky covered sweeps round Polaris, and the noise falls."
-         "</p>") if strip_cells else "",
+         '<p class="cap">The patch of sky seen sweeps round Polaris, the graininess decreases '
+         "and the structure of the Milky Way becomes clearer.</p>") if strip_cells else "",
         fig(fan["night"], "The whole night stacked",
             "The whole night: 533 frames, almost nine hours of exposure."),
     ) if x)
@@ -325,7 +324,7 @@ def render_astro_project(*, theme_css_js, startrails_url=None, deep_url=None,
     cameras run every night on their own while I sleep.</p>
 
     <h2>A live project with daily updates</h2>
-    <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
+    <p>Over on my website, <a href="/astro">www.petergrecian.co.uk/astro</a>, there are automatic updates each morning of the previous night&#39;s results. It took two weeks to see my first star. The series of images below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. The part of the sky the camera is looking at effectively moves through the sky as the night progresses, making a fan shape. It shows the dense band of our galaxy&#39;s disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.</p>
     {fan_figs}
     {detail}
     {ba_section}

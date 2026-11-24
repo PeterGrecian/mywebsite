@@ -15,15 +15,15 @@ while I sleep.
 
 ## A live project with daily updates
 
-Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. It took two weeks to see my first star. The photo below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
+Over on my website, [www.petergrecian.co.uk/astro](https://www.petergrecian.co.uk/astro?ref=medium), there are automatic updates each morning of the previous night's results. It took two weeks to see my first star. The series of images below shows how far things have come since: the northern Milky Way, the view out towards the edge of our galaxy, away from its centre. It was made by rotating each image taken that night to undo the rotation of the Earth and adding them all up. The part of the sky the camera is looking at effectively moves through the sky as the night progresses, making a fan shape. It shows the dense band of our galaxy's disc, crossed by dark lanes of dust, some of it made by earlier generations of stars, where new ones may yet form.
 
 ![project-fan-f1.jpg](project-fan-f1.jpg)
-*The first frame of the night, 60 seconds long. Even a single minute's exposure shows far more stars than you can see with the naked eye.*
+*The first frame is a 60-second exposure, and it is very grainy: the gain is turned right up. Even a single minute's exposure shows far more stars than you can see with the naked eye.*
 
 ![project-fan-p25.jpg](project-fan-p25.jpg)
 ![project-fan-p50.jpg](project-fan-p50.jpg)
 ![project-fan-p75.jpg](project-fan-p75.jpg)
-*Then each following frame is rotated back to undo the turning of the Earth and added in: after a quarter, half and three quarters of the night (133, 263 and 399 frames). The patch of sky covered sweeps round Polaris, and the noise falls.*
+*The patch of sky seen sweeps round Polaris, the graininess decreases and the structure of the Milky Way becomes clearer.*
 
 ![project-fan-night.jpg](project-fan-night.jpg)
 *The whole night: 533 frames, almost nine hours of exposure.*
