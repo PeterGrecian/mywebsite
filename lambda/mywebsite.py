@@ -4041,9 +4041,19 @@ def _route_astro(rq):
     headers, fav, start_time = rq.headers, rq.fav, rq.start_time
     html = ''
     from routes.astro import render_astro_hub
+    # How dark last night was is the news, so astrocam's chart leads the hub.
+    dark_chart_url = None
+    try:
+        s3_client().head_object(Bucket=ASTRO_BUCKET,
+                                Key='astrocam/brightness-combined.png')
+        dark_chart_url = get_presigned_url('astrocam/brightness-combined.png',
+                                           bucket=ASTRO_BUCKET)
+    except Exception:
+        pass
     return {
         'statusCode': 200,
-        'body': render_astro_hub(theme_css_js=THEME_CSS_JS),
+        'body': render_astro_hub(theme_css_js=THEME_CSS_JS,
+                                 dark_chart_url=dark_chart_url),
         'headers': {'Content-Type': 'text/html; charset=utf-8'}
     }
 
@@ -4562,12 +4572,14 @@ def _route_x55(rq):
         r'|/month/(\d{4}-\d{2})'
         r'|(/all)'
         r'|(/nights)'
+        r'|(/dark)'
         r'|/results)?/?$',
         path)
     camera, night = m.group(1), m.group(2)
     want_week, want_month = m.group(3), m.group(4)
     want_all = m.group(5) is not None
     want_index = m.group(6) is not None
+    want_dark = m.group(7) is not None
     is_calendar = night is None  # /astro/<cam> alone -> calendar of nights
     titles = {'astrocam': 'Astro Camera', 'eclipticam': 'Ecliptic Camera',
               'canon': 'EOS Camera', 'firstscope': 'FirstScope'}
@@ -4625,7 +4637,7 @@ def _route_x55(rq):
             except Exception:
                 manifest = None
 
-            from routes.astro import astro_calendar_window
+            from routes.astro import astro_calendar_window, DARK_NIGHTS
 
             if want_index:
                 # Links only: no thumbnails, so no presigning at all.
@@ -4642,7 +4654,9 @@ def _route_x55(rq):
                     'body': render_astro_nights_index(
                         theme_css_js=THEME_CSS_JS, title=titles[camera],
                         camera=camera, weeks=weeks, months=months,
-                        total_nights=len(all_nights)),
+                        total_nights=len(all_nights),
+                        n_dark=len(set(DARK_NIGHTS.get(camera, ()))
+                                   & set(all_nights))),
                     'headers': {
                         'Content-Type': 'text/html; charset=utf-8'}}
 
@@ -4657,7 +4671,9 @@ def _route_x55(rq):
                 selected, window_label, weeks, months = \
                     astro_calendar_window(nights, week=want_week,
                                           month=want_month,
-                                          show_all=want_all)
+                                          show_all=want_all,
+                                          dark=(DARK_NIGHTS.get(camera, ())
+                                                if want_dark else None))
                 nights_meta = []
                 for n in selected:
                     entry = by_night[n]
@@ -4700,7 +4716,9 @@ def _route_x55(rq):
                 selected, window_label, weeks, months = \
                     astro_calendar_window(nights, week=want_week,
                                           month=want_month,
-                                          show_all=want_all)
+                                          show_all=want_all,
+                                          dark=(DARK_NIGHTS.get(camera, ())
+                                                if want_dark else None))
                 nights_meta = []
                 for n in selected:
                     thumb_url = None
@@ -4755,9 +4773,18 @@ def _route_x55(rq):
             # Multi-night combined brightness curve sits at the
             # primary camera's prefix root (un-prefixed filename),
             # refreshed daily by combined-brightness.
-            combined_key = f'{primary_cam}/brightness-combined.png'
+            # A week page charts its own seven nights (combined-brightness
+            # --week); a month, all or dark page has no chart of its own,
+            # and the latest week's would mislead there (Peter, 11-24).
+            is_default_window = not (want_week or want_month or want_all
+                                     or want_dark)
+            combined_key = (f'{primary_cam}/weeks/{want_week}/brightness-combined.png'
+                            if want_week else
+                            f'{primary_cam}/brightness-combined.png')
             combined_url = None
             try:
+                if not (is_default_window or want_week):
+                    raise LookupError('no chart for this window')
                 s3.head_object(Bucket=ASTRO_BUCKET, Key=combined_key)
                 combined_url = get_presigned_url(
                     combined_key, bucket=ASTRO_BUCKET)
@@ -4775,6 +4802,8 @@ def _route_x55(rq):
             from routes.astro import (render_astro_camera_calendar,
                                       render_firstscope_subnav,
                                       CAMERA_PHOTOS, CAMERA_VIEWS)
+            if not is_default_window:
+                CAMERA_VIEWS = {}
             view_urls = []
             for v in CAMERA_VIEWS.get(camera, []):
                 try:
@@ -4783,7 +4812,9 @@ def _route_x55(rq):
                 except Exception:
                     view_urls.append(None)
             rig_url = None
-            if camera in CAMERA_PHOTOS:
+            # The rig photo belongs on the camera's front page, not on
+            # every past week or month (Peter, 11-24).
+            if camera in CAMERA_PHOTOS and is_default_window:
                 try:
                     rig_url = get_presigned_url(
                         CAMERA_PHOTOS[camera]['key'], bucket=ASTRO_BUCKET)
@@ -6510,7 +6541,7 @@ _ROUTES_PATTERN = [
     (_PRED, lambda route: re.search(r'/astro/disks/?$', route), _route_x52),
     (_PRED, lambda route: re.search(r'/astro/eclipticam/(v3w|hq16|history)/?$', route), _route_eclipticam_subpage),
     (_PRED, lambda route: re.search( r'/astro/(astrocam|canon|firstscope|eclipticam(?:-v1|-v3w)?)/night/(\d{4}-\d{2}-\d{2})/player/?$', route), _route_x54),
-    (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon|firstscope)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/results|/month/\d{4}-\d{2}|/all|/nights)?/?$', route), _route_x55),
+    (_PRED, lambda route: re.search(r'/astro/(astrocam|eclipticam|canon|firstscope)' r'(?:/night/\d{4}-\d{2}-\d{2}|/week/\d{4}-\d{2}-\d{2}' r'|/results|/month/\d{4}-\d{2}|/all|/nights|/dark)?/?$', route), _route_x55),
     (_PREFIX, '/starcam/night/', _route_starcam_night),
     (_PREFIX, '/starcam/gallery', _route_starcam_gallery),
     (_PREFIX, '/starcam/videos', _route_starcam_videos),

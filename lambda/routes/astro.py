@@ -162,8 +162,16 @@ def render_astro_latest(*, theme_css_js, fans, together=None):
 </html>'''
 
 
-def render_astro_hub(*, theme_css_js):
+def render_astro_hub(*, theme_css_js, dark_chart_url=None):
     cards = "".join(_card(c) for c in CAMERAS)
+    # Last night's darkness is the news, so it sits above the cameras (Peter, 11-24).
+    dark_html = ""
+    if dark_chart_url:
+        dark_html = (f'<a class="dark-chart" href="/astro/astrocam">'
+                     f'<img src="{dark_chart_url}" alt="How dark the sky was '
+                     f'overnight: the last week of nights from the Astro Camera"></a>'
+                     f'<div class="dark-cap">From the Astro Camera, the last week of nights. '
+                     f'Lower is darker. <a href="/astro/astrocam/nights">Earlier weeks</a></div>')
     collections = "".join(_card(c) for c in COLLECTIONS)
     historical = ('<h2 class="section">Historical</h2>'
                   + "".join(_card(c) for c in HISTORICAL))
@@ -180,6 +188,9 @@ def render_astro_hub(*, theme_css_js):
     h1 {{ text-align: center; font-size: 1.6rem; margin: 1.5rem 0 0.3rem; }}
     .subtitle {{ text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.8rem; }}
     .intro {{ color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0 0 1.5rem; }}
+    .dark-chart img {{ display: block; width: 100%; height: auto; background: #fff; border-radius: 12px; }}
+    .dark-cap {{ color: var(--text-secondary); font-size: 0.8rem; text-align: center; margin: 0.4rem 0 1.5rem; }}
+    .dark-cap a {{ color: var(--accent); text-decoration: none; }}
     .cam-card {{ display: block; background: var(--card-bg); padding: 1rem; margin-bottom: 0.75rem; text-decoration: none; color: inherit; }}
     .cam-card:hover {{ opacity: 0.85; }}
     .cam-title {{ font-size: 1.05rem; font-weight: 600; color: var(--accent); }}
@@ -196,6 +207,7 @@ def render_astro_hub(*, theme_css_js):
     <h1>Astro</h1>
     <div class="subtitle">Long exposure, wide angle, automated astronomy.</div>
     <p class="intro">Whilst Surbiton is hardly a dystopian concrete jungle, it does have a darkness score of 18.1 mag/arcsec&sup2; as I measured it, so patience is very much required to see the astonishing beauty of the night sky. I should have a bumper sticker saying &ldquo;urban astronomers do it all night every night, and then do it in software.&rdquo; <a href="/astro/project" style="color: var(--accent);">The project explained</a></p>
+{dark_html}
 {cards}
 {collections}
 {historical}
@@ -989,7 +1001,25 @@ def _short_date(d):
     return f'{d.day} {d.strftime("%b")}'
 
 
-def astro_calendar_window(nights, *, week=None, month=None, show_all=False):
+# Nights Peter picked out as dark and clear (2026-11-24, by eye). The pipeline's
+# verdict calls nearly every night "clear", so this is a hand list for now;
+# /astro/<camera>/dark shows them. Add a night here to list it.
+DARK_NIGHTS = {
+    "astrocam": [
+        "2026-06-21", "2026-06-24", "2026-06-28",
+        "2026-07-14", "2026-07-19", "2026-07-21", "2026-07-26", "2026-07-29",
+        "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-09", "2026-08-11",
+        "2026-08-12", "2026-08-13",
+        "2026-09-17", "2026-09-20", "2026-09-21", "2026-09-24",
+        "2026-10-07", "2026-10-13", "2026-10-17", "2026-10-21", "2026-10-25",
+        "2026-10-27",
+        "2026-11-12", "2026-11-13",
+    ],
+}
+
+
+def astro_calendar_window(nights, *, week=None, month=None, show_all=False,
+                          dark=None):
     """Pick which nights the calendar shows, plus its week/month nav lists.
 
     The calendar used to render every published night at once, which meant a
@@ -1001,6 +1031,7 @@ def astro_calendar_window(nights, *, week=None, month=None, show_all=False):
     week:   'YYYY-MM-DD' start of a 7-day block (from the nav links).
     month:  'YYYY-MM'.
     show_all: render the full history (the /all escape hatch).
+    dark:     a list of nights (DARK_NIGHTS) to show instead, newest first.
 
     Returns (selected, label, weeks, months):
       selected: nights to render, newest first
@@ -1036,7 +1067,10 @@ def astro_calendar_window(nights, *, week=None, month=None, show_all=False):
               for k in sorted({n[:7] for n in nights}, reverse=True)]
 
     current_week = current_month = None
-    if show_all:
+    if dark is not None:
+        dark = set(dark)
+        selected, label = [n for n in nights if n in dark], 'dark nights'
+    elif show_all:
         selected, label = list(nights), 'all nights'
     elif month:
         selected = [n for n in nights if n.startswith(f'{month}-')]
@@ -1078,7 +1112,7 @@ def _render_calendar_bar(camera, window_label, weeks, months):
 
 
 def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
-                              total_nights=0):
+                              total_nights=0, n_dark=0):
     """Index of every published week and month for one camera.
 
     Deliberately thumbnail-free: it's a set of links, so it costs one S3
@@ -1123,6 +1157,9 @@ def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
     .idx-label {{ color: var(--accent); }}
     .idx-count {{ color: var(--text-secondary); font-size: 0.8rem; }}
     .empty {{ color: var(--text-secondary); font-size: 0.85rem; }}
+    .jump {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: -0.6rem 0 1rem; }}
+    .jump a {{ padding: 0.4rem 0.85rem; font-size: 0.85rem; color: var(--accent); background: var(--card-bg); border: 1px solid var(--divider, #2C2C2E); border-radius: 999px; text-decoration: none; }}
+    .jump a:hover {{ border-color: var(--accent); }}
     .all-link {{ display: block; text-align: center; padding: 0.7rem; margin-top: 1.2rem; background: var(--card-bg); border-radius: 12px; color: var(--accent); text-decoration: none; }}
     .footer {{ text-align: center; font-size: 0.85rem; margin: 2rem 0 1rem; }}
     .footer a {{ color: var(--accent); text-decoration: none; }}
@@ -1132,9 +1169,15 @@ def render_astro_nights_index(*, theme_css_js, title, camera, weeks, months,
   <div class="container">
     <h1>{title}</h1>
     <div class="subtitle">{span}</div>
-    <h2>weeks</h2>
+    <nav class="jump">
+      <a href="/astro/{camera}/all">all nights</a>
+      <a href="#months">months</a>
+      <a href="#weeks">weeks</a>
+      {f'<a href="/astro/{camera}/dark">dark nights ({n_dark})</a>' if n_dark else ''}
+    </nav>
+    <h2 id="weeks">weeks</h2>
     {weeks_html}
-    <h2>months</h2>
+    <h2 id="months">months</h2>
     {months_html}
     <a class="all-link" href="/astro/{camera}/all">every night on one page</a>
     <div class="footer"><a href="/astro/{camera}">&larr; last 7 days</a>
@@ -1160,7 +1203,7 @@ DEFAULT_CAMERA_SUBTITLE = "night-by-night colour sweeps and stacks"
 # Caption under the multi-night brightness plot; the default is used for
 # cameras without their own.
 BRIGHTNESS_CAPTIONS = {
-    "astrocam": "brightness curves (and an old reference) for a week.  "
+    "astrocam": "brightness curves for a week.  "
                 "Clouds are bright in the suburbs and overcast is about 8, "
                 "deep darkness about 4.  4 stops or bits is 16x more photons.  The pedestal is 6 bits and must be greater "
                 "than the electrical noise of the sensor.",
