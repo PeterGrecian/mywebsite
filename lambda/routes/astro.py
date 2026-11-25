@@ -1000,19 +1000,19 @@ def _short_date(d):
     return f'{d.day} {d.strftime("%b")}'
 
 
-# Nights Peter picked out as dark and clear (2026-11-24, by eye). The pipeline's
+# Nights Peter picked out as dark and clear (2026-11-24, by eye; 11-25 swapped
+# in 10-05, 11-14 and dropped 07-29, 10-25 after a check against sky-quality hours). The pipeline's
 # verdict calls nearly every night "clear", so this is a hand list for now;
 # /astro/<camera>/dark shows them. Add a night here to list it.
 DARK_NIGHTS = {
     "astrocam": [
         "2026-06-21", "2026-06-24", "2026-06-28",
-        "2026-07-14", "2026-07-19", "2026-07-21", "2026-07-26", "2026-07-29",
+        "2026-07-14", "2026-07-19", "2026-07-21", "2026-07-26",
         "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-09", "2026-08-11",
         "2026-08-12", "2026-08-13",
         "2026-09-17", "2026-09-20", "2026-09-21", "2026-09-24",
-        "2026-10-07", "2026-10-13", "2026-10-17", "2026-10-21", "2026-10-25",
-        "2026-10-27",
-        "2026-11-12", "2026-11-13",
+        "2026-10-05", "2026-10-07", "2026-10-13", "2026-10-17", "2026-10-21", "2026-10-27",
+        "2026-11-12", "2026-11-13", "2026-11-14",
     ],
 }
 
